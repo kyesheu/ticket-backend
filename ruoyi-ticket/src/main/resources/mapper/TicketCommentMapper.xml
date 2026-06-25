@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ruoyi.ticket.mapper.TicketCommentMapper">
+
+    <resultMap type="com.ruoyi.ticket.domain.TicketComment" id="TicketCommentResult">
+        <id     property="commentId"   column="comment_id"   />
+        <result property="ticketId"    column="ticket_id"    />
+        <result property="userId"      column="user_id"      />
+        <result property="content"     column="content"      />
+        <result property="commentType" column="comment_type" />
+        <result property="delFlag"     column="del_flag"     />
+        <result property="createBy"    column="create_by"    />
+        <result property="createTime"  column="create_time"  />
+        <result property="updateBy"    column="update_by"    />
+        <result property="updateTime"  column="update_time"  />
+        <result property="remark"      column="remark"       />
+        <result property="userName"    column="user_name"    />
+    </resultMap>
+
+    <select id="selectCommentsByTicketId" parameterType="Long" resultMap="TicketCommentResult">
+        SELECT c.comment_id, c.ticket_id, c.user_id, c.content, c.comment_type,
+               c.del_flag, c.create_by, c.create_time, c.update_by, c.update_time, c.remark,
+               u.nick_name AS user_name
+        FROM ticket_comment c
+        LEFT JOIN sys_user u ON u.user_id = c.user_id
+        WHERE c.del_flag = '0' AND c.ticket_id = #{ticketId}
+        ORDER BY c.create_time DESC
+    </select>
+
+    <insert id="insertComment" parameterType="com.ruoyi.ticket.domain.TicketComment" useGeneratedKeys="true" keyProperty="commentId">
+        INSERT INTO ticket_comment (
+            ticket_id, user_id, content, comment_type, del_flag,
+            create_by, create_time, update_by, update_time, remark
+        ) VALUES (
+            #{ticketId}, #{userId}, #{content}, #{commentType}, #{delFlag},
+            #{createBy}, #{createTime}, #{updateBy}, #{updateTime}, #{remark}
+        )
+    </insert>
+
+</mapper>

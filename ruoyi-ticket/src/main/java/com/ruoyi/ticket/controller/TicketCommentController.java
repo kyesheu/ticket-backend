@@ -1,5 +1,6 @@
 package com.ruoyi.ticket.controller;
 
+import java.util.List;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.validation.annotation.Validated;
@@ -13,6 +14,7 @@ import com.ruoyi.common.annotation.Log;
 import com.ruoyi.common.core.controller.BaseController;
 import com.ruoyi.common.core.domain.AjaxResult;
 import com.ruoyi.common.enums.BusinessType;
+import com.ruoyi.ticket.domain.TicketComment;
 import com.ruoyi.ticket.dto.TicketCommentDTO;
 import com.ruoyi.ticket.service.ITicketCommentService;
 
@@ -28,18 +30,24 @@ public class TicketCommentController extends BaseController {
     @Autowired
     private ITicketCommentService ticketCommentService;
 
+    /**
+     * 查看工单评论列表
+     */
     @PreAuthorize("@ss.hasPermi('ticket:comment:list')")
     @GetMapping
     public AjaxResult list(@PathVariable Long ticketId) {
-        // TODO: 阶段六实现
-        return success();
+        List<TicketComment> comments = ticketCommentService.selectCommentsByTicketId(ticketId);
+        return success(comments);
     }
 
+    /**
+     * 添加工单评论
+     */
     @Log(title = "工单评论", businessType = BusinessType.INSERT)
     @PreAuthorize("@ss.hasPermi('ticket:comment:add')")
     @PostMapping
     public AjaxResult add(@PathVariable Long ticketId, @Validated @RequestBody TicketCommentDTO dto) {
-        // TODO: 阶段六实现
+        ticketCommentService.addComment(ticketId, dto);
         return success();
     }
 }

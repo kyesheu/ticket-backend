@@ -1,6 +1,7 @@
 package com.ruoyi.ticket.mapper;
 
 import java.util.List;
+import org.apache.ibatis.annotations.Param;
 import com.ruoyi.ticket.domain.Ticket;
 import com.ruoyi.ticket.dto.TicketQueryDTO;
 import com.ruoyi.ticket.vo.TicketListVO;
@@ -37,4 +38,19 @@ public interface TicketMapper {
      * 删除工单（逻辑删除，设置 del_flag）
      */
     int deleteTicketById(Long ticketId);
+
+    /**
+     * 查询今天最大的工单编号（用于生成新编号）
+     */
+    String selectMaxTicketNo(@Param("prefix") String prefix);
+
+    /**
+     * 校验用户是否存在
+     */
+    int checkUserExists(@Param("userId") Long userId);
+
+    /**
+     * 查询工单实体（不含 JOIN，用于状态流转时更新）
+     */
+    Ticket selectTicketEntityById(@Param("ticketId") Long ticketId);
 }

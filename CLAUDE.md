@@ -1,70 +1,62 @@
 # CLAUDE.md
 
-## 项目说明
+## 项目
 
-本项目是基于 RuoYi-Vue Spring Boot 3 二次开发的企业流程工单管理系统后端。
+基于 RuoYi-Vue Spring Boot 3 二开的企业工单管理系统。v1.0 新增 `ruoyi-ticket` 模块，实现工单创建、分派、处理、确认、关闭/取消、评论、操作日志主流程。
 
-v1.0 新增 `ruoyi-ticket` 模块，完成工单创建、分派、处理、确认、关闭/取消、评论、操作日志等主流程。
+必要时可对基础模块做小范围、可回滚的调整。
 
-目标是在理解若依基础能力的前提下扩展业务模块；如确有必要，可以对基础模块做小范围、可解释、可回滚的调整。
+## 文档
 
-## 先读文档
+改代码前按任务读对应文档，按 `docs/04-implementation-plan.md` 分阶段推进，不跳阶段。
 
-改代码前，按任务阅读相关文档：
+| 文档 | 内容 |
+|---|---|
+| `docs/01-project-spec.md` | 项目边界、验收标准 |
+| `docs/02-architecture-design.md` | 分层规范、命名约定 |
+| `docs/03-database-design.md` | 表结构、索引 |
+| `docs/04-implementation-plan.md` | 8 阶段实施计划 |
+| `docs/05-test-release.md` | 测试清单 |
 
-- `docs/01-project-spec.md`：项目边界
-- `docs/02-architecture-design.md`：架构规范
-- `docs/03-database-design.md`：数据库设计
-- `docs/04-implementation-plan.md`：实施计划
-- `docs/05-test-release.md`：测试发布
+## 代码规范
 
-开发顺序必须按照 `docs/04-implementation-plan.md` 分阶段推进，不要跳阶段。
+写 Java 前先加载 `alibaba-java-coding-guidelines-skill`，按规范生成，不事后审查。
 
-## 代码规范（强制）
-
-写任何 Java 代码前，**必须**先通过 Skill 工具加载 `alibaba-java-coding-guidelines-skill`，然后读取 `references/alibaba-java-rules.md` 的完整规则。
-
-生成代码时必须遵循其中的代码生成规则，尤其是：
-
-- 所有 POJO（Domain / DTO / VO）必须实现 `Serializable`，声明 `serialVersionUID`
+- POJO（Domain / DTO / VO）必须实现 `Serializable`，声明 `serialVersionUID`
 - 类名 UpperCamelCase，方法/变量 lowerCamelCase，常量 UPPER_SNAKE_CASE
-- 不使用魔法值，固定值优先用枚举
-- 注释用中文 Javadoc 格式
+- 不用魔法值，固定值用枚举
+- 注释用中文 Javadoc
 - Service 接口 `I` 前缀，实现 `Impl` 后缀
 
-**不要在写完代码后才审查——写的时候就按规范生成。事后审查是浪费。**
+## 开发和测试流程
 
-## 开发流程
+每次开发前先说明：哪个阶段、改哪些文件、为什么、是否涉及基础模块、如何验证。一次一个阶段。
 
-每次开发前先说明：
+### 1. 列测试用例
 
-1. 当前处于实施计划的哪个阶段
-2. 准备改哪些文件
-3. 为什么要改
-4. 是否涉及若依基础模块
-5. 如何验证
+合法场景 + 非法场景 + 边界条件。先想清楚要测什么。
 
-每次只做一个阶段或一个功能，不要一次性生成大量无关代码。
+### 2. 建代码骨架
 
-## 测试要求
+**只建当前功能需要的类**，不一次性生成全部。保证编译通过即可。
 
-每完成一个功能，必须完成自测。
+- 非空壳：临时实现必须写 `// TODO: 阶段X实现`，不能留空方法体导致编译错误
+- 骨架不算完成——只是让后续步骤能编译的前提
 
-优先补充单元测试或核心逻辑测试，尤其是：
+### 3. 写单元测试
 
-- `TicketStatus` 状态流转
-- 工单分派 / 处理 / 确认 / 取消
-- 非法状态流转
-- 权限与数据范围判断
-- 操作日志写入
+核心规则必测：状态流转、权限判断、参数校验。Service 层用 Mockito mock Mapper（Mapper = 数据库边界，mock 合理）。测行为不测实现。
 
-如果当前测试环境不完整，也必须至少完成：
+### 4. 实现业务逻辑
 
-- `mvn clean compile`
-- Swagger / Postman 接口自测
-- 合法流程测试
-- 非法流程测试
-- 权限测试
-- 说明测试结果
+填充 Service Impl 和 Controller 方法体，使测试通过。
 
-不要在没有验证的情况下声称功能完成。
+### 5. `mvn test` → `mvn clean compile`
+
+全部通过才能继续。
+
+### 6. 启动后端 + 接口 smoke
+
+启动 Spring Boot，执行 `scripts/ticket/smoke-test.ps1`，覆盖：分类 CRUD、工单主流程、合法/非法流转、评论、日志、权限。
+
+**没有测试结果，不声称功能完成。**

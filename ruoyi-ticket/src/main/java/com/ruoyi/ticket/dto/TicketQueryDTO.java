@@ -2,6 +2,8 @@ package com.ruoyi.ticket.dto;
 
 import java.io.Serializable;
 import java.util.Date;
+import java.util.HashMap;
+import java.util.Map;
 
 /**
  * 工单列表查询请求体
@@ -35,6 +37,9 @@ public class TicketQueryDTO implements Serializable {
 
     /** 每页条数 */
     private Integer pageSize;
+
+    /** 请求参数（用于数据范围等扩展参数） */
+    private Map<String, Object> params;
 
     public String getStatus() {
         return status;
@@ -98,5 +103,16 @@ public class TicketQueryDTO implements Serializable {
 
     public void setPageSize(Integer pageSize) {
         this.pageSize = pageSize;
+    }
+
+    public Map<String, Object> getParams() {
+        if (params == null) {
+            params = new HashMap<>();
+        }
+        return params;
+    }
+
+    public void setParams(Map<String, Object> params) {
+        this.params = params;
     }
 }

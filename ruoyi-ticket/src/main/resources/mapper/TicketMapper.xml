@@ -1,0 +1,182 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ruoyi.ticket.mapper.TicketMapper">
+
+    <resultMap type="com.ruoyi.ticket.domain.Ticket" id="TicketResult">
+        <id     property="ticketId"    column="ticket_id"    />
+        <result property="ticketNo"    column="ticket_no"    />
+        <result property="title"       column="title"        />
+        <result property="content"     column="content"      />
+        <result property="categoryId"  column="category_id"  />
+        <result property="priority"    column="priority"     />
+        <result property="status"      column="status"       />
+        <result property="creatorId"   column="creator_id"   />
+        <result property="assigneeId"  column="assignee_id"  />
+        <result property="deptId"      column="dept_id"      />
+        <result property="processedAt" column="processed_at" />
+        <result property="closedAt"    column="closed_at"    />
+        <result property="delFlag"     column="del_flag"     />
+        <result property="createBy"    column="create_by"    />
+        <result property="createTime"  column="create_time"  />
+        <result property="updateBy"    column="update_by"    />
+        <result property="updateTime"  column="update_time"  />
+        <result property="remark"      column="remark"       />
+        <result property="creatorName" column="creator_name" />
+        <result property="assigneeName" column="assignee_name" />
+        <result property="deptName"    column="dept_name"    />
+        <result property="categoryName" column="category_name" />
+    </resultMap>
+
+    <resultMap type="com.ruoyi.ticket.vo.TicketListVO" id="TicketListVOResult">
+        <result property="ticketId"     column="ticket_id"     />
+        <result property="ticketNo"     column="ticket_no"     />
+        <result property="title"        column="title"         />
+        <result property="priority"     column="priority"      />
+        <result property="status"       column="status"        />
+        <result property="categoryName" column="category_name" />
+        <result property="creatorName"  column="creator_name"  />
+        <result property="assigneeName" column="assignee_name" />
+        <result property="createTime"   column="create_time"   />
+        <result property="updateTime"   column="update_time"   />
+    </resultMap>
+
+    <resultMap type="com.ruoyi.ticket.vo.TicketVO" id="TicketVOResult">
+        <result property="ticketId"     column="ticket_id"     />
+        <result property="ticketNo"     column="ticket_no"     />
+        <result property="title"        column="title"         />
+        <result property="content"      column="content"       />
+        <result property="categoryId"   column="category_id"   />
+        <result property="categoryName" column="category_name" />
+        <result property="priority"     column="priority"      />
+        <result property="status"       column="status"        />
+        <result property="creatorId"    column="creator_id"    />
+        <result property="creatorName"  column="creator_name"  />
+        <result property="assigneeId"   column="assignee_id"   />
+        <result property="assigneeName" column="assignee_name" />
+        <result property="deptId"       column="dept_id"       />
+        <result property="deptName"     column="dept_name"     />
+        <result property="processedAt"  column="processed_at"  />
+        <result property="closedAt"     column="closed_at"     />
+        <result property="createTime"   column="create_time"   />
+        <result property="updateTime"   column="update_time"   />
+        <result property="remark"       column="remark"        />
+    </resultMap>
+
+    <sql id="selectTicketVo">
+        SELECT t.ticket_id, t.ticket_no, t.title, t.content, t.category_id,
+               t.priority, t.status, t.creator_id, t.assignee_id, t.dept_id,
+               t.processed_at, t.closed_at, t.del_flag, t.create_by, t.create_time,
+               t.update_by, t.update_time, t.remark
+        FROM ticket t
+    </sql>
+
+    <!-- 列表查询 -->
+    <select id="selectTicketList" parameterType="com.ruoyi.ticket.dto.TicketQueryDTO" resultMap="TicketListVOResult">
+        SELECT t.ticket_id, t.ticket_no, t.title, t.priority, t.status,
+               c.category_name,
+               u.nick_name AS creator_name,
+               a.nick_name AS assignee_name,
+               t.create_time, t.update_time
+        FROM ticket t
+        LEFT JOIN ticket_category c ON c.category_id = t.category_id
+        LEFT JOIN sys_user u ON u.user_id = t.creator_id
+        LEFT JOIN sys_user a ON a.user_id = t.assignee_id
+        WHERE t.del_flag = '0'
+        <if test="status != null and status != ''">
+            AND t.status = #{status}
+        </if>
+        <if test="priority != null and priority != ''">
+            AND t.priority = #{priority}
+        </if>
+        <if test="categoryId != null">
+            AND t.category_id = #{categoryId}
+        </if>
+        <if test="keyword != null and keyword != ''">
+            AND (t.title LIKE CONCAT('%', #{keyword}, '%') OR t.content LIKE CONCAT('%', #{keyword}, '%'))
+        </if>
+        <if test="beginTime != null">
+            AND t.create_time &gt;= #{beginTime}
+        </if>
+        <if test="endTime != null">
+            AND t.create_time &lt;= #{endTime}
+        </if>
+        <!-- 数据范围在 Service 层通过参数注入 -->
+        <if test="params.dataScope != null and params.dataScope != ''">
+            AND (${params.dataScope})
+        </if>
+        ORDER BY t.create_time DESC
+    </select>
+
+    <!-- 详情查询 -->
+    <select id="selectTicketById" parameterType="Long" resultMap="TicketVOResult">
+        SELECT t.ticket_id, t.ticket_no, t.title, t.content, t.category_id,
+               c.category_name,
+               t.priority, t.status,
+               t.creator_id, u.nick_name AS creator_name,
+               t.assignee_id, a.nick_name AS assignee_name,
+               t.dept_id, d.dept_name,
+               t.processed_at, t.closed_at,
+               t.create_time, t.update_time, t.remark
+        FROM ticket t
+        LEFT JOIN ticket_category c ON c.category_id = t.category_id
+        LEFT JOIN sys_user u ON u.user_id = t.creator_id
+        LEFT JOIN sys_user a ON a.user_id = t.assignee_id
+        LEFT JOIN sys_dept d ON d.dept_id = t.dept_id
+        WHERE t.del_flag = '0' AND t.ticket_id = #{ticketId}
+    </select>
+
+    <!-- 查询实体（不含 JOIN，用于更新） -->
+    <select id="selectTicketEntityById" parameterType="Long" resultMap="TicketResult">
+        <include refid="selectTicketVo"/>
+        WHERE t.del_flag = '0' AND t.ticket_id = #{ticketId}
+    </select>
+
+    <!-- 新增工单 -->
+    <insert id="insertTicket" parameterType="com.ruoyi.ticket.domain.Ticket" useGeneratedKeys="true" keyProperty="ticketId">
+        INSERT INTO ticket (
+            ticket_no, title, content, category_id, priority, status,
+            creator_id, assignee_id, dept_id, processed_at, closed_at, del_flag,
+            create_by, create_time, update_by, update_time, remark
+        ) VALUES (
+            #{ticketNo}, #{title}, #{content}, #{categoryId}, #{priority}, #{status},
+            #{creatorId}, #{assigneeId}, #{deptId}, #{processedAt}, #{closedAt}, #{delFlag},
+            #{createBy}, #{createTime}, #{updateBy}, #{updateTime}, #{remark}
+        )
+    </insert>
+
+    <!-- 更新工单 -->
+    <update id="updateTicket" parameterType="com.ruoyi.ticket.domain.Ticket">
+        UPDATE ticket
+        SET title       = #{title},
+            content     = #{content},
+            category_id = #{categoryId},
+            priority    = #{priority},
+            status      = #{status},
+            assignee_id = #{assigneeId},
+            processed_at = #{processedAt},
+            closed_at   = #{closedAt},
+            update_by   = #{updateBy},
+            update_time = #{updateTime},
+            remark      = #{remark}
+        WHERE ticket_id = #{ticketId}
+    </update>
+
+    <!-- 逻辑删除 -->
+    <update id="deleteTicketById" parameterType="Long">
+        UPDATE ticket SET del_flag = '2' WHERE ticket_id = #{ticketId}
+    </update>
+
+    <!-- 查询今天最大工单编号 -->
+    <select id="selectMaxTicketNo" parameterType="String" resultType="String">
+        SELECT MAX(ticket_no) FROM ticket
+        WHERE ticket_no LIKE CONCAT(#{prefix}, '%')
+    </select>
+
+    <!-- 校验用户是否存在 -->
+    <select id="checkUserExists" parameterType="Long" resultType="int">
+        SELECT COUNT(1) FROM sys_user
+        WHERE user_id = #{userId} AND del_flag = '0'
+        LIMIT 1
+    </select>
+
+</mapper>

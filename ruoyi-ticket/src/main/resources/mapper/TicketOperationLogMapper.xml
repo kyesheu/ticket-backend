@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ruoyi.ticket.mapper.TicketOperationLogMapper">
+
+    <resultMap type="com.ruoyi.ticket.domain.TicketOperationLog" id="TicketOperationLogResult">
+        <id     property="logId"         column="log_id"         />
+        <result property="ticketId"      column="ticket_id"      />
+        <result property="operationType" column="operation_type" />
+        <result property="fromStatus"    column="from_status"    />
+        <result property="toStatus"      column="to_status"      />
+        <result property="operatorId"    column="operator_id"    />
+        <result property="operatorName"  column="operator_name"  />
+        <result property="comment"       column="comment"        />
+        <result property="operateTime"   column="operate_time"   />
+    </resultMap>
+
+    <select id="selectLogsByTicketId" parameterType="Long" resultMap="TicketOperationLogResult">
+        SELECT log_id, ticket_id, operation_type, from_status, to_status,
+               operator_id, operator_name, comment, operate_time
+        FROM ticket_operation_log
+        WHERE ticket_id = #{ticketId}
+        ORDER BY operate_time DESC
+    </select>
+
+    <insert id="insertLog" parameterType="com.ruoyi.ticket.domain.TicketOperationLog">
+        INSERT INTO ticket_operation_log (
+            ticket_id, operation_type, from_status, to_status,
+            operator_id, operator_name, comment, operate_time
+        ) VALUES (
+            #{ticketId}, #{operationType}, #{fromStatus}, #{toStatus},
+            #{operatorId}, #{operatorName}, #{comment}, #{operateTime}
+        )
+    </insert>
+
+</mapper>

@@ -1,0 +1,206 @@
+package com.ruoyi.ticket.domain;
+
+import java.util.Date;
+import com.fasterxml.jackson.annotation.JsonFormat;
+import com.ruoyi.common.core.domain.BaseEntity;
+
+/**
+ * 工单主表实体
+ *
+ * @author ticket
+ */
+public class Ticket extends BaseEntity {
+
+    private static final long serialVersionUID = 1L;
+
+    /** 主键 */
+    private Long ticketId;
+
+    /** 工单编号 */
+    private String ticketNo;
+
+    /** 工单标题 */
+    private String title;
+
+    /** 工单内容 */
+    private String content;
+
+    /** 分类ID */
+    private Long categoryId;
+
+    /** 优先级：LOW/MEDIUM/HIGH/URGENT */
+    private String priority;
+
+    /** 状态：NEW/PROCESSING/WAIT_CONFIRM/CLOSED/CANCELLED */
+    private String status;
+
+    /** 创建人ID */
+    private Long creatorId;
+
+    /** 指派人ID */
+    private Long assigneeId;
+
+    /** 创建人部门ID */
+    private Long deptId;
+
+    /** 首次进入处理中的时间 */
+    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
+    private Date processedAt;
+
+    /** 关闭时间 */
+    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
+    private Date closedAt;
+
+    /** 删除标志：0存在 2删除 */
+    private String delFlag;
+
+    // ---- 以下为 LEFT JOIN 查询时填充的展示字段 ----
+
+    /** 创建人昵称 */
+    private String creatorName;
+
+    /** 指派人昵称 */
+    private String assigneeName;
+
+    /** 部门名称 */
+    private String deptName;
+
+    /** 分类名称 */
+    private String categoryName;
+
+    public Long getTicketId() {
+        return ticketId;
+    }
+
+    public void setTicketId(Long ticketId) {
+        this.ticketId = ticketId;
+    }
+
+    public String getTicketNo() {
+        return ticketNo;
+    }
+
+    public void setTicketNo(String ticketNo) {
+        this.ticketNo = ticketNo;
+    }
+
+    public String getTitle() {
+        return title;
+    }
+
+    public void setTitle(String title) {
+        this.title = title;
+    }
+
+    public String getContent() {
+        return content;
+    }
+
+    public void setContent(String content) {
+        this.content = content;
+    }
+
+    public Long getCategoryId() {
+        return categoryId;
+    }
+
+    public void setCategoryId(Long categoryId) {
+        this.categoryId = categoryId;
+    }
+
+    public String getPriority() {
+        return priority;
+    }
+
+    public void setPriority(String priority) {
+        this.priority = priority;
+    }
+
+    public String getStatus() {
+        return status;
+    }
+
+    public void setStatus(String status) {
+        this.status = status;
+    }
+
+    public Long getCreatorId() {
+        return creatorId;
+    }
+
+    public void setCreatorId(Long creatorId) {
+        this.creatorId = creatorId;
+    }
+
+    public Long getAssigneeId() {
+        return assigneeId;
+    }
+
+    public void setAssigneeId(Long assigneeId) {
+        this.assigneeId = assigneeId;
+    }
+
+    public Long getDeptId() {
+        return deptId;
+    }
+
+    public void setDeptId(Long deptId) {
+        this.deptId = deptId;
+    }
+
+    public Date getProcessedAt() {
+        return processedAt;
+    }
+
+    public void setProcessedAt(Date processedAt) {
+        this.processedAt = processedAt;
+    }
+
+    public Date getClosedAt() {
+        return closedAt;
+    }
+
+    public void setClosedAt(Date closedAt) {
+        this.closedAt = closedAt;
+    }
+
+    public String getDelFlag() {
+        return delFlag;
+    }
+
+    public void setDelFlag(String delFlag) {
+        this.delFlag = delFlag;
+    }
+
+    public String getCreatorName() {
+        return creatorName;
+    }
+
+    public void setCreatorName(String creatorName) {
+        this.creatorName = creatorName;
+    }
+
+    public String getAssigneeName() {
+        return assigneeName;
+    }
+
+    public void setAssigneeName(String assigneeName) {
+        this.assigneeName = assigneeName;
+    }
+
+    public String getDeptName() {
+        return deptName;
+    }
+
+    public void setDeptName(String deptName) {
+        this.deptName = deptName;
+    }
+
+    public String getCategoryName() {
+        return categoryName;
+    }
+
+    public void setCategoryName(String categoryName) {
+        this.categoryName = categoryName;
+    }
+}

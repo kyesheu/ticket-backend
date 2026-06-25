@@ -1,0 +1,107 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ruoyi.ticket.mapper.TicketCategoryMapper">
+
+    <resultMap type="com.ruoyi.ticket.domain.TicketCategory" id="TicketCategoryResult">
+        <id     property="categoryId"   column="category_id"   />
+        <result property="parentId"     column="parent_id"     />
+        <result property="categoryName" column="category_name" />
+        <result property="ancestors"    column="ancestors"     />
+        <result property="orderNum"     column="order_num"     />
+        <result property="status"       column="status"        />
+        <result property="delFlag"      column="del_flag"      />
+        <result property="createBy"     column="create_by"     />
+        <result property="createTime"   column="create_time"   />
+        <result property="updateBy"     column="update_by"     />
+        <result property="updateTime"   column="update_time"   />
+        <result property="remark"       column="remark"        />
+    </resultMap>
+
+    <sql id="selectCategoryVo">
+        SELECT category_id, parent_id, category_name, ancestors, order_num,
+               status, del_flag, create_by, create_time, update_by, update_time, remark
+        FROM ticket_category
+    </sql>
+
+    <select id="selectCategoryList" parameterType="com.ruoyi.ticket.domain.TicketCategory" resultMap="TicketCategoryResult">
+        <include refid="selectCategoryVo"/>
+        WHERE del_flag = '0'
+        <if test="categoryName != null and categoryName != ''">
+            AND category_name LIKE CONCAT('%', #{categoryName}, '%')
+        </if>
+        <if test="status != null and status != ''">
+            AND status = #{status}
+        </if>
+        ORDER BY parent_id, order_num
+    </select>
+
+    <select id="selectCategoryTree" resultMap="TicketCategoryResult">
+        <include refid="selectCategoryVo"/>
+        WHERE del_flag = '0'
+        ORDER BY parent_id, order_num
+    </select>
+
+    <select id="selectCategoryById" parameterType="Long" resultMap="TicketCategoryResult">
+        <include refid="selectCategoryVo"/>
+        WHERE del_flag = '0' AND category_id = #{categoryId}
+    </select>
+
+    <insert id="insertCategory" parameterType="com.ruoyi.ticket.domain.TicketCategory" useGeneratedKeys="true" keyProperty="categoryId">
+        INSERT INTO ticket_category (
+            parent_id, category_name, ancestors, order_num, status, del_flag,
+            create_by, create_time, update_by, update_time, remark
+        ) VALUES (
+            #{parentId}, #{categoryName}, #{ancestors}, #{orderNum}, #{status}, #{delFlag},
+            #{createBy}, #{createTime}, #{updateBy}, #{updateTime}, #{remark}
+        )
+    </insert>
+
+    <update id="updateCategory" parameterType="com.ruoyi.ticket.domain.TicketCategory">
+        UPDATE ticket_category
+        SET parent_id     = #{parentId},
+            category_name = #{categoryName},
+            ancestors     = #{ancestors},
+            order_num     = #{orderNum},
+            status        = #{status},
+            update_by     = #{updateBy},
+            update_time   = #{updateTime},
+            remark        = #{remark}
+        WHERE category_id = #{categoryId}
+    </update>
+
+    <update id="deleteCategoryById" parameterType="Long">
+        UPDATE ticket_category SET del_flag = '2' WHERE category_id = #{categoryId}
+    </update>
+
+    <select id="countByParentId" parameterType="Long" resultType="int">
+        SELECT COUNT(1) FROM ticket_category
+        WHERE del_flag = '0' AND parent_id = #{parentId}
+        LIMIT 1
+    </select>
+
+    <select id="checkCategoryNameUnique" resultType="int">
+        SELECT COUNT(1) FROM ticket_category
+        WHERE del_flag = '0'
+          AND category_name = #{categoryName}
+          AND parent_id = #{parentId}
+        <if test="categoryId != null">
+          AND category_id != #{categoryId}
+        </if>
+        LIMIT 1
+    </select>
+
+    <update id="updateCategoryChildren">
+        UPDATE ticket_category
+        SET ancestors =
+        <foreach collection="children" item="item" index="index"
+            separator=" " open="CASE category_id" close="END">
+            WHEN #{item.categoryId} THEN #{item.ancestors}
+        </foreach>
+        WHERE category_id IN
+        <foreach collection="children" item="item" index="index"
+            separator="," open="(" close=")">
+            #{item.categoryId}
+        </foreach>
+    </update>
+
+</mapper>

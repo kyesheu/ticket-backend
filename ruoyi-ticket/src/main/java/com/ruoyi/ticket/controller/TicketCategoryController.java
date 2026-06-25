@@ -30,48 +30,64 @@ public class TicketCategoryController extends BaseController {
     @Autowired
     private ITicketCategoryService ticketCategoryService;
 
+    /**
+     * 查询分类列表（平铺）
+     */
     @PreAuthorize("@ss.hasPermi('ticket:category:list')")
     @GetMapping("/list")
     public AjaxResult list(TicketCategory category) {
-        // TODO: 阶段四实现
-        return success();
+        return success(ticketCategoryService.selectCategoryList(category));
     }
 
+    /**
+     * 查询分类树
+     */
     @PreAuthorize("@ss.hasPermi('ticket:category:list')")
     @GetMapping("/tree")
     public AjaxResult tree() {
-        // TODO: 阶段四实现
-        return success();
+        return success(ticketCategoryService.selectCategoryTree());
     }
 
+    /**
+     * 根据 ID 查询分类详情
+     */
     @PreAuthorize("@ss.hasPermi('ticket:category:query')")
     @GetMapping("/{id}")
     public AjaxResult getInfo(@PathVariable Long id) {
-        // TODO: 阶段四实现
-        return success();
+        TicketCategory category = ticketCategoryService.selectCategoryById(id);
+        if (category == null) {
+            return error("分类不存在");
+        }
+        return success(category);
     }
 
+    /**
+     * 新增分类
+     */
     @Log(title = "分类管理", businessType = BusinessType.INSERT)
     @PreAuthorize("@ss.hasPermi('ticket:category:add')")
     @PostMapping
     public AjaxResult add(@Validated @RequestBody TicketCategory category) {
-        // TODO: 阶段四实现
-        return success();
+        return toAjax(ticketCategoryService.insertCategory(category));
     }
 
+    /**
+     * 修改分类
+     */
     @Log(title = "分类管理", businessType = BusinessType.UPDATE)
     @PreAuthorize("@ss.hasPermi('ticket:category:edit')")
     @PutMapping
     public AjaxResult edit(@Validated @RequestBody TicketCategory category) {
-        // TODO: 阶段四实现
-        return success();
+        return toAjax(ticketCategoryService.updateCategory(category));
     }
 
+    /**
+     * 删除分类
+     */
     @Log(title = "分类管理", businessType = BusinessType.UPDATE)
     @PreAuthorize("@ss.hasPermi('ticket:category:remove')")
     @DeleteMapping("/{id}")
     public AjaxResult remove(@PathVariable Long id) {
-        // TODO: 阶段四实现
-        return success();
+        return toAjax(ticketCategoryService.deleteCategoryById(id));
     }
 }

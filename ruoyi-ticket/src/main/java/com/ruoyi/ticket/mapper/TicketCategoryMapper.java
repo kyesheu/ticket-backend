@@ -1,6 +1,7 @@
 package com.ruoyi.ticket.mapper;
 
 import java.util.List;
+import org.apache.ibatis.annotations.Param;
 import com.ruoyi.ticket.domain.TicketCategory;
 
 /**
@@ -48,5 +49,12 @@ public interface TicketCategoryMapper {
     /**
      * 检查同父分类下是否存在同名分类
      */
-    int checkCategoryNameUnique(String categoryName, Long parentId, Long categoryId);
+    int checkCategoryNameUnique(@Param("categoryName") String categoryName,
+                                @Param("parentId") Long parentId,
+                                @Param("categoryId") Long categoryId);
+
+    /**
+     * 批量更新子分类的 ancestors（父分类变更时级联更新）
+     */
+    int updateCategoryChildren(@Param("children") List<TicketCategory> children);
 }

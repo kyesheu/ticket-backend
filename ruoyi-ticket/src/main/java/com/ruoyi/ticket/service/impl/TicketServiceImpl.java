@@ -3,6 +3,7 @@ package com.ruoyi.ticket.service.impl;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.List;
+import java.util.Objects;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -49,8 +50,11 @@ public class TicketServiceImpl implements ITicketService {
     @Override
     public List<TicketListVO> selectTicketList(TicketQueryDTO query) {
         // 数据范围控制：管理员看全部，普通用户只看自己相关工单
-        if (!SecurityUtils.isAdmin()) {
-            Long currentUserId = SecurityUtils.getUserId();
+        Long currentUserId = SecurityUtils.getUserId();
+        if (SecurityUtils.isAdmin()) {
+            // 管理员也显式设置 dataScope，防止用户通过 query params 注入 SQL
+            query.getParams().put("dataScope", "1 = 1");
+        } else {
             query.getParams().put("dataScope",
                     "t.creator_id = " + currentUserId + " OR t.assignee_id = " + currentUserId);
         }
@@ -173,7 +177,7 @@ public class TicketServiceImpl implements ITicketService {
         }
         // 校验当前用户是创建人或管理员
         Long currentUserId = SecurityUtils.getUserId();
-        if (!ticket.getCreatorId().equals(currentUserId) && !SecurityUtils.isAdmin()) {
+        if (!Objects.equals(ticket.getCreatorId(), currentUserId) && !SecurityUtils.isAdmin()) {
             throw new ServiceException("您不是该工单的创建人，无法确认");
         }
 
@@ -200,7 +204,7 @@ public class TicketServiceImpl implements ITicketService {
         }
         // 校验当前用户是创建人或管理员
         Long currentUserId = SecurityUtils.getUserId();
-        if (!ticket.getCreatorId().equals(currentUserId) && !SecurityUtils.isAdmin()) {
+        if (!Objects.equals(ticket.getCreatorId(), currentUserId) && !SecurityUtils.isAdmin()) {
             throw new ServiceException("您不是该工单的创建人，无法取消");
         }
         // 取消原因必填
@@ -221,7 +225,7 @@ public class TicketServiceImpl implements ITicketService {
     /**
      * 生成工单编号，格式 TK + yyyyMMdd + 4 位序号
      */
-    private String generateTicketNo() {
+    private synchronized String generateTicketNo() {
         String todayPrefix = TICKET_NO_PREFIX + new SimpleDateFormat("yyyyMMdd").format(new Date());
         String maxNo = ticketMapper.selectMaxTicketNo(todayPrefix);
         if (StringUtils.isBlank(maxNo)) {

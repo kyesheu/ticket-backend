@@ -252,14 +252,18 @@ public class TicketCategoryServiceImpl implements ITicketCategoryService {
     private void updateChildrenAncestors(Long parentId, String newAncestors, String oldAncestors) {
         List<TicketCategory> children = ticketCategoryMapper.selectCategoryTree();
         List<TicketCategory> toUpdate = new ArrayList<>();
+        String oldPath = oldAncestors + "," + parentId;
+        String newPath = newAncestors + "," + parentId;
         for (TicketCategory child : children) {
-            if (child.getAncestors() != null
-                    && child.getAncestors().startsWith(oldAncestors + "," + parentId + ",")) {
-                // 替换祖先前缀
-                child.setAncestors(
-                        newAncestors + "," + parentId
-                                + child.getAncestors().substring((oldAncestors + "," + parentId).length())
-                );
+            if (child.getAncestors() == null) {
+                continue;
+            }
+            String childAncestors = child.getAncestors();
+            // 匹配旧路径前缀（孙节点：childAncestors 以 "oldPath," 开头）
+            // 或精确匹配（直接子节点：childAncestors == oldPath）
+            if (childAncestors.equals(oldPath)
+                    || childAncestors.startsWith(oldPath + ",")) {
+                child.setAncestors(newPath + childAncestors.substring(oldPath.length()));
                 toUpdate.add(child);
             }
         }

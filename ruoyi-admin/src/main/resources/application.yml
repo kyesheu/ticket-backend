@@ -5,7 +5,7 @@ ruoyi:
   copyrightYear: 2026
   profile: ${UPLOAD_PATH:./uploadPath}
   addressEnabled: false
-  captchaType: ""
+  captchaType: math
 
 # 服务配置
 server:

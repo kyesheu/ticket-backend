@@ -80,7 +80,7 @@
 - `ticket_comment` — 评论
 - `ticket_operation_log` — 业务操作审计日志
 
-不改动 RuoYi 现有代码，仅在 `ruoyi-admin` 添加 Maven 依赖。
+以新增 `ruoyi-ticket` 模块为主，必要时可对基础模块做小范围调整。
 
 ---
 

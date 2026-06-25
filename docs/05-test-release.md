@@ -4,21 +4,7 @@
 
 ---
 
-## 1. 本地开发环境
-
-| 组件 | 版本/说明 |
-|---|---|
-| JDK | 21 |
-| Maven | 3.9+ |
-| MySQL | 8.0+，端口 3306 |
-| Redis | 7.x，端口 6379 |
-| IDE | IntelliJ IDEA（推荐）或 VS Code |
-| 数据库工具 | Navicat / DBeaver / DataGrip 均可 |
-| 前端 | v1.0 后端优先，前端暂不涉及，接口通过 Swagger 测试 |
-
----
-
-## 2. 启动前检查
+## 1. 启动前检查
 
 逐项确认，全部通过后再启动：
 
@@ -34,7 +20,7 @@
 
 ---
 
-## 3. 后端启动验证
+## 2. 后端启动验证
 
 1. 运行 `ruoyi-admin` 中的 `RuoYiApplication`
 2. 观察控制台：无 `ERROR` 日志，无 Bean 注入失败
@@ -46,7 +32,7 @@
 
 ---
 
-## 4. 数据库验证
+## 3. 数据库验证
 
 逐项在数据库工具中确认：
 
@@ -63,7 +49,7 @@
 
 ---
 
-## 5. 接口测试清单
+## 4. 接口测试清单
 
 所有测试通过 Swagger UI 或 Postman 执行。以下用 `{{token}}` 表示登录后获取的 Authorization header。
 
@@ -283,7 +269,7 @@
 
 ---
 
-## 6. 状态流转测试
+## 5. 状态流转测试
 
 ### 6.1 合法流转
 
@@ -317,7 +303,7 @@
 
 ---
 
-## 7. 权限测试
+## 6. 权限测试
 
 | # | 测试场景 | 预期结果 |
 |---|---|---|
@@ -334,7 +320,7 @@
 
 ---
 
-## 8. 操作日志测试
+## 7. 操作日志测试
 
 ### 8.1 业务日志覆盖
 
@@ -365,20 +351,12 @@
 
 ---
 
-## 9. 发布前检查
+## 8. 发布前检查
 
 代码层面：
 
 - [ ] `mvn clean compile` 通过，无编译错误
-- [ ] `git diff` 确认只改了以下文件：
-  - 根 `pom.xml`（新增 module + dependencyManagement）
-  - `ruoyi-admin/pom.xml`（新增 ruoyi-ticket 依赖）
-  - `ruoyi-ticket/` 目录（全部新增）
-  - `docs/` 目录（设计文档）
-- [ ] 未修改 `ruoyi-framework/` 任何文件
-- [ ] 未修改 `ruoyi-system/` 任何文件
-- [ ] 未修改 `ruoyi-common/` 任何文件
-- [ ] 未修改 `ruoyi-quartz/`、`ruoyi-generator/`
+- [ ] `git diff` 确认改动符合预期，无意外修改
 - [ ] 代码无明显的 Alibaba Java Coding Guidelines 违规
 
 数据库层面：
@@ -391,65 +369,3 @@
 
 - [ ] README 已补充 ticket 模块说明
 - [ ] Swagger 可正常访问，ticket 接口文档完整
-
----
-
-## 10. Git 提交建议
-
-分阶段提交，每阶段一条 commit：
-
-```bash
-# 阶段一
-git add pom.xml ruoyi-admin/pom.xml ruoyi-ticket/pom.xml ruoyi-ticket/src/
-git commit -m "chore: add ruoyi-ticket module skeleton"
-
-# 阶段二（SQL 脚本不放代码仓库则跳过，手工执行）
-git add docs/03-database-design.md
-git commit -m "docs: add database design and DDL"
-
-# 阶段三
-git add ruoyi-ticket/src/main/java/com/ruoyi/ticket/domain/
-git add ruoyi-ticket/src/main/java/com/ruoyi/ticket/dto/
-git add ruoyi-ticket/src/main/java/com/ruoyi/ticket/vo/
-git add ruoyi-ticket/src/main/java/com/ruoyi/ticket/enums/
-git commit -m "feat: add ticket domain, dto, vo, enums"
-
-# 阶段三（续）
-git add ruoyi-ticket/src/main/java/com/ruoyi/ticket/mapper/
-git add ruoyi-ticket/src/main/java/com/ruoyi/ticket/service/
-git add ruoyi-ticket/src/main/resources/mapper/
-git commit -m "feat: add ticket mapper and service stubs"
-
-# 阶段四
-git add ruoyi-ticket/src/main/java/com/ruoyi/ticket/controller/TicketCategoryController.java
-git add ruoyi-ticket/src/main/java/com/ruoyi/ticket/service/impl/TicketCategoryServiceImpl.java
-git commit -m "feat: add ticket category CRUD"
-
-# 阶段五
-git add ruoyi-ticket/
-git commit -m "feat: add ticket main workflow (create/assign/process/confirm/cancel)"
-
-# 阶段六
-git add ruoyi-ticket/
-git commit -m "feat: add ticket comment and operation log"
-
-# 阶段七
-git add ruoyi-ticket/
-git commit -m "feat: add ticket permission and data scope control"
-
-# 阶段八
-git add README.md
-git commit -m "docs: update README with ticket module guide"
-```
-
-或按实际情况合并为 2~3 条：
-
-```bash
-git commit -m "feat: add ticket module v1.0
-- ticket CRUD with status workflow (NEW/PROCESSING/WAIT_CONFIRM/CLOSED/CANCELLED)
-- category tree management
-- comment and operation audit log
-- RBAC permission and data scope control"
-
-git commit -m "docs: add v1.0 design docs (spec/architecture/database/plan/test)"
-```

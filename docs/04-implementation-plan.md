@@ -20,16 +20,6 @@
 6. 在 `ruoyi-ticket` 下创建 `resources/mapper/` 目录，确认 MyBatis XML 会被 `classpath*:mapper/**/*Mapper.xml` 扫描
 7. `mvn clean compile` 通过
 
-### 产出文件
-
-```
-ruoyi-ticket/pom.xml
-ruoyi-ticket/src/main/java/com/ruoyi/ticket/  (空包)
-ruoyi-ticket/src/main/resources/mapper/         (空目录)
-根 pom.xml                                       (已修改)
-ruoyi-admin/pom.xml                              (已修改)
-```
-
 ### 验收标准
 
 - `mvn clean compile` 无报错
@@ -38,9 +28,8 @@ ruoyi-admin/pom.xml                              (已修改)
 
 ### 注意事项
 
-- 不新建 `application.yml`，ticket 模块复用 `ruoyi-admin` 中的配置
-- 不修改 `ruoyi-common`、`ruoyi-framework`、`ruoyi-system`
-- 包名统一 `com.ruoyi.ticket`，MyBatis typeAliases 自动扫描 `com.ruoyi.**.domain`
+- 不新建 `application.yml`，复用 `ruoyi-admin` 中的配置
+- 包名统一 `com.ruoyi.ticket`
 
 ---
 
@@ -57,12 +46,6 @@ ruoyi-admin/pom.xml                              (已修改)
 3. 登录 RuoYi 后台 → 系统管理 → 菜单管理，添加工单管理菜单树
 4. 逐条录入权限标识（共 14 个）
 5. 将菜单权限分配给测试角色
-
-### 产出文件
-
-```
-SQL 脚本可直接从 docs/03-database-design.md §8 复制
-```
 
 ### 验收标准
 
@@ -96,10 +79,6 @@ SQL 脚本可直接从 docs/03-database-design.md §8 复制
 7. 创建 3 个 Controller，继承 `BaseController`，Controller 先按阶段逐步实现，不一次性生成空接口
 8. `mvn clean compile` 通过
 
-### 产出文件
-
-详见 `docs/02-architecture-design.md` §4 目录结构。
-
 ### 验收标准
 
 - 所有 Java 文件编译通过
@@ -129,14 +108,6 @@ SQL 脚本可直接从 docs/03-database-design.md §8 复制
 4. 分类新增时自动计算 `ancestors`：`父节点.ancestors + "," + 父节点.category_id`
 5. 分类删除时校验是否有子节点，有则不允许删除（或级联删除）
 6. 加 `@Log` 注解和 `@PreAuthorize`
-
-### 产出文件
-
-```
-TicketCategoryMapper.java / TicketCategoryMapper.xml
-TicketCategoryServiceImpl.java
-TicketCategoryController.java
-```
 
 ### 验收标准
 
@@ -169,14 +140,6 @@ TicketCategoryController.java
 6. **工单确认**：校验 `WAIT_CONFIRM → CLOSED` 流转合法，校验当前用户是创建人（或管理员），更新 `closed_at`
 7. **工单取消**：校验 `NEW/PROCESSING → CANCELLED` 流转合法，校验当前用户是创建人或管理员，取消原因必填
 8. **每次流转写 `ticket_operation_log`**，在同一事务内
-
-### 产出文件
-
-```
-TicketMapper.java / TicketMapper.xml
-TicketServiceImpl.java
-TicketController.java
-```
 
 ### 验收标准
 
@@ -214,16 +177,6 @@ TicketController.java
 5. 实现 `GET /ticket/{ticketId}/comments` 和 `POST /ticket/{ticketId}/comment`
 6. 实现 `GET /ticket/{ticketId}/logs`
 
-### 产出文件
-
-```
-TicketCommentMapper.java / TicketCommentMapper.xml
-TicketCommentServiceImpl.java
-TicketCommentController.java
-TicketOperationLogMapper.java / TicketOperationLogMapper.xml
-TicketOperationLogServiceImpl.java
-```
-
 ### 验收标准
 
 - 添加评论后工单详情中可查看到
@@ -255,12 +208,6 @@ TicketOperationLogServiceImpl.java
 4. 分派操作校验：仅管理员或具有 `ticket:ticket:assign` 权限的角色
 5. 处理操作校验：仅当前指派人
 6. 确认/取消操作校验：仅创建人或管理员
-
-### 产出文件
-
-```
-阶段三~六已创建的 Controller / Service（补充权限注解和数据范围逻辑）
-```
 
 ### 验收标准
 
@@ -296,12 +243,6 @@ TicketOperationLogServiceImpl.java
 8. 提交代码，commit message: `feat: add ticket module v1.0`
 9. 更新项目 README，补充模块说明和启动方式
 
-### 产出文件
-
-```
-README.md（更新）
-```
-
 ### 验收标准
 
 - Swagger 中 ticket 接口分组正确，请求/响应示例可读
@@ -314,4 +255,4 @@ README.md（更新）
 
 - 如 Swagger 未显示 ticket 接口，再检查 Springdoc 扫描配置和包路径
 - 提交前做一次 `mvn clean compile` 确认无编译错误
-- README 只补充项目说明，不改原有内容
+- README 补充项目说明

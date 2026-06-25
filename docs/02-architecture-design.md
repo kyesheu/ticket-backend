@@ -38,19 +38,17 @@
 
 - **ruoyi-admin**: 唯一启动入口，负责引入业务模块并统一启动 Spring Boot 应用，不写业务代码
 - **ruoyi-ticket**: 新增，工单业务全在这（含 Controller / Service / Mapper），依赖 `ruoyi-common`，不依赖 `ruoyi-framework` / `ruoyi-system`。Controller 由 Spring Boot 自动扫描加载
-- **ruoyi-framework / ruoyi-system / ruoyi-common / ruoyi-quartz / ruoyi-generator**: 不改动
+- **ruoyi-framework / ruoyi-system / ruoyi-common / ruoyi-quartz / ruoyi-generator**: 若依基础模块，以复用为主，必要时可做小范围调整
 
 ---
 
 ## 2. 若依基础模块与 ticket 模块的关系
 
-ticket 模块对 RuoYi 的依赖是 **单向的、只读的**：
+ticket 模块对 RuoYi 的依赖是单向的、只读的：
 
-- 依赖 `ruoyi-common` 中的 `BaseEntity`、`BaseController`、`AjaxResult`、`TableDataInfo`、`SecurityUtils`、`ServiceException`、`@Log` 注解等
-- 不注入 `ISysUserService` / `ISysDeptService`。工单表只保存 `userId`、`deptId`，展示创建人/处理人/部门名称时在 Mapper XML 中只读 `LEFT JOIN sys_user` / `sys_dept`
-- **禁止对若依基础表做写操作**
-- `@PreAuthorize` 走 RuoYi 的 `PermissionService`（`@ss`），ticket 只提供权限字符串
-- 不走 RuoYi 的 `DataScope` 数据权限（v1.0 手动控制）
+- 只依赖 `ruoyi-common`（BaseEntity、BaseController、AjaxResult、SecurityUtils、ServiceException、@Log 等）
+- 工单表只保存 `userId`、`deptId`，展示名称时在 Mapper XML 中 `LEFT JOIN sys_user` / `sys_dept`，不注入 RuoYi Service
+- `@PreAuthorize` 走 RuoYi 的 `PermissionService`（`@ss`），v1.0 不走 `@DataScope`
 
 ---
 
@@ -62,29 +60,11 @@ ruoyi-admin
 ├── ruoyi-system
 ├── ruoyi-quartz
 ├── ruoyi-generator
-└── ruoyi-ticket        ← 新增这一行
+└── ruoyi-ticket        ← 新增
     └── ruoyi-common     ← ticket 只依赖 common
 ```
 
-`ruoyi-ticket/pom.xml` 只需：
-
-```xml
-<dependency>
-    <groupId>com.ruoyi</groupId>
-    <artifactId>ruoyi-common</artifactId>
-</dependency>
-```
-
-`ruoyi-admin/pom.xml` 新增：
-
-```xml
-<dependency>
-    <groupId>com.ruoyi</groupId>
-    <artifactId>ruoyi-ticket</artifactId>
-</dependency>
-```
-
-根 `pom.xml` 的 `<modules>` 和 `<dependencyManagement>` 各加一行 `ruoyi-ticket`。
+`ruoyi-ticket` 的 pom.xml 只依赖 `ruoyi-common`。根 pom 和 `ruoyi-admin/pom` 各加一行依赖声明。
 
 ---
 
@@ -408,7 +388,7 @@ Controller 方法上统一用 `@PreAuthorize("@ss.hasPermi('ticket:xxx')")`。
 
 - 事务注解用 `org.springframework.transaction.annotation.Transactional`
 - 只在 Service 层加 `@Transactional(rollbackFor = Exception.class)`
-- **不**在 Controller 加事务
+- 不在 Controller 加事务
 - 需要事务的场景：状态流转（update ticket + insert log）、分类删除（删父节点 + 删子节点）
 - 纯查询方法不加事务
 - 事务粒度尽量小，一个方法一个事务，不跨 Service 嵌套（需要时用 `Propagation.REQUIRES_NEW` 写独立日志）
@@ -485,26 +465,7 @@ DTO 上用 `jakarta.validation.constraints` 注解（`@NotBlank` / `@NotNull` / 
 
 ---
 
-## 15. 不允许修改的若依基础模块
-
-以下文件/目录**绝对不改**：
-
-| 模块 | 不可改动内容 |
-|---|---|
-| `ruoyi-framework/` | 全部。Security 配置、JWT Filter、LogAspect、全局异常处理、Redis 配置 |
-| `ruoyi-system/` | 全部。现有 Service/Mapper/Domain，ticket 模块不注入也不调用 |
-| `ruoyi-common/` | 全部。BaseEntity、BaseController、AjaxResult、异常类、工具类、注解 |
-| `ruoyi-admin/` | **只改 pom.xml**（加 ruoyi-ticket 依赖），不新增也不修改任何 Controller/Service |
-| `ruoyi-quartz/` | 全部不动 |
-| `ruoyi-generator/` | 全部不动 |
-| 根 `pom.xml` | **只加** `<module>` 和 `<dependencyManagement>` 中的 ruoyi-ticket，不改现有配置 |
-| `application.yml` | 不新增 ticket 专属配置（v1.0 无需求） |
-
-**唯一可写的位置**：新建的 `ruoyi-ticket/` 模块全部文件。
-
----
-
-## 16. 后续 AI 能力预留说明
+## 15. 后续 AI 能力预留说明
 
 v1.0 不实现 AI 能力，但在设计上做以下预留：
 

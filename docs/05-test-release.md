@@ -1,13 +1,13 @@
 # 05 — 测试与发布
 
-> v1.0 | 2026-06-25
+> v1.0 | 2026-06-26 | 状态: ✅ 全部通过
 
 ## 启动前检查
 
-- [ ] MySQL / Redis 已启动，`.env` 配置正确
-- [ ] RuoYi 基础表已创建（`sys_user`、`sys_dept` 等）
-- [ ] ticket 4 张表已创建，默认分类已插入
-- [ ] `mvn clean compile` 通过
+- [x] MySQL / Redis 已启动，`.env` 配置正确
+- [x] RuoYi 基础表已创建（`sys_user`、`sys_dept` 等）
+- [x] ticket 4 张表已创建，8 条默认分类已插入
+- [x] `mvn clean compile` 通过
 
 ## 启动验证
 
@@ -109,8 +109,21 @@
 
 ## 发布检查
 
-- [ ] `mvn clean compile` 通过
-- [ ] `mvn test` 全部通过
-- [ ] `scripts/ticket/smoke-test.ps1` 全部通过
-- [ ] `git diff` 确认无基础模块意外修改
-- [ ] Swagger ticket 接口文档完整
+- [x] `mvn clean compile` 通过
+- [x] `mvn test` — 34/34 全部通过
+- [x] `scripts/ticket/smoke-test.ps1` — 全部通过
+- [x] `git diff` 确认基础模块仅修复 URL 废弃 API，无破坏性修改
+- [x] Swagger ticket 接口文档完整
+- [x] CI/CD — GitHub Actions 流水线已配置
+- [x] PR 模板 — `.github/PULL_REQUEST_TEMPLATE.md`
+- [x] PR 已创建 — `feature/module-skeleton` → `main`
+
+## Bug 修复记录
+
+| # | 严重度 | 问题 | 修复 |
+|---|---|---|---|
+| 1 | 🔴 CRITICAL | SQL 注入：`${params.dataScope}` 可被管理员注入 | 显式设置 dataScope，阻断用户输入 |
+| 2 | 🟠 HIGH | 祖先路径更新遗漏直接子节点 | 精确匹配 + 前缀匹配覆盖 |
+| 3 | 🟡 MEDIUM | 工单编号生成竞态 | `generateTicketNo()` 加 synchronized |
+| 4 | 🟡 MEDIUM | `getCreatorId().equals()` NPE | 改用 `Objects.equals()` |
+| 5 | 🟢 LOW | `new URL()` 废弃 API | 改用 `URI.create().toURL()` |

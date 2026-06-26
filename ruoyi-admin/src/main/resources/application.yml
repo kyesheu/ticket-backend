@@ -168,6 +168,18 @@ springdoc:
       display-name: 通用接口
       paths-to-match: /**
       packages-to-scan: com.ruoyi.web.controller.common
+    - group: generator
+      display-name: 代码生成
+      paths-to-match: /**
+      packages-to-scan: com.ruoyi.generator.controller
+    - group: quartz
+      display-name: 定时任务
+      paths-to-match: /**
+      packages-to-scan: com.ruoyi.quartz.controller
+    - group: tool
+      display-name: 测试工具
+      paths-to-match: /**
+      packages-to-scan: com.ruoyi.web.controller.tool
 
 # 防盗链配置
 referer:

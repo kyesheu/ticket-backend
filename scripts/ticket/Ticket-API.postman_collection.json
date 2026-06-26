@@ -1,0 +1,393 @@
+{
+  "info": {
+    "name": "Ticket Backend API v1.0",
+    "description": "工单管理系统接口测试集\n\n使用前：\n1. 先执行「登录」请求获取 token\n2. token 会自动存入环境变量 {{token}}\n3. 其他接口自动携带 token",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:8080" },
+    { "key": "token", "value": "" }
+  ],
+  "auth": {
+    "type": "bearer",
+    "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }]
+  },
+  "item": [
+    {
+      "name": "0. 登录",
+      "item": [
+        {
+          "name": "登录获取Token",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var jsonData = pm.response.json();",
+                  "if (jsonData.code === 200) {",
+                  "    pm.environment.set('token', jsonData.token);",
+                  "    console.log('Token saved: ' + jsonData.token.substring(0, 30) + '...');",
+                  "} else {",
+                  "    console.log('Login failed: ' + jsonData.msg);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"username\":\"admin\",\"password\":\"admin123\"}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/login",
+              "host": ["{{baseUrl}}"], "path": ["login"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "1. 分类管理",
+      "item": [
+        {
+          "name": "查询分类树",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/ticket/category/tree", "host": ["{{baseUrl}}"], "path": ["ticket", "category", "tree"] }
+          }
+        },
+        {
+          "name": "查询分类列表",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/ticket/category/list", "host": ["{{baseUrl}}"], "path": ["ticket", "category", "list"] }
+          }
+        },
+        {
+          "name": "查询分类详情",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/ticket/category/1", "host": ["{{baseUrl}}"], "path": ["ticket", "category", "1"] }
+          }
+        },
+        {
+          "name": "新增分类",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"parentId\": 1, \"categoryName\": \"测试分类-Postman\", \"orderNum\": 99}"
+            },
+            "url": { "raw": "{{baseUrl}}/ticket/category", "host": ["{{baseUrl}}"], "path": ["ticket", "category"] }
+          }
+        },
+        {
+          "name": "修改分类",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"categoryId\": 9, \"parentId\": 1, \"categoryName\": \"测试分类-已修改\", \"orderNum\": 99}"
+            },
+            "url": { "raw": "{{baseUrl}}/ticket/category", "host": ["{{baseUrl}}"], "path": ["ticket", "category"] }
+          }
+        },
+        {
+          "name": "删除无子节点分类",
+          "request": {
+            "method": "DELETE",
+            "url": { "raw": "{{baseUrl}}/ticket/category/9", "host": ["{{baseUrl}}"], "path": ["ticket", "category", "9"] }
+          }
+        },
+        {
+          "name": "[非法] 删除有子节点分类",
+          "request": {
+            "method": "DELETE",
+            "url": { "raw": "{{baseUrl}}/ticket/category/1", "host": ["{{baseUrl}}"], "path": ["ticket", "category", "1"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "2. 工单管理",
+      "item": [
+        {
+          "name": "创建工单（完整字段）",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var jsonData = pm.response.json();",
+                  "if (jsonData.code === 200) {",
+                  "    pm.environment.set('ticketId1', jsonData.data);",
+                  "    console.log('工单1 ID: ' + jsonData.data);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"title\": \"[测试] 办公室WiFi故障\", \"content\": \"三楼办公区WiFi信号不稳定，经常断线\", \"categoryId\": 6, \"priority\": \"HIGH\"}"
+            },
+            "url": { "raw": "{{baseUrl}}/ticket", "host": ["{{baseUrl}}"], "path": ["ticket"] }
+          }
+        },
+        {
+          "name": "创建工单（默认优先级）",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var jsonData = pm.response.json();",
+                  "if (jsonData.code === 200) {",
+                  "    pm.environment.set('ticketId2', jsonData.data);",
+                  "    console.log('工单2 ID: ' + jsonData.data);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"title\": \"[测试] 申请办公用品\", \"content\": \"需要A4纸5包、黑色签字笔2盒\", \"categoryId\": 7}"
+            },
+            "url": { "raw": "{{baseUrl}}/ticket", "host": ["{{baseUrl}}"], "path": ["ticket"] }
+          }
+        },
+        {
+          "name": "创建工单（无标题校验）",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\"title\": \"\", \"content\": \"测试\", \"categoryId\": 1}" },
+            "url": { "raw": "{{baseUrl}}/ticket", "host": ["{{baseUrl}}"], "path": ["ticket"] }
+          }
+        },
+        {
+          "name": "工单列表（全部）",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/ticket/list?pageNum=1&pageSize=10", "host": ["{{baseUrl}}"], "path": ["ticket", "list"], "query": [
+              { "key": "pageNum", "value": "1" }, { "key": "pageSize", "value": "10" }
+            ]}
+          }
+        },
+        {
+          "name": "工单列表（按状态筛选）",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/ticket/list?status=NEW&pageNum=1&pageSize=10", "host": ["{{baseUrl}}"], "path": ["ticket", "list"], "query": [
+              { "key": "status", "value": "NEW" }, { "key": "pageNum", "value": "1" }, { "key": "pageSize", "value": "10" }
+            ]}
+          }
+        },
+        {
+          "name": "工单列表（按优先级筛选）",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/ticket/list?priority=HIGH&pageNum=1&pageSize=10", "host": ["{{baseUrl}}"], "path": ["ticket", "list"], "query": [
+              { "key": "priority", "value": "HIGH" }, { "key": "pageNum", "value": "1" }, { "key": "pageSize", "value": "10" }
+            ]}
+          }
+        },
+        {
+          "name": "工单列表（关键词搜索）",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/ticket/list?keyword=WiFi&pageNum=1&pageSize=10", "host": ["{{baseUrl}}"], "path": ["ticket", "list"], "query": [
+              { "key": "keyword", "value": "WiFi" }, { "key": "pageNum", "value": "1" }, { "key": "pageSize", "value": "10" }
+            ]}
+          }
+        },
+        {
+          "name": "工单详情",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/ticket/{{ticketId1}}", "host": ["{{baseUrl}}"], "path": ["ticket", "{{ticketId1}}"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "3. 状态流转（合法）",
+      "item": [
+        {
+          "name": "[合法] 分派 NEW→PROCESSING",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\"assigneeId\": 1, \"comment\": \"已指定管理员处理\"}" },
+            "url": { "raw": "{{baseUrl}}/ticket/{{ticketId1}}/assign", "host": ["{{baseUrl}}"], "path": ["ticket", "{{ticketId1}}", "assign"] }
+          }
+        },
+        {
+          "name": "[合法] 处理 PROCESSING→WAIT_CONFIRM",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\"comment\": \"已更换故障路由器，WiFi恢复正常\"}" },
+            "url": { "raw": "{{baseUrl}}/ticket/{{ticketId1}}/process", "host": ["{{baseUrl}}"], "path": ["ticket", "{{ticketId1}}", "process"] }
+          }
+        },
+        {
+          "name": "[合法] 确认 WAIT_CONFIRM→CLOSED",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\"comment\": \"确认已修复，工单关闭\"}" },
+            "url": { "raw": "{{baseUrl}}/ticket/{{ticketId1}}/confirm", "host": ["{{baseUrl}}"], "path": ["ticket", "{{ticketId1}}", "confirm"] }
+          }
+        },
+        {
+          "name": "[合法] 取消 NEW→CANCELLED",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\"comment\": \"问题已自行解决，不需要处理\"}" },
+            "url": { "raw": "{{baseUrl}}/ticket/{{ticketId2}}/cancel", "host": ["{{baseUrl}}"], "path": ["ticket", "{{ticketId2}}", "cancel"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "4. 状态流转（非法）",
+      "item": [
+        {
+          "name": "[非法] 再次分派已分派的工单",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\"assigneeId\": 1, \"comment\": \"重复分派\"}" },
+            "url": { "raw": "{{baseUrl}}/ticket/{{ticketId1}}/assign", "host": ["{{baseUrl}}"], "path": ["ticket", "{{ticketId1}}", "assign"] }
+          }
+        },
+        {
+          "name": "[非法] 确认未处理的工单",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{}" },
+            "url": { "raw": "{{baseUrl}}/ticket/{{ticketId2}}/confirm", "host": ["{{baseUrl}}"], "path": ["ticket", "{{ticketId2}}", "confirm"] }
+          }
+        },
+        {
+          "name": "[非法] 取消已关闭的工单",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\"comment\": \"想取消已关闭的\"}" },
+            "url": { "raw": "{{baseUrl}}/ticket/{{ticketId1}}/cancel", "host": ["{{baseUrl}}"], "path": ["ticket", "{{ticketId1}}", "cancel"] }
+          }
+        },
+        {
+          "name": "[非法] 处理备注为空",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\"comment\": \"\"}" },
+            "url": { "raw": "{{baseUrl}}/ticket/{{ticketId1}}/process", "host": ["{{baseUrl}}"], "path": ["ticket", "{{ticketId1}}", "process"] }
+          }
+        },
+        {
+          "name": "[非法] 取消原因为空",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\"comment\": \"\"}" },
+            "url": { "raw": "{{baseUrl}}/ticket/{{ticketId1}}/cancel", "host": ["{{baseUrl}}"], "path": ["ticket", "{{ticketId1}}", "cancel"] }
+          }
+        },
+        {
+          "name": "[非法] 指派人不存在",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\"assigneeId\": 9999, \"comment\": \"不存在的用户\"}" },
+            "url": { "raw": "{{baseUrl}}/ticket/{{ticketId2}}/assign", "host": ["{{baseUrl}}"], "path": ["ticket", "{{ticketId2}}", "assign"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "5. 评论功能",
+      "item": [
+        {
+          "name": "添加评论",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\"content\": \"请尽快处理，已经影响正常工作了\", \"commentType\": \"EXTERNAL\"}" },
+            "url": { "raw": "{{baseUrl}}/ticket/{{ticketId1}}/comment", "host": ["{{baseUrl}}"], "path": ["ticket", "{{ticketId1}}", "comment"] }
+          }
+        },
+        {
+          "name": "添加内部备注",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\"content\": \"该问题可能需要采购新设备\", \"commentType\": \"INTERNAL\"}" },
+            "url": { "raw": "{{baseUrl}}/ticket/{{ticketId1}}/comment", "host": ["{{baseUrl}}"], "path": ["ticket", "{{ticketId1}}", "comment"] }
+          }
+        },
+        {
+          "name": "查看评论列表",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/ticket/{{ticketId1}}/comment", "host": ["{{baseUrl}}"], "path": ["ticket", "{{ticketId1}}", "comment"] }
+          }
+        },
+        {
+          "name": "[非法] 评论内容为空",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\"content\": \"\"}" },
+            "url": { "raw": "{{baseUrl}}/ticket/{{ticketId1}}/comment", "host": ["{{baseUrl}}"], "path": ["ticket", "{{ticketId1}}", "comment"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "6. 操作日志",
+      "item": [
+        {
+          "name": "查看操作日志",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/ticket/{{ticketId1}}/logs", "host": ["{{baseUrl}}"], "path": ["ticket", "{{ticketId1}}", "logs"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "7. 权限验证",
+      "item": [
+        {
+          "name": "[权限] 无Token访问工单列表",
+          "request": {
+            "method": "GET",
+            "auth": { "type": "noauth" },
+            "url": { "raw": "{{baseUrl}}/ticket/list", "host": ["{{baseUrl}}"], "path": ["ticket", "list"] }
+          }
+        }
+      ]
+    }
+  ]
+}

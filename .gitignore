@@ -42,6 +42,10 @@ nbdist/
 *.xml.versionsBackup
 *.swp
 
+# 本地环境变量（含密码、密钥，不上传）
+.env
+
+
 !*/build/*.java
 !*/build/*.html
 !*/build/*.xml

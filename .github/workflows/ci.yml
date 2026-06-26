@@ -1,0 +1,57 @@
+name: CI
+
+on:
+  push:
+    branches: [main, feature/*]
+  pull_request:
+    branches: [main]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: root
+          MYSQL_DATABASE: ticket_backend
+        ports:
+          - 3306:3306
+        options: --health-cmd="mysqladmin ping" --health-interval=10s --health-timeout=5s --health-retries=3
+
+      redis:
+        image: redis:latest
+        ports:
+          - 6379:6379
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup JDK 21
+        uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+          cache: maven
+
+      - name: Init Database
+        run: |
+          mysql -h127.0.0.1 -uroot -proot ticket_backend < sql/ry_20260417.sql
+          mysql -h127.0.0.1 -uroot -proot ticket_backend < sql/ticket-v1.0.sql
+
+      - name: Maven Compile
+        run: mvn clean compile -B
+
+      - name: Maven Test
+        run: mvn test -B
+        env:
+          DB_URL: jdbc:mysql://127.0.0.1:3306/ticket_backend?useUnicode=true&characterEncoding=utf8&useSSL=false&serverTimezone=Asia/Shanghai
+          DB_USERNAME: root
+          DB_PASSWORD: root
+          REDIS_HOST: 127.0.0.1
+          REDIS_PORT: 6379
+          REDIS_DATABASE: 0
+          REDIS_PASSWORD: ""
+          TOKEN_SECRET: ci-test-secret-key-do-not-use-in-production

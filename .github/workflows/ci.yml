@@ -38,8 +38,8 @@ jobs:
 
       - name: Init Database
         run: |
-          mysql -h127.0.0.1 -uroot -proot ticket_backend < sql/ry_20260417.sql
-          mysql -h127.0.0.1 -uroot -proot ticket_backend < sql/ticket-v1.0.sql
+          mysql -h127.0.0.1 -uroot -proot --default-character-set=utf8mb4 ticket_backend < sql/ry_20260417.sql
+          mysql -h127.0.0.1 -uroot -proot --default-character-set=utf8mb4 ticket_backend < sql/ticket-v1.0.sql
 
       - name: Maven Compile
         run: mvn clean compile -B

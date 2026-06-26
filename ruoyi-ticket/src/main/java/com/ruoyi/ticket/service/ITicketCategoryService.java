@@ -1,6 +1,9 @@
 package com.ruoyi.ticket.service;
 
 import java.util.List;
+import com.ruoyi.ticket.dto.TicketCategoryCreateDTO;
+import com.ruoyi.ticket.dto.TicketCategoryQueryDTO;
+import com.ruoyi.ticket.dto.TicketCategoryUpdateDTO;
 import com.ruoyi.ticket.domain.TicketCategory;
 import com.ruoyi.ticket.vo.TicketCategoryTreeVO;
 
@@ -14,7 +17,7 @@ public interface ITicketCategoryService {
     /**
      * 查询分类列表（平铺）
      */
-    List<TicketCategory> selectCategoryList(TicketCategory category);
+    List<TicketCategory> selectCategoryList(TicketCategoryQueryDTO query);
 
     /**
      * 查询分类树
@@ -29,15 +32,15 @@ public interface ITicketCategoryService {
     /**
      * 新增分类
      */
-    int insertCategory(TicketCategory category);
+    int insertCategory(TicketCategoryCreateDTO dto);
 
     /**
      * 修改分类
      */
-    int updateCategory(TicketCategory category);
+    int updateCategory(TicketCategoryUpdateDTO dto);
 
     /**
-     * 删除分类（逻辑删除，有子节点时不允许删除）
+     * 删除分类
      */
     int deleteCategoryById(Long categoryId);
 }

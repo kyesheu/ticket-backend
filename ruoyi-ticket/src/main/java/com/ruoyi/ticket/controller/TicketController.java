@@ -16,7 +16,6 @@ import com.ruoyi.common.core.controller.BaseController;
 import com.ruoyi.common.core.domain.AjaxResult;
 import com.ruoyi.common.core.page.TableDataInfo;
 import com.ruoyi.common.enums.BusinessType;
-import com.ruoyi.ticket.domain.TicketComment;
 import com.ruoyi.ticket.domain.TicketOperationLog;
 import com.ruoyi.ticket.dto.TicketAssignDTO;
 import com.ruoyi.ticket.dto.TicketCancelDTO;
@@ -27,13 +26,20 @@ import com.ruoyi.ticket.dto.TicketQueryDTO;
 import com.ruoyi.ticket.service.ITicketCommentService;
 import com.ruoyi.ticket.service.ITicketOperationLogService;
 import com.ruoyi.ticket.service.ITicketService;
+import com.ruoyi.ticket.vo.TicketApiResponseVO;
 import com.ruoyi.ticket.vo.TicketVO;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.tags.Tag;
 
 /**
  * 工单 Controller
  *
  * @author ticket
  */
+@Tag(name = "工单管理", description = "工单的创建、分派、处理、确认、取消及查询")
 @RestController
 @RequestMapping("/ticket")
 public class TicketController extends BaseController {
@@ -47,9 +53,9 @@ public class TicketController extends BaseController {
     @Autowired
     private ITicketOperationLogService ticketOperationLogService;
 
-    /**
-     * 分页查询工单列表
-     */
+    @Operation(summary = "分页查询工单列表")
+    @ApiResponse(responseCode = "200", description = "OK",
+        content = @Content(schema = @Schema(implementation = TicketApiResponseVO.TicketPageResult.class)))
     @PreAuthorize("@ss.hasPermi('ticket:ticket:list')")
     @GetMapping("/list")
     public TableDataInfo list(TicketQueryDTO query) {
@@ -57,36 +63,32 @@ public class TicketController extends BaseController {
         return getDataTable(ticketService.selectTicketList(query));
     }
 
-    /**
-     * 查询工单详情（含评论和操作日志）
-     */
+    @Operation(summary = "查询工单详情（含评论和操作日志）")
+    @ApiResponse(responseCode = "200", description = "OK",
+        content = @Content(schema = @Schema(implementation = TicketApiResponseVO.TicketDetailResult.class)))
     @PreAuthorize("@ss.hasPermi('ticket:ticket:query')")
     @GetMapping("/{id}")
     public AjaxResult getInfo(@PathVariable Long id) {
         TicketVO vo = ticketService.selectTicketById(id);
-        // 附加评论列表
-        List<TicketComment> comments = ticketCommentService.selectCommentsByTicketId(id);
-        vo.setComments(comments);
-        // 附加操作日志
+        vo.setComments(ticketCommentService.selectCommentsByTicketId(id));
         List<TicketOperationLog> logs = ticketOperationLogService.selectLogsByTicketId(id);
         vo.setLogs(logs);
         return success(vo);
     }
 
-    /**
-     * 创建工单
-     */
+    @Operation(summary = "创建工单")
+    @ApiResponse(responseCode = "200", description = "OK",
+        content = @Content(schema = @Schema(implementation = TicketApiResponseVO.TicketIdResult.class)))
     @Log(title = "工单管理", businessType = BusinessType.INSERT)
     @PreAuthorize("@ss.hasPermi('ticket:ticket:add')")
     @PostMapping
     public AjaxResult add(@Validated @RequestBody TicketCreateDTO dto) {
-        Long ticketId = ticketService.createTicket(dto);
-        return success(ticketId);
+        return success(ticketService.createTicket(dto));
     }
 
-    /**
-     * 分派工单
-     */
+    @Operation(summary = "分派工单")
+    @ApiResponse(responseCode = "200", description = "OK",
+        content = @Content(schema = @Schema(implementation = TicketApiResponseVO.OperationResult.class)))
     @Log(title = "工单管理", businessType = BusinessType.UPDATE)
     @PreAuthorize("@ss.hasPermi('ticket:ticket:assign')")
     @PutMapping("/{id}/assign")
@@ -95,9 +97,9 @@ public class TicketController extends BaseController {
         return success();
     }
 
-    /**
-     * 处理工单
-     */
+    @Operation(summary = "处理工单")
+    @ApiResponse(responseCode = "200", description = "OK",
+        content = @Content(schema = @Schema(implementation = TicketApiResponseVO.OperationResult.class)))
     @Log(title = "工单管理", businessType = BusinessType.UPDATE)
     @PreAuthorize("@ss.hasPermi('ticket:ticket:process')")
     @PutMapping("/{id}/process")
@@ -106,9 +108,9 @@ public class TicketController extends BaseController {
         return success();
     }
 
-    /**
-     * 确认工单
-     */
+    @Operation(summary = "确认工单（关闭）")
+    @ApiResponse(responseCode = "200", description = "OK",
+        content = @Content(schema = @Schema(implementation = TicketApiResponseVO.OperationResult.class)))
     @Log(title = "工单管理", businessType = BusinessType.UPDATE)
     @PreAuthorize("@ss.hasPermi('ticket:ticket:confirm')")
     @PutMapping("/{id}/confirm")
@@ -117,9 +119,9 @@ public class TicketController extends BaseController {
         return success();
     }
 
-    /**
-     * 取消工单
-     */
+    @Operation(summary = "取消工单")
+    @ApiResponse(responseCode = "200", description = "OK",
+        content = @Content(schema = @Schema(implementation = TicketApiResponseVO.OperationResult.class)))
     @Log(title = "工单管理", businessType = BusinessType.UPDATE)
     @PreAuthorize("@ss.hasPermi('ticket:ticket:cancel')")
     @PutMapping("/{id}/cancel")
@@ -128,14 +130,12 @@ public class TicketController extends BaseController {
         return success();
     }
 
-    /**
-     * 查看操作日志
-     */
+    @Operation(summary = "查看工单操作日志")
+    @ApiResponse(responseCode = "200", description = "OK",
+        content = @Content(schema = @Schema(implementation = TicketApiResponseVO.TicketOperationLogListResult.class)))
     @PreAuthorize("@ss.hasPermi('ticket:log:list')")
     @GetMapping("/{ticketId}/logs")
     public AjaxResult logs(@PathVariable Long ticketId) {
-        List<TicketOperationLog> logs = ticketOperationLogService.selectLogsByTicketId(ticketId);
-        return success(logs);
+        return success(ticketOperationLogService.selectLogsByTicketId(ticketId));
     }
-
 }

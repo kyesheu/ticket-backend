@@ -147,10 +147,16 @@ pagehelper:
 springdoc:
   api-docs:
     path: /v3/api-docs
+    version: OPENAPI_3_0
+    resolve-schema-properties: true
   swagger-ui:
     enabled: ${SWAGGER_ENABLED:true}
     path: /swagger-ui.html
     tags-sorter: alpha
+  info:
+    title: 企业工单管理系统接口文档
+    version: 1.0.0
+    description: Ticket Backend API
   group-configs:
     - group: ticket
       display-name: 工单模块

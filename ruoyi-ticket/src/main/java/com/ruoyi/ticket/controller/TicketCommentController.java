@@ -17,12 +17,19 @@ import com.ruoyi.common.enums.BusinessType;
 import com.ruoyi.ticket.domain.TicketComment;
 import com.ruoyi.ticket.dto.TicketCommentDTO;
 import com.ruoyi.ticket.service.ITicketCommentService;
+import com.ruoyi.ticket.vo.TicketApiResponseVO;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.tags.Tag;
 
 /**
  * 工单评论 Controller
  *
  * @author ticket
  */
+@Tag(name = "工单评论", description = "工单评论的查看和添加")
 @RestController
 @RequestMapping("/ticket/{ticketId}/comment")
 public class TicketCommentController extends BaseController {
@@ -30,9 +37,9 @@ public class TicketCommentController extends BaseController {
     @Autowired
     private ITicketCommentService ticketCommentService;
 
-    /**
-     * 查看工单评论列表
-     */
+    @Operation(summary = "查看工单评论列表")
+    @ApiResponse(responseCode = "200", description = "OK",
+        content = @Content(schema = @Schema(implementation = TicketApiResponseVO.TicketCommentListResult.class)))
     @PreAuthorize("@ss.hasPermi('ticket:comment:list')")
     @GetMapping
     public AjaxResult list(@PathVariable Long ticketId) {
@@ -40,9 +47,9 @@ public class TicketCommentController extends BaseController {
         return success(comments);
     }
 
-    /**
-     * 添加工单评论
-     */
+    @Operation(summary = "添加工单评论")
+    @ApiResponse(responseCode = "200", description = "OK",
+        content = @Content(schema = @Schema(implementation = TicketApiResponseVO.OperationResult.class)))
     @Log(title = "工单评论", businessType = BusinessType.INSERT)
     @PreAuthorize("@ss.hasPermi('ticket:comment:add')")
     @PostMapping

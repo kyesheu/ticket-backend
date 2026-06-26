@@ -156,6 +156,18 @@ springdoc:
       display-name: 工单模块
       paths-to-match: /**
       packages-to-scan: com.ruoyi.ticket.controller
+    - group: system
+      display-name: 系统管理
+      paths-to-match: /**
+      packages-to-scan: com.ruoyi.web.controller.system
+    - group: monitor
+      display-name: 系统监控
+      paths-to-match: /**
+      packages-to-scan: com.ruoyi.web.controller.monitor
+    - group: common
+      display-name: 通用接口
+      paths-to-match: /**
+      packages-to-scan: com.ruoyi.web.controller.common
 
 # 防盗链配置
 referer:

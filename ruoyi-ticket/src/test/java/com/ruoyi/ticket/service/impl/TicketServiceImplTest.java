@@ -1,6 +1,5 @@
 package com.ruoyi.ticket.service.impl;
 
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
@@ -19,7 +18,6 @@ import org.mockito.Mock;
 import org.mockito.MockedStatic;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import com.ruoyi.common.core.domain.model.LoginUser;
 import com.ruoyi.common.exception.ServiceException;
 import com.ruoyi.common.utils.SecurityUtils;
 import com.ruoyi.ticket.domain.Ticket;
@@ -105,7 +103,7 @@ class TicketServiceImplTest {
         dto.setContent("测试内容");
         dto.setPriority("MEDIUM");
 
-        Long ticketId = ticketService.createTicket(dto);
+        ticketService.createTicket(dto);
 
         verify(ticketMapper).insertTicket(any(Ticket.class));
         verify(ticketOperationLogMapper).insertLog(any());

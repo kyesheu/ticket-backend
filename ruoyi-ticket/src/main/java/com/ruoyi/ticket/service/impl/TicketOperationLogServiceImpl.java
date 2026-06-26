@@ -4,7 +4,6 @@ import java.util.Date;
 import java.util.List;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-import com.ruoyi.common.utils.SecurityUtils;
 import com.ruoyi.ticket.domain.TicketOperationLog;
 import com.ruoyi.ticket.mapper.TicketOperationLogMapper;
 import com.ruoyi.ticket.service.ITicketOperationLogService;

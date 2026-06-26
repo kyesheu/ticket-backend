@@ -3,6 +3,7 @@ package com.ruoyi.common.utils.http;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
+import java.net.URI;
 import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.net.ConnectException;
@@ -71,7 +72,7 @@ public class HttpUtils
         {
             String urlNameString = StringUtils.isNotBlank(param) ? url + "?" + param : url;
             log.info("sendGet - {}", urlNameString);
-            URL realUrl = new URL(urlNameString);
+            URL realUrl = URI.create(urlNameString).toURL();
             URLConnection connection = realUrl.openConnection();
             connection.setRequestProperty("accept", "*/*");
             connection.setRequestProperty("connection", "Keep-Alive");
@@ -146,7 +147,7 @@ public class HttpUtils
         try
         {
             log.info("sendPost - {}", url);
-            URL realUrl = new URL(url);
+            URL realUrl = URI.create(url).toURL();
             URLConnection conn = realUrl.openConnection();
             conn.setRequestProperty("accept", "*/*");
             conn.setRequestProperty("connection", "Keep-Alive");
@@ -217,7 +218,7 @@ public class HttpUtils
             log.info("sendSSLPost - {}", urlNameString);
             SSLContext sc = SSLContext.getInstance("SSL");
             sc.init(null, new TrustManager[] { new TrustAnyTrustManager() }, new java.security.SecureRandom());
-            URL console = new URL(urlNameString);
+            URL console = URI.create(urlNameString).toURL();
             HttpsURLConnection conn = (HttpsURLConnection) console.openConnection();
             conn.setRequestProperty("accept", "*/*");
             conn.setRequestProperty("connection", "Keep-Alive");

@@ -6,9 +6,9 @@ import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.stereotype.Component;
 import org.springframework.web.method.HandlerMethod;
 import org.springframework.web.servlet.HandlerInterceptor;
-import com.alibaba.fastjson2.JSON;
 import com.ruoyi.common.annotation.RepeatSubmit;
 import com.ruoyi.common.core.domain.AjaxResult;
+import com.ruoyi.common.utils.JsonUtils;
 import com.ruoyi.common.utils.ServletUtils;
 
 /**
@@ -32,7 +32,7 @@ public abstract class RepeatSubmitInterceptor implements HandlerInterceptor
                 if (this.isRepeatSubmit(request, annotation))
                 {
                     AjaxResult ajaxResult = AjaxResult.error(annotation.message());
-                    ServletUtils.renderString(response, JSON.toJSONString(ajaxResult));
+                    ServletUtils.renderString(response, JsonUtils.toJSONString(ajaxResult));
                     return false;
                 }
             }

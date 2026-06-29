@@ -84,6 +84,7 @@ public class SysRole extends BaseEntity
         this.roleId = roleId;
     }
 
+    @com.fasterxml.jackson.annotation.JsonIgnore
     public boolean isAdmin()
     {
         return isAdmin(this.roleId);

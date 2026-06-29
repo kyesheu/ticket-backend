@@ -116,6 +116,7 @@ public class SysUser extends BaseEntity
         this.userId = userId;
     }
 
+    @com.fasterxml.jackson.annotation.JsonIgnore
     public boolean isAdmin()
     {
         return SecurityUtils.isAdmin(this.userId);

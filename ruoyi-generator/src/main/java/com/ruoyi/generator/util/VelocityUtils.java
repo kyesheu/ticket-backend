@@ -5,10 +5,10 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import org.apache.velocity.VelocityContext;
-import com.alibaba.fastjson2.JSON;
-import com.alibaba.fastjson2.JSONObject;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.ruoyi.common.constant.GenConstants;
 import com.ruoyi.common.utils.DateUtils;
+import com.ruoyi.common.utils.JsonUtils;
 import com.ruoyi.common.utils.StringUtils;
 import com.ruoyi.generator.domain.GenTable;
 import com.ruoyi.generator.domain.GenTableColumn;
@@ -83,7 +83,7 @@ public class VelocityUtils
 
     public static void setExtensionsContext(VelocityContext context, String options)
     {
-        JSONObject paramsObj = JSONObject.parseObject(options);
+        JsonNode paramsObj = JsonUtils.parseObject(options);
         boolean genView = genView(paramsObj);
         context.put("genView", genView);
     }
@@ -91,7 +91,7 @@ public class VelocityUtils
     public static void setMenuVelocityContext(VelocityContext context, GenTable genTable)
     {
         String options = genTable.getOptions();
-        JSONObject paramsObj = JSON.parseObject(options);
+        JsonNode paramsObj = JsonUtils.parseObject(options);
         String parentMenuId = getParentMenuId(paramsObj);
         context.put("parentMenuId", parentMenuId);
     }
@@ -99,7 +99,7 @@ public class VelocityUtils
     public static void setTreeVelocityContext(VelocityContext context, GenTable genTable)
     {
         String options = genTable.getOptions();
-        JSONObject paramsObj = JSON.parseObject(options);
+        JsonNode paramsObj = JsonUtils.parseObject(options);
         String treeCode = getTreecode(paramsObj);
         String treeParentCode = getTreeParentCode(paramsObj);
         String treeName = getTreeName(paramsObj);
@@ -108,13 +108,13 @@ public class VelocityUtils
         context.put("treeParentCode", treeParentCode);
         context.put("treeName", treeName);
         context.put("expandColumn", getExpandColumn(genTable));
-        if (paramsObj.containsKey(GenConstants.TREE_PARENT_CODE))
+        if (paramsObj != null && paramsObj.has(GenConstants.TREE_PARENT_CODE))
         {
-            context.put("tree_parent_code", paramsObj.getString(GenConstants.TREE_PARENT_CODE));
+            context.put("tree_parent_code", paramsObj.get(GenConstants.TREE_PARENT_CODE).asText());
         }
-        if (paramsObj.containsKey(GenConstants.TREE_NAME))
+        if (paramsObj != null && paramsObj.has(GenConstants.TREE_NAME))
         {
-            context.put("tree_name", paramsObj.getString(GenConstants.TREE_NAME));
+            context.put("tree_name", paramsObj.get(GenConstants.TREE_NAME).asText());
         }
     }
 
@@ -146,7 +146,7 @@ public class VelocityUtils
     {
         String tplWebType = table.getTplWebType();
         String tplCategory = table.getTplCategory();
-        JSONObject paramsObj = JSONObject.parseObject(table.getOptions());
+        JsonNode paramsObj = JsonUtils.parseObject(table.getOptions());
         boolean isView = genView(paramsObj);
         String useWebType = "vm/vue";
         String apiTemplate = "vm/js/api.js.vm";
@@ -374,12 +374,12 @@ public class VelocityUtils
      * @param paramsObj 生成其他选项
      * @return 上级菜单ID字段
      */
-    public static String getParentMenuId(JSONObject paramsObj)
+    public static String getParentMenuId(JsonNode paramsObj)
     {
-        if (StringUtils.isNotEmpty(paramsObj) && paramsObj.containsKey(GenConstants.PARENT_MENU_ID)
-                && StringUtils.isNotEmpty(paramsObj.getString(GenConstants.PARENT_MENU_ID)))
+        if (paramsObj != null && paramsObj.has(GenConstants.PARENT_MENU_ID)
+                && StringUtils.isNotEmpty(paramsObj.get(GenConstants.PARENT_MENU_ID).asText()))
         {
-            return paramsObj.getString(GenConstants.PARENT_MENU_ID);
+            return paramsObj.get(GenConstants.PARENT_MENU_ID).asText();
         }
         return DEFAULT_PARENT_MENU_ID;
     }
@@ -390,11 +390,11 @@ public class VelocityUtils
      * @param paramsObj 生成其他选项
      * @return 树编码
      */
-    public static String getTreecode(JSONObject paramsObj)
+    public static String getTreecode(JsonNode paramsObj)
     {
-        if (paramsObj.containsKey(GenConstants.TREE_CODE))
+        if (paramsObj != null && paramsObj.has(GenConstants.TREE_CODE))
         {
-            return StringUtils.toCamelCase(paramsObj.getString(GenConstants.TREE_CODE));
+            return StringUtils.toCamelCase(paramsObj.get(GenConstants.TREE_CODE).asText());
         }
         return StringUtils.EMPTY;
     }
@@ -405,11 +405,11 @@ public class VelocityUtils
      * @param paramsObj 生成其他选项
      * @return 树父编码
      */
-    public static String getTreeParentCode(JSONObject paramsObj)
+    public static String getTreeParentCode(JsonNode paramsObj)
     {
-        if (paramsObj.containsKey(GenConstants.TREE_PARENT_CODE))
+        if (paramsObj != null && paramsObj.has(GenConstants.TREE_PARENT_CODE))
         {
-            return StringUtils.toCamelCase(paramsObj.getString(GenConstants.TREE_PARENT_CODE));
+            return StringUtils.toCamelCase(paramsObj.get(GenConstants.TREE_PARENT_CODE).asText());
         }
         return StringUtils.EMPTY;
     }
@@ -420,11 +420,11 @@ public class VelocityUtils
      * @param paramsObj 生成其他选项
      * @return 是否生成详细页
      */
-    public static boolean genView(JSONObject paramsObj)
+    public static boolean genView(JsonNode paramsObj)
     {
-        if (StringUtils.isNotNull(paramsObj) && paramsObj.containsKey(GenConstants.GEN_VIEW))
+        if (paramsObj != null && paramsObj.has(GenConstants.GEN_VIEW))
         {
-            return paramsObj.getBoolean(GenConstants.GEN_VIEW);
+            return paramsObj.get(GenConstants.GEN_VIEW).asBoolean(false);
         }
         return false;
     }
@@ -435,11 +435,11 @@ public class VelocityUtils
      * @param paramsObj 生成其他选项
      * @return 树名称
      */
-    public static String getTreeName(JSONObject paramsObj)
+    public static String getTreeName(JsonNode paramsObj)
     {
-        if (paramsObj.containsKey(GenConstants.TREE_NAME))
+        if (paramsObj != null && paramsObj.has(GenConstants.TREE_NAME))
         {
-            return StringUtils.toCamelCase(paramsObj.getString(GenConstants.TREE_NAME));
+            return StringUtils.toCamelCase(paramsObj.get(GenConstants.TREE_NAME).asText());
         }
         return StringUtils.EMPTY;
     }
@@ -453,8 +453,8 @@ public class VelocityUtils
     public static int getExpandColumn(GenTable genTable)
     {
         String options = genTable.getOptions();
-        JSONObject paramsObj = JSON.parseObject(options);
-        String treeName = paramsObj.getString(GenConstants.TREE_NAME);
+        JsonNode paramsObj = JsonUtils.parseObject(options);
+        String treeName = paramsObj != null ? paramsObj.path(GenConstants.TREE_NAME).asText(null) : null;
         int num = 0;
         for (GenTableColumn column : genTable.getColumns())
         {

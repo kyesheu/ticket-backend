@@ -4,7 +4,6 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import com.alibaba.fastjson2.JSONArray;
 import com.ruoyi.common.constant.CacheConstants;
 import com.ruoyi.common.core.domain.entity.SysDictData;
 import com.ruoyi.common.core.redis.RedisCache;
@@ -41,10 +40,12 @@ public class DictUtils
      */
     public static List<SysDictData> getDictCache(String key)
     {
-        JSONArray arrayCache = SpringUtils.getBean(RedisCache.class).getCacheObject(getCacheKey(key));
-        if (StringUtils.isNotNull(arrayCache))
+        Object cache = SpringUtils.getBean(RedisCache.class).getCacheObject(getCacheKey(key));
+        if (cache instanceof List)
         {
-            return arrayCache.toList(SysDictData.class);
+            @SuppressWarnings("unchecked")
+            List<SysDictData> dictDatas = (List<SysDictData>) cache;
+            return dictDatas;
         }
         return null;
     }

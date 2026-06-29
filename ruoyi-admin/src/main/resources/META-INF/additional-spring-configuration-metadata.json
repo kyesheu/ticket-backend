@@ -1,0 +1,254 @@
+{
+  "properties": [
+    {
+      "name": "referer.enabled",
+      "type": "java.lang.Boolean",
+      "description": "是否启用防盗链过滤.",
+      "defaultValue": false
+    },
+    {
+      "name": "referer.allowed-domains",
+      "type": "java.lang.String",
+      "description": "防盗链允许的域名列表（逗号分隔）."
+    },
+    {
+      "name": "xss.enabled",
+      "type": "java.lang.Boolean",
+      "description": "是否启用 XSS 过滤.",
+      "defaultValue": true
+    },
+    {
+      "name": "xss.excludes",
+      "type": "java.lang.String",
+      "description": "XSS 过滤排除的 URL 模式（逗号分隔）."
+    },
+    {
+      "name": "xss.urlPatterns",
+      "type": "java.lang.String",
+      "description": "XSS 过滤拦截的 URL 模式（逗号分隔）."
+    },
+    {
+      "name": "spring.datasource.druid.master.url",
+      "type": "java.lang.String",
+      "description": "Druid 主库 JDBC URL."
+    },
+    {
+      "name": "spring.datasource.druid.master.username",
+      "type": "java.lang.String",
+      "description": "Druid 主库用户名."
+    },
+    {
+      "name": "spring.datasource.druid.master.password",
+      "type": "java.lang.String",
+      "description": "Druid 主库密码."
+    },
+    {
+      "name": "spring.datasource.druid.slave.enabled",
+      "type": "java.lang.Boolean",
+      "description": "是否启用 Druid 从库.",
+      "defaultValue": false
+    },
+    {
+      "name": "spring.datasource.druid.initial-size",
+      "type": "java.lang.Integer",
+      "description": "Druid 连接池初始大小.",
+      "defaultValue": 5
+    },
+    {
+      "name": "spring.datasource.druid.min-idle",
+      "type": "java.lang.Integer",
+      "description": "Druid 连接池最小空闲连接数.",
+      "defaultValue": 10
+    },
+    {
+      "name": "spring.datasource.druid.max-active",
+      "type": "java.lang.Integer",
+      "description": "Druid 连接池最大活跃连接数.",
+      "defaultValue": 20
+    },
+    {
+      "name": "spring.datasource.druid.max-wait",
+      "type": "java.lang.Long",
+      "description": "Druid 获取连接最大等待时间 (ms).",
+      "defaultValue": 60000
+    },
+    {
+      "name": "spring.datasource.druid.connect-timeout",
+      "type": "java.lang.Long",
+      "description": "Druid 连接超时时间 (ms).",
+      "defaultValue": 30000
+    },
+    {
+      "name": "spring.datasource.druid.socket-timeout",
+      "type": "java.lang.Long",
+      "description": "Druid socket 超时时间 (ms).",
+      "defaultValue": 60000
+    },
+    {
+      "name": "spring.datasource.druid.time-between-eviction-runs-millis",
+      "type": "java.lang.Long",
+      "description": "Druid 驱逐检查间隔 (ms).",
+      "defaultValue": 60000
+    },
+    {
+      "name": "spring.datasource.druid.min-evictable-idle-time-millis",
+      "type": "java.lang.Long",
+      "description": "Druid 连接最小空闲可驱逐时间 (ms).",
+      "defaultValue": 300000
+    },
+    {
+      "name": "spring.datasource.druid.max-evictable-idle-time-millis",
+      "type": "java.lang.Long",
+      "description": "Druid 连接最大空闲可驱逐时间 (ms).",
+      "defaultValue": 900000
+    },
+    {
+      "name": "spring.datasource.druid.validation-query",
+      "type": "java.lang.String",
+      "description": "Druid 连接有效性检测 SQL.",
+      "defaultValue": "SELECT 1"
+    },
+    {
+      "name": "spring.datasource.druid.test-while-idle",
+      "type": "java.lang.Boolean",
+      "description": "Druid 空闲时是否检测连接有效性.",
+      "defaultValue": true
+    },
+    {
+      "name": "spring.datasource.druid.test-on-borrow",
+      "type": "java.lang.Boolean",
+      "description": "Druid 获取连接时是否检测有效性.",
+      "defaultValue": false
+    },
+    {
+      "name": "spring.datasource.druid.test-on-return",
+      "type": "java.lang.Boolean",
+      "description": "Druid 归还连接时是否检测有效性.",
+      "defaultValue": false
+    },
+    {
+      "name": "spring.datasource.druid.web-stat-filter.enabled",
+      "type": "java.lang.Boolean",
+      "description": "是否启用 Druid Web 统计过滤器.",
+      "defaultValue": true
+    },
+    {
+      "name": "spring.datasource.druid.stat-view-servlet.enabled",
+      "type": "java.lang.Boolean",
+      "description": "是否启用 Druid 监控页面.",
+      "defaultValue": true
+    },
+    {
+      "name": "spring.datasource.druid.stat-view-servlet.allow",
+      "type": "java.lang.String",
+      "description": "Druid 监控页面允许访问的 IP."
+    },
+    {
+      "name": "spring.datasource.druid.stat-view-servlet.url-pattern",
+      "type": "java.lang.String",
+      "description": "Druid 监控页面 URL 模式.",
+      "defaultValue": "/druid/*"
+    },
+    {
+      "name": "spring.datasource.druid.stat-view-servlet.login-username",
+      "type": "java.lang.String",
+      "description": "Druid 监控页面登录用户名."
+    },
+    {
+      "name": "spring.datasource.druid.stat-view-servlet.login-password",
+      "type": "java.lang.String",
+      "description": "Druid 监控页面登录密码."
+    },
+    {
+      "name": "spring.datasource.druid.filter.stat.enabled",
+      "type": "java.lang.Boolean",
+      "description": "是否启用 Druid SQL 统计过滤器.",
+      "defaultValue": true
+    },
+    {
+      "name": "spring.datasource.druid.filter.stat.log-slow-sql",
+      "type": "java.lang.Boolean",
+      "description": "Druid 是否记录慢 SQL.",
+      "defaultValue": true
+    },
+    {
+      "name": "spring.datasource.druid.filter.stat.slow-sql-millis",
+      "type": "java.lang.Long",
+      "description": "Druid 慢 SQL 阈值 (ms).",
+      "defaultValue": 1000
+    },
+    {
+      "name": "spring.datasource.druid.filter.stat.merge-sql",
+      "type": "java.lang.Boolean",
+      "description": "Druid 是否合并 SQL.",
+      "defaultValue": true
+    },
+    {
+      "name": "spring.datasource.druid.filter.wall.config.multi-statement-allow",
+      "type": "java.lang.Boolean",
+      "description": "Druid Wall 过滤器是否允许多语句.",
+      "defaultValue": true
+    },
+    {
+      "name": "ruoyi.name",
+      "type": "java.lang.String",
+      "description": "项目名称."
+    },
+    {
+      "name": "ruoyi.version",
+      "type": "java.lang.String",
+      "description": "项目版本."
+    },
+    {
+      "name": "ruoyi.copyright-year",
+      "type": "java.lang.String",
+      "description": "版权年份."
+    },
+    {
+      "name": "ruoyi.profile",
+      "type": "java.lang.String",
+      "description": "文件上传路径."
+    },
+    {
+      "name": "ruoyi.address-enabled",
+      "type": "java.lang.Boolean",
+      "description": "是否启用获取地址.",
+      "defaultValue": false
+    },
+    {
+      "name": "ruoyi.captcha-type",
+      "type": "java.lang.String",
+      "description": "验证码类型 (math / char).",
+      "defaultValue": "math"
+    },
+    {
+      "name": "token.header",
+      "type": "java.lang.String",
+      "description": "Token 请求头名称.",
+      "defaultValue": "Authorization"
+    },
+    {
+      "name": "token.secret",
+      "type": "java.lang.String",
+      "description": "Token 签名密钥."
+    },
+    {
+      "name": "token.expire-time",
+      "type": "java.lang.Integer",
+      "description": "Token 过期时间 (分钟).",
+      "defaultValue": 30
+    },
+    {
+      "name": "user.password.max-retry-count",
+      "type": "java.lang.Integer",
+      "description": "用户密码最大重试次数.",
+      "defaultValue": 5
+    },
+    {
+      "name": "user.password.lock-time",
+      "type": "java.lang.Integer",
+      "description": "用户密码锁定时间 (分钟).",
+      "defaultValue": 10
+    }
+  ]
+}

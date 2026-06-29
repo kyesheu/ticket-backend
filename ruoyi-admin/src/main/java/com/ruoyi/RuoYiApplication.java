@@ -16,22 +16,33 @@ public class RuoYiApplication
 {
     public static void main(String[] args)
     {
-        // System.setProperty("spring.devtools.restart.enabled", "false");
         ConfigurableApplicationContext context = SpringApplication.run(RuoYiApplication.class, args);
         Environment env = context.getEnvironment();
 
-        String port = env.getProperty("local.server.port",
-                env.getProperty("server.port", "8080"));
-        String contextPath = env.getProperty("server.servlet.context-path", "");
+        // 1. 动态判断协议 (有配置 SSL 证书则使用 https)
+        String protocol = env.getProperty("server.ssl.key-store") != null ? "https" : "http";
 
-        // 确保 contextPath 既不为 null，也不只是一个孤零零的斜杠
+        // 2. 从已启动的 Web 容器中获取绝对真实的端口
+        int port = ((org.springframework.boot.web.context.WebServerApplicationContext) context).getWebServer().getPort();
+
+        // 3. 获取真实的局域网 IP 地址
+        String ip;
+        try {
+            ip = java.net.InetAddress.getLocalHost().getHostAddress();
+        } catch (java.net.UnknownHostException e) {
+            ip = "127.0.0.1"; // 极端未联网情况下的兜底
+        }
+
+        // 4. 规范化处理 contextPath 避免双斜杠
+        String contextPath = env.getProperty("server.servlet.context-path", "");
         if (contextPath == null || "/".equals(contextPath)) {
             contextPath = "";
         } else if (!contextPath.startsWith("/")) {
             contextPath = "/" + contextPath;
         }
 
-        String baseUrl = "http://localhost:" + port + contextPath;
+        // 5. 组装唯一的真实 IP 地址
+        String baseUrl = protocol + "://" + ip + ":" + port + contextPath;
 
         System.out.println("\n========================================");
         System.out.println("  Ticket Backend 启动成功");

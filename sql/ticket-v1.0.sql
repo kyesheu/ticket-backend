@@ -120,7 +120,7 @@ INSERT INTO sys_menu (menu_id, menu_name, parent_id, order_num, path, component,
 (2000, '工单管理', 0, 5, 'ticket', NULL, NULL, '', 1, 0, 'M', '0', '0', NULL, 'tree', 'admin', NOW(), 'admin', NOW(), '工单管理根目录'),
 
 -- 工单列表 (C)
-(2001, '工单列表', 2000, 1, 'ticket', 'ticket/ticket/index', NULL, '', 1, 0, 'C', '0', '0', 'ticket:ticket:list', 'list', 'admin', NOW(), 'admin', NOW(), '工单列表页'),
+(2001, '工单列表', 2000, 1, 'ticket', 'ticket/ticket/index', NULL, 'ticketList', 1, 0, 'C', '0', '0', 'ticket:ticket:list', 'list', 'admin', NOW(), 'admin', NOW(), '工单列表页'),
 -- 分类管理 (C)
 (2002, '分类管理', 2000, 2, 'category', 'ticket/category/index', NULL, '', 1, 0, 'C', '0', '0', 'ticket:category:list', 'tree', 'admin', NOW(), 'admin', NOW(), '工单分类管理页'),
 

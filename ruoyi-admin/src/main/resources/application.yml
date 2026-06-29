@@ -195,5 +195,5 @@ referer:
 # 防止 XSS 攻击
 xss:
   enabled: true
-  excludes:
+  excludes: ""
   urlPatterns: /system/*,/monitor/*,/ticket/*

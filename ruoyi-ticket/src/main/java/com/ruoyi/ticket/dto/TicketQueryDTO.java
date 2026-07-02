@@ -1,4 +1,5 @@
 package com.ruoyi.ticket.dto;
+import java.io.Serial;
 
 import java.io.Serializable;
 import java.util.Date;
@@ -14,7 +15,8 @@ import io.swagger.v3.oas.annotations.media.Schema;
 @Schema(description = "工单查询条件")
 public class TicketQueryDTO implements Serializable {
 
-    private static final long serialVersionUID = 1L;
+    @Serial
+private static final long serialVersionUID = 1L;
 
     @Schema(description = "状态筛选：NEW/PROCESSING/WAIT_CONFIRM/CLOSED/CANCELLED")
     private String status;
@@ -33,6 +35,12 @@ public class TicketQueryDTO implements Serializable {
 
     @Schema(description = "结束时间")
     private Date endTime;
+
+    @Schema(description = "响应是否超时：0否 1是")
+    private String responseOverdue;
+
+    @Schema(description = "解决是否超时：0否 1是")
+    private String resolveOverdue;
 
     @Schema(description = "页码")
     private Integer pageNum;
@@ -54,6 +62,10 @@ public class TicketQueryDTO implements Serializable {
     public void setBeginTime(Date beginTime) { this.beginTime = beginTime; }
     public Date getEndTime() { return endTime; }
     public void setEndTime(Date endTime) { this.endTime = endTime; }
+    public String getResponseOverdue() { return responseOverdue; }
+    public void setResponseOverdue(String responseOverdue) { this.responseOverdue = responseOverdue; }
+    public String getResolveOverdue() { return resolveOverdue; }
+    public void setResolveOverdue(String resolveOverdue) { this.resolveOverdue = resolveOverdue; }
     public Integer getPageNum() { return pageNum; }
     public void setPageNum(Integer pageNum) { this.pageNum = pageNum; }
     public Integer getPageSize() { return pageSize; }

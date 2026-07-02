@@ -1,4 +1,5 @@
 package com.ruoyi.ticket.vo;
+import java.io.Serial;
 
 import java.io.Serializable;
 import java.util.Date;
@@ -16,7 +17,8 @@ import io.swagger.v3.oas.annotations.media.Schema;
 @Schema(description = "工单详情")
 public class TicketVO implements Serializable {
 
-    private static final long serialVersionUID = 1L;
+    @Serial
+private static final long serialVersionUID = 1L;
 
     @Schema(description = "工单ID")
     private Long ticketId;
@@ -68,6 +70,20 @@ public class TicketVO implements Serializable {
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
     private Date closedAt;
 
+    @Schema(description = "首次响应截止时间")
+    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
+    private Date responseDueAt;
+
+    @Schema(description = "解决截止时间")
+    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
+    private Date resolveDueAt;
+
+    @Schema(description = "响应是否超时：0否 1是")
+    private String responseOverdue;
+
+    @Schema(description = "解决是否超时：0否 1是")
+    private String resolveOverdue;
+
     @Schema(description = "创建时间")
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
     private Date createTime;
@@ -117,6 +133,14 @@ public class TicketVO implements Serializable {
     public void setProcessedAt(Date processedAt) { this.processedAt = processedAt; }
     public Date getClosedAt() { return closedAt; }
     public void setClosedAt(Date closedAt) { this.closedAt = closedAt; }
+    public Date getResponseDueAt() { return responseDueAt; }
+    public void setResponseDueAt(Date responseDueAt) { this.responseDueAt = responseDueAt; }
+    public Date getResolveDueAt() { return resolveDueAt; }
+    public void setResolveDueAt(Date resolveDueAt) { this.resolveDueAt = resolveDueAt; }
+    public String getResponseOverdue() { return responseOverdue; }
+    public void setResponseOverdue(String responseOverdue) { this.responseOverdue = responseOverdue; }
+    public String getResolveOverdue() { return resolveOverdue; }
+    public void setResolveOverdue(String resolveOverdue) { this.resolveOverdue = resolveOverdue; }
     public Date getCreateTime() { return createTime; }
     public void setCreateTime(Date createTime) { this.createTime = createTime; }
     public Date getUpdateTime() { return updateTime; }

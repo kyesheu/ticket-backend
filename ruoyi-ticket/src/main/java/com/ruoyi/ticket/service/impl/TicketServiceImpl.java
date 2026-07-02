@@ -12,6 +12,7 @@ import com.ruoyi.common.utils.SecurityUtils;
 import com.ruoyi.common.utils.StringUtils;
 import com.ruoyi.ticket.domain.Ticket;
 import com.ruoyi.ticket.domain.TicketOperationLog;
+import com.ruoyi.ticket.domain.TicketSlaPolicy;
 import com.ruoyi.ticket.dto.TicketAssignDTO;
 import com.ruoyi.ticket.dto.TicketCancelDTO;
 import com.ruoyi.ticket.dto.TicketConfirmDTO;
@@ -23,6 +24,7 @@ import com.ruoyi.ticket.enums.TicketPriority;
 import com.ruoyi.ticket.enums.TicketStatus;
 import com.ruoyi.ticket.mapper.TicketMapper;
 import com.ruoyi.ticket.mapper.TicketOperationLogMapper;
+import com.ruoyi.ticket.mapper.TicketSlaPolicyMapper;
 import com.ruoyi.ticket.service.ITicketService;
 import com.ruoyi.ticket.vo.TicketListVO;
 import com.ruoyi.ticket.vo.TicketVO;
@@ -41,11 +43,20 @@ public class TicketServiceImpl implements ITicketService {
     /** 默认优先级 */
     private static final String DEFAULT_PRIORITY = TicketPriority.MEDIUM.name();
 
+    /** 每分钟毫秒数 */
+    private static final long MILLIS_PER_MINUTE = 60_000L;
+
+    /** 未超时标记 */
+    private static final String NOT_OVERDUE = "0";
+
     @Autowired
     private TicketMapper ticketMapper;
 
     @Autowired
     private TicketOperationLogMapper ticketOperationLogMapper;
+
+    @Autowired
+    private TicketSlaPolicyMapper ticketSlaPolicyMapper;
 
     @Override
     public List<TicketListVO> selectTicketList(TicketQueryDTO query) {
@@ -79,6 +90,12 @@ public class TicketServiceImpl implements ITicketService {
         // 确定优先级
         String priority = StringUtils.isNotBlank(dto.getPriority())
                 ? dto.getPriority() : DEFAULT_PRIORITY;
+        TicketSlaPolicy slaPolicy = ticketSlaPolicyMapper.selectEnabledPolicyByPriority(priority);
+        if (slaPolicy == null) {
+            throw new ServiceException("该优先级未配置启用的 SLA 策略");
+        }
+
+        Date createTime = new Date();
 
         Ticket ticket = new Ticket();
         ticket.setTicketNo(ticketNo);
@@ -89,11 +106,15 @@ public class TicketServiceImpl implements ITicketService {
         ticket.setStatus(TicketStatus.NEW.name());
         ticket.setCreatorId(SecurityUtils.getUserId());
         ticket.setDeptId(SecurityUtils.getDeptId());
+        ticket.setResponseDueAt(addMinutes(createTime, slaPolicy.getResponseMinutes()));
+        ticket.setResolveDueAt(addMinutes(createTime, slaPolicy.getResolveMinutes()));
+        ticket.setResponseOverdue(NOT_OVERDUE);
+        ticket.setResolveOverdue(NOT_OVERDUE);
         ticket.setDelFlag("0");
         ticket.setCreateBy(SecurityUtils.getUsername());
-        ticket.setCreateTime(new Date());
+        ticket.setCreateTime(createTime);
         ticket.setUpdateBy(SecurityUtils.getUsername());
-        ticket.setUpdateTime(new Date());
+        ticket.setUpdateTime(createTime);
 
         ticketMapper.insertTicket(ticket);
 
@@ -235,6 +256,16 @@ public class TicketServiceImpl implements ITicketService {
         String seqPart = maxNo.substring(maxNo.length() - 4);
         int nextSeq = Integer.parseInt(seqPart) + 1;
         return todayPrefix + String.format("%04d", nextSeq);
+    }
+
+    /**
+     * 在指定时间上增加分钟数。
+     */
+    private Date addMinutes(Date baseTime, Integer minutes) {
+        if (minutes == null || minutes <= 0) {
+            throw new ServiceException("SLA 策略时限无效");
+        }
+        return new Date(baseTime.getTime() + minutes * MILLIS_PER_MINUTE);
     }
 
     /**

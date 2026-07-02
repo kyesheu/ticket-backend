@@ -1,10 +1,12 @@
 package com.ruoyi.ticket.service.impl;
 
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mockStatic;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -21,6 +23,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import com.ruoyi.common.exception.ServiceException;
 import com.ruoyi.common.utils.SecurityUtils;
 import com.ruoyi.ticket.domain.Ticket;
+import com.ruoyi.ticket.domain.TicketSlaPolicy;
 import com.ruoyi.ticket.dto.TicketAssignDTO;
 import com.ruoyi.ticket.dto.TicketCancelDTO;
 import com.ruoyi.ticket.dto.TicketConfirmDTO;
@@ -29,6 +32,8 @@ import com.ruoyi.ticket.dto.TicketProcessDTO;
 import com.ruoyi.ticket.enums.TicketStatus;
 import com.ruoyi.ticket.mapper.TicketMapper;
 import com.ruoyi.ticket.mapper.TicketOperationLogMapper;
+import com.ruoyi.ticket.mapper.TicketSlaPolicyMapper;
+import org.mockito.ArgumentCaptor;
 
 /**
  * TicketServiceImpl 单元测试（Mock Mapper 层）
@@ -44,6 +49,9 @@ class TicketServiceImplTest {
 
     @Mock
     private TicketOperationLogMapper ticketOperationLogMapper;
+
+    @Mock
+    private TicketSlaPolicyMapper ticketSlaPolicyMapper;
 
     @InjectMocks
     private TicketServiceImpl ticketService;
@@ -63,6 +71,12 @@ class TicketServiceImplTest {
         securityUtilsMock.when(SecurityUtils::getUsername).thenReturn("admin");
         securityUtilsMock.when(SecurityUtils::isAdmin).thenReturn(true);
         securityUtilsMock.when(() -> SecurityUtils.isAdmin(anyLong())).thenReturn(true);
+        TicketSlaPolicy defaultPolicy = new TicketSlaPolicy();
+        defaultPolicy.setPriority("MEDIUM");
+        defaultPolicy.setResponseMinutes(240);
+        defaultPolicy.setResolveMinutes(1440);
+        lenient().when(ticketSlaPolicyMapper.selectEnabledPolicyByPriority(anyString()))
+                .thenReturn(defaultPolicy);
         // 准备 NEW 状态工单
         newTicket = new Ticket();
         newTicket.setTicketId(1L);
@@ -119,6 +133,45 @@ class TicketServiceImplTest {
 
         ticketService.createTicket(dto);
         verify(ticketMapper).insertTicket(any(Ticket.class));
+    }
+
+    @Test
+    @DisplayName("创建工单应按策略生成 SLA 截止时间快照")
+    void createTicketShouldSnapshotSlaDueTimes() {
+        when(ticketMapper.selectMaxTicketNo(anyString())).thenReturn(null);
+        TicketSlaPolicy policy = new TicketSlaPolicy();
+        policy.setPriority("HIGH");
+        policy.setResponseMinutes(60);
+        policy.setResolveMinutes(480);
+        when(ticketSlaPolicyMapper.selectEnabledPolicyByPriority("HIGH")).thenReturn(policy);
+
+        TicketCreateDTO dto = new TicketCreateDTO();
+        dto.setTitle("高优先级工单");
+        dto.setPriority("HIGH");
+        ticketService.createTicket(dto);
+
+        ArgumentCaptor<Ticket> captor = ArgumentCaptor.forClass(Ticket.class);
+        verify(ticketMapper).insertTicket(captor.capture());
+        Ticket created = captor.getValue();
+        assertThat(created.getResponseDueAt().getTime() - created.getCreateTime().getTime())
+                .isEqualTo(60L * 60L * 1000L);
+        assertThat(created.getResolveDueAt().getTime() - created.getCreateTime().getTime())
+                .isEqualTo(480L * 60L * 1000L);
+    }
+
+    @Test
+    @DisplayName("缺少启用的 SLA 策略时应拒绝创建")
+    void createTicketWithoutEnabledPolicyShouldThrow() {
+        when(ticketMapper.selectMaxTicketNo(anyString())).thenReturn(null);
+        when(ticketSlaPolicyMapper.selectEnabledPolicyByPriority("URGENT")).thenReturn(null);
+
+        TicketCreateDTO dto = new TicketCreateDTO();
+        dto.setTitle("紧急工单");
+        dto.setPriority("URGENT");
+
+        assertThatThrownBy(() -> ticketService.createTicket(dto))
+                .isInstanceOf(ServiceException.class)
+                .hasMessageContaining("未配置启用的 SLA 策略");
     }
 
     // ==================== 分派工单 ====================

@@ -11,6 +11,51 @@
         <result property="overdueMinutes" column="overdue_minutes" />
     </resultMap>
 
+    <resultMap id="TicketSlaAlertVOResult" type="com.ruoyi.ticket.vo.TicketSlaAlertVO">
+        <id property="alertId" column="alert_id" />
+        <result property="ticketId" column="ticket_id" />
+        <result property="ticketNo" column="ticket_no" />
+        <result property="title" column="title" />
+        <result property="priority" column="priority" />
+        <result property="ticketStatus" column="ticket_status" />
+        <result property="alertType" column="alert_type" />
+        <result property="dueAt" column="due_at" />
+        <result property="detectedAt" column="detected_at" />
+        <result property="overdueMinutes" column="overdue_minutes" />
+    </resultMap>
+
+    <sql id="selectAlertVO">
+        SELECT a.alert_id, a.ticket_id, t.ticket_no, t.title, t.priority,
+               t.status AS ticket_status, a.alert_type, a.due_at,
+               a.detected_at, a.overdue_minutes
+        FROM ticket_sla_alert a
+        INNER JOIN ticket t ON t.ticket_id = a.ticket_id AND t.del_flag = '0'
+    </sql>
+
+    <select id="selectAlertList" resultMap="TicketSlaAlertVOResult">
+        <include refid="selectAlertVO" />
+        <where>
+            <if test="alertType != null and alertType != ''">
+                AND a.alert_type = #{alertType}
+            </if>
+            <if test="ticketNo != null and ticketNo != ''">
+                AND t.ticket_no = #{ticketNo}
+            </if>
+            <if test="beginDetectedAt != null">
+                AND a.detected_at &gt;= #{beginDetectedAt}
+            </if>
+            <if test="endDetectedAt != null">
+                AND a.detected_at &lt;= #{endDetectedAt}
+            </if>
+        </where>
+        ORDER BY a.detected_at DESC, a.alert_id DESC
+    </select>
+
+    <select id="selectAlertById" parameterType="Long" resultMap="TicketSlaAlertVOResult">
+        <include refid="selectAlertVO" />
+        WHERE a.alert_id = #{alertId}
+    </select>
+
     <select id="selectAlertsByTicketId" parameterType="Long" resultMap="TicketSlaAlertResult">
         SELECT alert_id, ticket_id, alert_type, due_at, detected_at, overdue_minutes
         FROM ticket_sla_alert

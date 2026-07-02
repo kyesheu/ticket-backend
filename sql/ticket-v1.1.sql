@@ -121,4 +121,4 @@ INSERT INTO sys_job
      concurrent, status, create_by, create_time, remark)
 VALUES
     ('工单SLA超时扫描', 'TICKET', 'ticketSlaTask.scanOverdue', '0 0/5 * * * ?', '3',
-     '1', '1', 'admin', NOW(), 'v1.1阶段十二实现后启用');
+     '1', '0', 'admin', NOW(), '每5分钟扫描工单SLA超时');

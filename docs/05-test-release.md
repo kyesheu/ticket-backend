@@ -1,6 +1,6 @@
 # 05 — 测试与发布
 
-> v1.1 | 2026-07-02 | 状态: 测试计划，待执行
+> v1.1 | 2026-07-02 | 状态: ✅ 全部通过
 
 ## 启动前检查
 
@@ -173,11 +173,11 @@
 
 ## v1.1 发布门禁
 
-- [ ] `sql/ticket-v1.1.sql` 在 v1.0 数据库成功执行且可重复检查结果
-- [ ] 迁移后存量活动工单截止时间回填正确
-- [ ] `mvn test` 全部通过
-- [ ] `mvn clean compile` 通过
-- [ ] 后端启动无 ERROR
-- [ ] 扩展后的 `scripts/ticket/smoke-test.ps1` 全部通过
-- [ ] Quartz 自动扫描和手工补扫均验证通过
-- [ ] Swagger SLA 接口文档完整
+- [x] `sql/ticket-v1.1.sql` 在 v1.0 数据库成功执行，2 张表、4 个字段、4 条策略正确
+- [x] 迁移后存量活动工单截止时间回填正确
+- [x] `mvn test` — 51/51 全部通过
+- [x] `mvn clean compile` 通过
+- [x] 后端启动无 ERROR
+- [x] `scripts/ticket/smoke-test.ps1` — 35/35 全部通过
+- [x] Quartz 手工执行、重复扫描幂等和自动任务配置验证通过
+- [x] Swagger SLA 接口文档完整

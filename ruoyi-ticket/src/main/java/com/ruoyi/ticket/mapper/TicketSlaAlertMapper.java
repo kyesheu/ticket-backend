@@ -1,6 +1,8 @@
 package com.ruoyi.ticket.mapper;
 
 import com.ruoyi.ticket.domain.TicketSlaAlert;
+import com.ruoyi.ticket.dto.TicketSlaAlertQueryDTO;
+import com.ruoyi.ticket.vo.TicketSlaAlertVO;
 
 import java.util.List;
 
@@ -10,6 +12,10 @@ import java.util.List;
  * @author ticket
  */
 public interface TicketSlaAlertMapper {
+
+    List<TicketSlaAlertVO> selectAlertList(TicketSlaAlertQueryDTO query);
+
+    TicketSlaAlertVO selectAlertById(Long alertId);
 
     /**
      * 根据工单 ID 查询告警

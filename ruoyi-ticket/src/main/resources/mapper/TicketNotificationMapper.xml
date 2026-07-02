@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ruoyi.ticket.mapper.TicketNotificationMapper">
+    <resultMap id="TicketNotificationResult" type="com.ruoyi.ticket.domain.TicketNotification">
+        <id property="notificationId" column="notification_id" />
+        <result property="ticketId" column="ticket_id" />
+        <result property="recipientId" column="recipient_id" />
+        <result property="notificationType" column="notification_type" />
+        <result property="eventKey" column="event_key" />
+        <result property="title" column="title" />
+        <result property="content" column="content" />
+        <result property="readStatus" column="read_status" />
+        <result property="readTime" column="read_time" />
+        <result property="createTime" column="create_time" />
+    </resultMap>
+
+    <select id="selectNotificationsByRecipientId" resultMap="TicketNotificationResult">
+        SELECT notification_id, ticket_id, recipient_id, notification_type, event_key,
+               title, content, read_status, read_time, create_time
+        FROM ticket_notification
+        WHERE recipient_id = #{recipientId}
+        ORDER BY create_time DESC, notification_id DESC
+    </select>
+
+    <select id="countUnreadByRecipientId" resultType="int">
+        SELECT COUNT(*) FROM ticket_notification
+        WHERE recipient_id = #{recipientId} AND read_status = '0'
+    </select>
+
+    <insert id="insertNotification" useGeneratedKeys="true" keyProperty="notificationId">
+        INSERT INTO ticket_notification
+            (ticket_id, recipient_id, notification_type, event_key, title, content, read_status, create_time)
+        VALUES
+            (#{ticketId}, #{recipientId}, #{notificationType}, #{eventKey}, #{title}, #{content},
+             #{readStatus}, #{createTime})
+    </insert>
+
+    <update id="markRead">
+        UPDATE ticket_notification SET read_status = '1', read_time = NOW()
+        WHERE notification_id = #{notificationId} AND recipient_id = #{recipientId} AND read_status = '0'
+    </update>
+
+    <update id="markAllRead">
+        UPDATE ticket_notification SET read_status = '1', read_time = NOW()
+        WHERE recipient_id = #{recipientId} AND read_status = '0'
+    </update>
+</mapper>

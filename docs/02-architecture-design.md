@@ -1,6 +1,6 @@
 # 02 — 架构与设计规范
 
-> v1.1 | 2026-07-02
+> v1.2 | 2026-07-02
 
 ## 模块架构
 
@@ -258,3 +258,13 @@ ticket:sla-alert:list / query / scan
 
 策略维护和手工扫描仅管理员权限开放。普通用户在工单列表、详情中只能看到其有权查看工单的
 SLA 状态，不直接访问全量告警列表。
+
+## v1.2 通知与评价设计
+
+- `ticket_notification`、`ticket_satisfaction` 均归属 `ruoyi-ticket`，不依赖 `ruoyi-system` Service。
+- 状态流转、评论和 SLA 告警在原事务内调用通知 Service。
+- 通知查询从登录态取得 recipientId，禁止前端指定用户 ID。
+- `event_key` 使用事件类型和不可变来源 ID 组成，数据库唯一键负责最终幂等。
+- 评价 Service 校验工单状态、创建人和唯一性，数据库唯一键处理并发重复提交。
+
+权限：`ticket:notification:list/read`、`ticket:satisfaction:add/query/list/statistics`。

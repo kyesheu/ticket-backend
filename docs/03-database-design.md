@@ -1,6 +1,6 @@
 # 03 — 数据库设计
 
-> v1.1 | 2026-07-02 | MySQL 8.0 + InnoDB
+> v1.2 | 2026-07-02 | MySQL 8.0 + InnoDB
 
 ## 设计原则
 
@@ -158,3 +158,16 @@ v1.0 基线见 `sql/ticket-v1.0.sql`。v1.1 实现阶段新增 `sql/ticket-v1.1.
 - 插入四条默认策略后，根据已有工单的 `priority` 和 `create_time` 回填两个截止时间。
 - 对已有工单按 `processed_at`、`closed_at` 和截止时间初始化超时标记；`CANCELLED` 保持未超时。
 - 回填不生成历史告警，由首次扫描为仍活动且已超时的工单生成告警。
+
+## v1.2 新增表
+
+`ticket_notification`：`notification_id`、`ticket_id`、`recipient_id`、
+`notification_type`、`event_key`、`title`、`content`、`read_status`、`read_time`、`create_time`。
+
+索引：`uk_recipient_event(recipient_id, event_key)`、
+`idx_recipient_read(recipient_id, read_status, create_time)`、`idx_ticket_id(ticket_id)`。
+
+`ticket_satisfaction`：`satisfaction_id`、`ticket_id`、`evaluator_id`、`score`、`content`、`create_time`。
+
+索引：`uk_ticket_id(ticket_id)`、`idx_evaluator_id(evaluator_id)`、`idx_create_time(create_time)`。
+评分使用 `TINYINT` 并限制 1–5。v1.2 使用独立增量脚本 `sql/ticket-v1.2.sql`。

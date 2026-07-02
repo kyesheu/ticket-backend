@@ -4,6 +4,7 @@ import java.util.Date;
 import java.util.List;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import com.ruoyi.common.exception.ServiceException;
 import com.ruoyi.common.utils.SecurityUtils;
 import com.ruoyi.common.utils.StringUtils;
@@ -13,6 +14,8 @@ import com.ruoyi.ticket.dto.TicketCommentDTO;
 import com.ruoyi.ticket.mapper.TicketCommentMapper;
 import com.ruoyi.ticket.mapper.TicketMapper;
 import com.ruoyi.ticket.service.ITicketCommentService;
+import com.ruoyi.ticket.service.ITicketNotificationService;
+import com.ruoyi.ticket.enums.TicketNotificationType;
 
 /**
  * 工单评论 Service 实现
@@ -31,12 +34,16 @@ public class TicketCommentServiceImpl implements ITicketCommentService {
     @Autowired
     private TicketMapper ticketMapper;
 
+    @Autowired
+    private ITicketNotificationService ticketNotificationService;
+
     @Override
     public List<TicketComment> selectCommentsByTicketId(Long ticketId) {
         return ticketCommentMapper.selectCommentsByTicketId(ticketId);
     }
 
     @Override
+    @Transactional(rollbackFor = Exception.class)
     public int addComment(Long ticketId, TicketCommentDTO dto) {
         // 校验工单存在
         Ticket ticket = ticketMapper.selectTicketEntityById(ticketId);
@@ -58,6 +65,13 @@ public class TicketCommentServiceImpl implements ITicketCommentService {
         comment.setCreateTime(new Date());
         comment.setUpdateBy(SecurityUtils.getUsername());
         comment.setUpdateTime(new Date());
-        return ticketCommentMapper.insertComment(comment);
+        int rows = ticketCommentMapper.insertComment(comment);
+        String eventKey = "COMMENTED:" + comment.getCommentId();
+        Long operatorId = SecurityUtils.getUserId();
+        ticketNotificationService.createNotification(ticketId, ticket.getCreatorId(), operatorId,
+                TicketNotificationType.COMMENTED, eventKey, "工单有新评论", dto.getContent());
+        ticketNotificationService.createNotification(ticketId, ticket.getAssigneeId(), operatorId,
+                TicketNotificationType.COMMENTED, eventKey, "工单有新评论", dto.getContent());
+        return rows;
     }
 }

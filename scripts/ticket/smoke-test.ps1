@@ -123,6 +123,9 @@ $R = Invoke-RestMethod -Uri "$BaseUrl/ticket/sla/list" -Headers $Headers -Method
 Assert-Success "GET /ticket/sla/list" $R
 Assert-Contains "  policy has responseMinutes" "responseMinutes" $R
 
+# 将本次 smoke 工单调整为响应超时，验证 SLA 通知链路
+$Sql = "UPDATE ticket SET response_due_at=DATE_SUB(NOW(), INTERVAL 10 MINUTE), response_overdue='0' WHERE ticket_id=$T2;"
+$Sql | docker exec -i mysql sh -c 'mysql -uroot -p"$MYSQL_ROOT_PASSWORD" ticket_backend'
 $R = Invoke-RestMethod -Uri "$BaseUrl/ticket/sla-alert/scan" -Headers $Headers -Method Post
 Assert-Success "POST /ticket/sla-alert/scan" $R
 
@@ -134,6 +137,20 @@ if ($AlertPage.rows.Count -gt 0) {
     Assert-Success "GET /ticket/sla-alert/{id}" $R
     Assert-Contains "  alert has ticketNo" "ticketNo" $R
 }
+
+$NotificationPage = Invoke-RestMethod -Uri "$BaseUrl/ticket/notification/list?pageNum=1&pageSize=20" -Headers $Headers -Method Get
+Assert-Success "GET /ticket/notification/list" $NotificationPage
+Assert-Contains "  notification has SLA_OVERDUE" "SLA_OVERDUE" $NotificationPage
+
+$Unread = Invoke-RestMethod -Uri "$BaseUrl/ticket/notification/unread-count" -Headers $Headers -Method Get
+Assert-Success "GET /ticket/notification/unread-count" $Unread
+if ($NotificationPage.rows.Count -gt 0) {
+    $NotificationId = $NotificationPage.rows[0].notificationId
+    $R = Invoke-RestMethod -Uri "$BaseUrl/ticket/notification/$NotificationId/read" -Headers $Headers -Method Put
+    Assert-Success "PUT /ticket/notification/{id}/read" $R
+}
+$R = Invoke-RestMethod -Uri "$BaseUrl/ticket/notification/read-all" -Headers $Headers -Method Put
+Assert-Success "PUT /ticket/notification/read-all" $R
 
 # ============ 合法状态流转 ============
 Write-Host ""
@@ -154,6 +171,22 @@ Assert-Success "PUT /ticket/$T1/confirm (WAIT_CONFIRM->CLOSED)" $R
 $Body = '{"comment":"No longer needed"}'
 $R = Invoke-RestMethod -Uri "$BaseUrl/ticket/$T2/cancel" -Method Put -Body $Body -ContentType "application/json" -Headers $Headers
 Assert-Success "PUT /ticket/$T2/cancel (NEW->CANCELLED)" $R
+
+# ============ 满意度评价 ============
+Write-Host ""
+Write-Host "[3.1] Satisfaction" -ForegroundColor Cyan
+
+$Body = '{"score":5,"content":"Smoke test satisfied"}'
+$R = Invoke-RestMethod -Uri "$BaseUrl/ticket/satisfaction/$T1" -Method Post -Body $Body -ContentType "application/json" -Headers $Headers
+Assert-Success "POST /ticket/satisfaction/$T1" $R
+$R = Invoke-RestMethod -Uri "$BaseUrl/ticket/satisfaction/ticket/$T1" -Headers $Headers -Method Get
+Assert-Success "GET /ticket/satisfaction/ticket/$T1" $R
+Assert-Contains "  satisfaction score is 5" '"score":5' $R
+$R = Invoke-RestMethod -Uri "$BaseUrl/ticket/satisfaction/list?pageNum=1&pageSize=20" -Headers $Headers -Method Get
+Assert-Success "GET /ticket/satisfaction/list" $R
+$R = Invoke-RestMethod -Uri "$BaseUrl/ticket/satisfaction/statistics" -Headers $Headers -Method Get
+Assert-Success "GET /ticket/satisfaction/statistics" $R
+Assert-Contains "  statistics has averageScore" "averageScore" $R
 
 # ============ 非法状态流转 ============
 Write-Host ""

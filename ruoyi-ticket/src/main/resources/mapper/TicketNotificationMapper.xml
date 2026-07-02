@@ -14,7 +14,20 @@
         <result property="createTime" column="create_time" />
     </resultMap>
 
-    <select id="selectNotificationList" resultType="com.ruoyi.ticket.vo.TicketNotificationVO">
+    <resultMap id="TicketNotificationVOResult" type="com.ruoyi.ticket.vo.TicketNotificationVO">
+        <id property="notificationId" column="notification_id" />
+        <result property="ticketId" column="ticket_id" />
+        <result property="ticketNo" column="ticket_no" />
+        <result property="ticketTitle" column="ticket_title" />
+        <result property="notificationType" column="notification_type" />
+        <result property="title" column="title" />
+        <result property="content" column="content" />
+        <result property="readStatus" column="read_status" />
+        <result property="readTime" column="read_time" />
+        <result property="createTime" column="create_time" />
+    </resultMap>
+
+    <select id="selectNotificationList" resultMap="TicketNotificationVOResult">
         SELECT n.notification_id, n.ticket_id, t.ticket_no, t.title AS ticket_title,
                n.notification_type, n.title, n.content, n.read_status, n.read_time, n.create_time
         FROM ticket_notification n
@@ -42,7 +55,7 @@
     </select>
 
     <insert id="insertNotification" useGeneratedKeys="true" keyProperty="notificationId">
-        INSERT INTO ticket_notification
+        INSERT IGNORE INTO ticket_notification
             (ticket_id, recipient_id, notification_type, event_key, title, content, read_status, create_time)
         VALUES
             (#{ticketId}, #{recipientId}, #{notificationType}, #{eventKey}, #{title}, #{content},

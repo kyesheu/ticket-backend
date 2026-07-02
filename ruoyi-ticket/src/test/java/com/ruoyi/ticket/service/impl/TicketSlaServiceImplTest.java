@@ -5,6 +5,7 @@ import com.ruoyi.ticket.domain.TicketSlaAlert;
 import com.ruoyi.ticket.enums.TicketSlaAlertType;
 import com.ruoyi.ticket.mapper.TicketMapper;
 import com.ruoyi.ticket.mapper.TicketSlaAlertMapper;
+import com.ruoyi.ticket.service.ITicketNotificationService;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -39,6 +40,9 @@ class TicketSlaServiceImplTest {
 
     @Mock
     private TicketSlaAlertMapper ticketSlaAlertMapper;
+
+    @Mock
+    private ITicketNotificationService ticketNotificationService;
 
     @InjectMocks
     private TicketSlaServiceImpl ticketSlaService;
@@ -103,6 +107,8 @@ class TicketSlaServiceImplTest {
     private Ticket createTicket(Long ticketId, int overdueMinutes) {
         Ticket ticket = new Ticket();
         ticket.setTicketId(ticketId);
+        ticket.setCreatorId(10L);
+        ticket.setAssigneeId(20L);
         Date dueAt = new Date(System.currentTimeMillis() - overdueMinutes * 60_000L);
         ticket.setResponseDueAt(dueAt);
         ticket.setResolveDueAt(dueAt);

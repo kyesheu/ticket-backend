@@ -1,6 +1,7 @@
 package com.ruoyi.ticket.service;
 
 import com.ruoyi.ticket.dto.TicketNotificationQueryDTO;
+import com.ruoyi.ticket.enums.TicketNotificationType;
 import com.ruoyi.ticket.vo.TicketNotificationVO;
 
 import java.util.List;
@@ -11,4 +12,6 @@ public interface ITicketNotificationService {
     int countMyUnread();
     void markRead(Long notificationId);
     void markAllRead();
+    int createNotification(Long ticketId, Long recipientId, Long operatorId,
+                           TicketNotificationType type, String eventKey, String title, String content);
 }

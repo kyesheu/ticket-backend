@@ -10,14 +10,71 @@
         <result property="createTime" column="create_time" />
     </resultMap>
 
+    <resultMap id="TicketSatisfactionVOResult" type="com.ruoyi.ticket.vo.TicketSatisfactionVO">
+        <id property="satisfactionId" column="satisfaction_id" />
+        <result property="ticketId" column="ticket_id" />
+        <result property="ticketNo" column="ticket_no" />
+        <result property="ticketTitle" column="ticket_title" />
+        <result property="evaluatorId" column="evaluator_id" />
+        <result property="evaluatorName" column="evaluator_name" />
+        <result property="score" column="score" />
+        <result property="content" column="content" />
+        <result property="createTime" column="create_time" />
+    </resultMap>
+
+    <resultMap id="TicketSatisfactionStatisticsResult"
+               type="com.ruoyi.ticket.vo.TicketSatisfactionStatisticsVO">
+        <result property="totalCount" column="total_count" />
+        <result property="averageScore" column="average_score" />
+        <result property="oneStarCount" column="one_star_count" />
+        <result property="twoStarCount" column="two_star_count" />
+        <result property="threeStarCount" column="three_star_count" />
+        <result property="fourStarCount" column="four_star_count" />
+        <result property="fiveStarCount" column="five_star_count" />
+    </resultMap>
+
     <select id="selectByTicketId" resultMap="TicketSatisfactionResult">
         SELECT satisfaction_id, ticket_id, evaluator_id, score, content, create_time
         FROM ticket_satisfaction WHERE ticket_id = #{ticketId}
     </select>
 
-    <select id="selectSatisfactionList" resultMap="TicketSatisfactionResult">
-        SELECT satisfaction_id, ticket_id, evaluator_id, score, content, create_time
-        FROM ticket_satisfaction ORDER BY create_time DESC
+    <sql id="selectSatisfactionVO">
+        SELECT s.satisfaction_id, s.ticket_id, t.ticket_no, t.title AS ticket_title,
+               s.evaluator_id, u.nick_name AS evaluator_name, s.score, s.content, s.create_time
+        FROM ticket_satisfaction s
+        INNER JOIN ticket t ON t.ticket_id = s.ticket_id AND t.del_flag = '0'
+        LEFT JOIN sys_user u ON u.user_id = s.evaluator_id
+    </sql>
+
+    <select id="selectVOByTicketId" resultMap="TicketSatisfactionVOResult">
+        <include refid="selectSatisfactionVO" />
+        WHERE s.ticket_id = #{ticketId}
+    </select>
+
+    <select id="selectSatisfactionList" resultMap="TicketSatisfactionVOResult">
+        <include refid="selectSatisfactionVO" />
+        <where>
+            <if test="score != null">AND s.score = #{score}</if>
+            <if test="beginTime != null">AND s.create_time &gt;= #{beginTime}</if>
+            <if test="endTime != null">AND s.create_time &lt;= #{endTime}</if>
+        </where>
+        ORDER BY s.create_time DESC
+    </select>
+
+    <select id="selectStatistics" resultMap="TicketSatisfactionStatisticsResult">
+        SELECT COUNT(*) AS total_count,
+               COALESCE(ROUND(AVG(score), 2), 0) AS average_score,
+               COALESCE(SUM(CASE WHEN score = 1 THEN 1 ELSE 0 END), 0) AS one_star_count,
+               COALESCE(SUM(CASE WHEN score = 2 THEN 1 ELSE 0 END), 0) AS two_star_count,
+               COALESCE(SUM(CASE WHEN score = 3 THEN 1 ELSE 0 END), 0) AS three_star_count,
+               COALESCE(SUM(CASE WHEN score = 4 THEN 1 ELSE 0 END), 0) AS four_star_count,
+               COALESCE(SUM(CASE WHEN score = 5 THEN 1 ELSE 0 END), 0) AS five_star_count
+        FROM ticket_satisfaction
+        <where>
+            <if test="score != null">AND score = #{score}</if>
+            <if test="beginTime != null">AND create_time &gt;= #{beginTime}</if>
+            <if test="endTime != null">AND create_time &lt;= #{endTime}</if>
+        </where>
     </select>
 
     <insert id="insertSatisfaction" useGeneratedKeys="true" keyProperty="satisfactionId">

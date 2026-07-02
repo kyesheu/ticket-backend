@@ -1,4 +1,5 @@
 package com.ruoyi.quartz.domain;
+import java.io.Serial;
 
 import java.util.Date;
 import jakarta.validation.constraints.NotBlank;
@@ -20,7 +21,8 @@ import com.ruoyi.quartz.util.CronUtils;
  */
 public class SysJob extends BaseEntity
 {
-    private static final long serialVersionUID = 1L;
+    @Serial
+private static final long serialVersionUID = 1L;
 
     /** 任务ID */
     @Excel(name = "任务序号", cellType = ColumnType.NUMERIC)

@@ -1,4 +1,5 @@
 package com.ruoyi.ticket.domain;
+import java.io.Serial;
 
 import com.ruoyi.common.core.domain.BaseEntity;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -11,7 +12,8 @@ import io.swagger.v3.oas.annotations.media.Schema;
 @Schema(description = "工单评论")
 public class TicketComment extends BaseEntity {
 
-    private static final long serialVersionUID = 1L;
+    @Serial
+private static final long serialVersionUID = 1L;
 
     @Schema(description = "评论ID")
     private Long commentId;

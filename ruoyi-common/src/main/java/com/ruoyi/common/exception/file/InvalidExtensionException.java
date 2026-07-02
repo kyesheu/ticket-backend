@@ -1,4 +1,5 @@
 package com.ruoyi.common.exception.file;
+import java.io.Serial;
 
 import java.util.Arrays;
 
@@ -9,7 +10,8 @@ import java.util.Arrays;
  */
 public class InvalidExtensionException extends FileUploadException
 {
-    private static final long serialVersionUID = 1L;
+    @Serial
+private static final long serialVersionUID = 1L;
 
     private String[] allowedExtension;
     private String extension;
@@ -40,7 +42,8 @@ public class InvalidExtensionException extends FileUploadException
 
     public static class InvalidImageExtensionException extends InvalidExtensionException
     {
-        private static final long serialVersionUID = 1L;
+        @Serial
+private static final long serialVersionUID = 1L;
 
         public InvalidImageExtensionException(String[] allowedExtension, String extension, String filename)
         {
@@ -50,7 +53,8 @@ public class InvalidExtensionException extends FileUploadException
 
     public static class InvalidFlashExtensionException extends InvalidExtensionException
     {
-        private static final long serialVersionUID = 1L;
+        @Serial
+private static final long serialVersionUID = 1L;
 
         public InvalidFlashExtensionException(String[] allowedExtension, String extension, String filename)
         {
@@ -60,7 +64,8 @@ public class InvalidExtensionException extends FileUploadException
 
     public static class InvalidMediaExtensionException extends InvalidExtensionException
     {
-        private static final long serialVersionUID = 1L;
+        @Serial
+private static final long serialVersionUID = 1L;
 
         public InvalidMediaExtensionException(String[] allowedExtension, String extension, String filename)
         {
@@ -70,7 +75,8 @@ public class InvalidExtensionException extends FileUploadException
 
     public static class InvalidVideoExtensionException extends InvalidExtensionException
     {
-        private static final long serialVersionUID = 1L;
+        @Serial
+private static final long serialVersionUID = 1L;
 
         public InvalidVideoExtensionException(String[] allowedExtension, String extension, String filename)
         {

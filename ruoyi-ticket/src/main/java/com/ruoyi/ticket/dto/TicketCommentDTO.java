@@ -1,4 +1,5 @@
 package com.ruoyi.ticket.dto;
+import java.io.Serial;
 
 import java.io.Serializable;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -11,7 +12,8 @@ import io.swagger.v3.oas.annotations.media.Schema;
 @Schema(description = "添加评论请求")
 public class TicketCommentDTO implements Serializable {
 
-    private static final long serialVersionUID = 1L;
+    @Serial
+private static final long serialVersionUID = 1L;
 
     @Schema(description = "评论内容", requiredMode = Schema.RequiredMode.REQUIRED)
     private String content;

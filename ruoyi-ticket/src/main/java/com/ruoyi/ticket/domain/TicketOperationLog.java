@@ -1,4 +1,5 @@
 package com.ruoyi.ticket.domain;
+import java.io.Serial;
 
 import java.io.Serializable;
 import java.util.Date;
@@ -14,7 +15,8 @@ import io.swagger.v3.oas.annotations.media.Schema;
 @Schema(description = "工单操作日志")
 public class TicketOperationLog implements Serializable {
 
-    private static final long serialVersionUID = 1L;
+    @Serial
+private static final long serialVersionUID = 1L;
 
     @Schema(description = "日志ID")
     private Long logId;

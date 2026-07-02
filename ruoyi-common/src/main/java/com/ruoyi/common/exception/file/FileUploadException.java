@@ -1,4 +1,5 @@
 package com.ruoyi.common.exception.file;
+import java.io.Serial;
 
 import java.io.PrintStream;
 import java.io.PrintWriter;
@@ -11,7 +12,8 @@ import java.io.PrintWriter;
 public class FileUploadException extends Exception
 {
 
-    private static final long serialVersionUID = 1L;
+    @Serial
+private static final long serialVersionUID = 1L;
 
     private final Throwable cause;
 

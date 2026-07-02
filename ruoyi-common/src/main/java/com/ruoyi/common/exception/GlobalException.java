@@ -1,4 +1,5 @@
 package com.ruoyi.common.exception;
+import java.io.Serial;
 
 /**
  * 全局异常
@@ -7,7 +8,8 @@ package com.ruoyi.common.exception;
  */
 public class GlobalException extends RuntimeException
 {
-    private static final long serialVersionUID = 1L;
+    @Serial
+private static final long serialVersionUID = 1L;
 
     /**
      * 错误提示

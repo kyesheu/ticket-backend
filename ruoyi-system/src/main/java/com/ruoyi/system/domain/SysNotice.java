@@ -1,4 +1,5 @@
 package com.ruoyi.system.domain;
+import java.io.Serial;
 
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
@@ -15,7 +16,8 @@ import com.ruoyi.common.xss.Xss;
  */
 public class SysNotice extends BaseEntity
 {
-    private static final long serialVersionUID = 1L;
+    @Serial
+private static final long serialVersionUID = 1L;
 
     /** 公告ID */
     private Long noticeId;

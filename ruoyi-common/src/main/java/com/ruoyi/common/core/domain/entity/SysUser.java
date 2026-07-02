@@ -1,4 +1,5 @@
 package com.ruoyi.common.core.domain.entity;
+import java.io.Serial;
 
 import java.util.Date;
 import java.util.List;
@@ -22,7 +23,8 @@ import com.ruoyi.common.xss.Xss;
  */
 public class SysUser extends BaseEntity
 {
-    private static final long serialVersionUID = 1L;
+    @Serial
+private static final long serialVersionUID = 1L;
 
     /** 用户ID */
     @Excel(name = "用户序号", type = Type.EXPORT, cellType = ColumnType.NUMERIC, prompt = "用户编号")

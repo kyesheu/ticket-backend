@@ -1,4 +1,5 @@
 package com.ruoyi.ticket.dto;
+import java.io.Serial;
 
 import java.io.Serializable;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -11,7 +12,8 @@ import io.swagger.v3.oas.annotations.media.Schema;
 @Schema(description = "新增分类请求")
 public class TicketCategoryCreateDTO implements Serializable {
 
-    private static final long serialVersionUID = 1L;
+    @Serial
+private static final long serialVersionUID = 1L;
 
     @Schema(description = "父分类ID，0为根节点", example = "0")
     private Long parentId;

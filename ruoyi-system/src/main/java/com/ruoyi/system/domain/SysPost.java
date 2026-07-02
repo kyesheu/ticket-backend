@@ -1,4 +1,5 @@
 package com.ruoyi.system.domain;
+import java.io.Serial;
 
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -16,7 +17,8 @@ import com.ruoyi.common.core.domain.BaseEntity;
  */
 public class SysPost extends BaseEntity
 {
-    private static final long serialVersionUID = 1L;
+    @Serial
+private static final long serialVersionUID = 1L;
 
     /** 岗位序号 */
     @Excel(name = "岗位序号", cellType = ColumnType.NUMERIC)

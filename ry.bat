@@ -1,21 +1,21 @@
 @echo off
 
-rem jar平级目录
+rem jar锓匡房锓匡房锓匡房锓匡房
 set AppName=ruoyi-admin.jar
 
-rem JVM参数
+rem JVM锓匡房锓匡房
 set JVM_OPTS="-Dname=%AppName%  -Duser.timezone=Asia/Shanghai -Xms512m -Xmx1024m -XX:MetaspaceSize=128m -XX:MaxMetaspaceSize=512m -XX:+HeapDumpOnOutOfMemoryError -XX:+PrintGCDateStamps  -XX:+PrintGCDetails -XX:NewRatio=1 -XX:SurvivorRatio=30 -XX:+UseParallelGC -XX:+UseParallelOldGC"
 
 
 ECHO.
-	ECHO.  [1] 启动%AppName%
-	ECHO.  [2] 关闭%AppName%
-	ECHO.  [3] 重启%AppName%
-	ECHO.  [4] 启动状态 %AppName%
-	ECHO.  [5] 退 出
+	ECHO.  [1] 锓匡房锓匡房%AppName%
+	ECHO.  [2] 锓匡房锓匡房%AppName%
+	ECHO.  [3] 锓匡房锓匡房%AppName%
+	ECHO.  [4] 锓匡房锓匡房锓匡房锓匡房 %AppName%
+	ECHO.  [5] 锓匡房 锓匡房
 ECHO.
 
-ECHO.请输入选择项目的序号:
+ECHO.锓匡房锓匡房锓匡房锓匡房锓匡房锓匡房锓匡房锓匡房锓匡房锓匡房:
 set /p ID=
 	IF "%id%"=="1" GOTO start
 	IF "%id%"=="2" GOTO stop
@@ -35,11 +35,11 @@ PAUSE
 
 start javaw %JVM_OPTS% -jar %AppName%
 
-echo  starting……
+echo  starting锓匡房锓匡房
 echo  Start %AppName% success...
 goto:eof
 
-rem 函数stop通过jps命令查找pid并结束进程
+rem 锓匡房锓匡房stop锓匡房锓匡房jps锓匡房锓匡房锓匡房锓匡房pid锓匡房锓匡房锓匡房锓匡房锓匡房
 :stop
 	for /f "usebackq tokens=1-2" %%a in (`jps -l ^| findstr %AppName%`) do (
 		set pid=%%a
@@ -48,7 +48,7 @@ rem 函数stop通过jps命令查找pid并结束进程
 	if not defined pid (echo process %AppName% does not exists) else (
 		echo prepare to kill %image_name%
 		echo start kill %pid% ...
-		rem 根据进程ID，kill进程
+		rem 锓匡房锓匡房锓匡房锓匡房ID锓匡房kill锓匡房锓匡房
 		taskkill /f /pid %pid%
 	)
 goto:eof

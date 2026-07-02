@@ -1,4 +1,5 @@
 package com.ruoyi.common.core.domain.entity;
+import java.io.Serial;
 
 import java.util.Set;
 import jakarta.validation.constraints.NotBlank;
@@ -17,7 +18,8 @@ import com.ruoyi.common.core.domain.BaseEntity;
  */
 public class SysRole extends BaseEntity
 {
-    private static final long serialVersionUID = 1L;
+    @Serial
+private static final long serialVersionUID = 1L;
 
     /** 角色ID */
     @Excel(name = "角色序号", cellType = ColumnType.NUMERIC)

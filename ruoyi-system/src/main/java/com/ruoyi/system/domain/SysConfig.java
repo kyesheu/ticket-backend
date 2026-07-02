@@ -1,4 +1,5 @@
 package com.ruoyi.system.domain;
+import java.io.Serial;
 
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
@@ -15,7 +16,8 @@ import com.ruoyi.common.core.domain.BaseEntity;
  */
 public class SysConfig extends BaseEntity
 {
-    private static final long serialVersionUID = 1L;
+    @Serial
+private static final long serialVersionUID = 1L;
 
     /** 参数主键 */
     @Excel(name = "参数主键", cellType = ColumnType.NUMERIC)

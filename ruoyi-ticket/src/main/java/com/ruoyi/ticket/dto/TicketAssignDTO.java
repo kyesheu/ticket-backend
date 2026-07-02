@@ -1,7 +1,9 @@
 package com.ruoyi.ticket.dto;
 
-import java.io.Serializable;
 import io.swagger.v3.oas.annotations.media.Schema;
+
+import java.io.Serial;
+import java.io.Serializable;
 
 /**
  * 分派工单请求体
@@ -11,6 +13,7 @@ import io.swagger.v3.oas.annotations.media.Schema;
 @Schema(description = "分派工单请求")
 public class TicketAssignDTO implements Serializable {
 
+    @Serial
     private static final long serialVersionUID = 1L;
 
     @Schema(description = "指派人用户ID", requiredMode = Schema.RequiredMode.REQUIRED)

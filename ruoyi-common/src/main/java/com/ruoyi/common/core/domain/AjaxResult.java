@@ -1,4 +1,5 @@
 package com.ruoyi.common.core.domain;
+import java.io.Serial;
 
 import java.util.HashMap;
 import java.util.Objects;
@@ -12,7 +13,8 @@ import com.ruoyi.common.utils.StringUtils;
  */
 public class AjaxResult extends HashMap<String, Object>
 {
-    private static final long serialVersionUID = 1L;
+    @Serial
+private static final long serialVersionUID = 1L;
 
     /** 状态码 */
     public static final String CODE_TAG = "code";

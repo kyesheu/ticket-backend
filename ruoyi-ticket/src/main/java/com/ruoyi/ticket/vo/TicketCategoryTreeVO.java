@@ -1,4 +1,5 @@
 package com.ruoyi.ticket.vo;
+import java.io.Serial;
 
 import java.io.Serializable;
 import java.util.List;
@@ -12,7 +13,8 @@ import io.swagger.v3.oas.annotations.media.Schema;
 @Schema(description = "工单分类树节点")
 public class TicketCategoryTreeVO implements Serializable {
 
-    private static final long serialVersionUID = 1L;
+    @Serial
+private static final long serialVersionUID = 1L;
 
     @Schema(description = "分类ID")
     private Long categoryId;

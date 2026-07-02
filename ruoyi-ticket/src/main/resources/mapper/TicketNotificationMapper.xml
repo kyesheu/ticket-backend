@@ -14,12 +14,26 @@
         <result property="createTime" column="create_time" />
     </resultMap>
 
-    <select id="selectNotificationsByRecipientId" resultMap="TicketNotificationResult">
+    <select id="selectNotificationList" resultType="com.ruoyi.ticket.vo.TicketNotificationVO">
+        SELECT n.notification_id, n.ticket_id, t.ticket_no, t.title AS ticket_title,
+               n.notification_type, n.title, n.content, n.read_status, n.read_time, n.create_time
+        FROM ticket_notification n
+        INNER JOIN ticket t ON t.ticket_id = n.ticket_id AND t.del_flag = '0'
+        WHERE n.recipient_id = #{recipientId}
+        <if test="query.notificationType != null and query.notificationType != ''">
+            AND n.notification_type = #{query.notificationType}
+        </if>
+        <if test="query.readStatus != null and query.readStatus != ''">
+            AND n.read_status = #{query.readStatus}
+        </if>
+        ORDER BY n.create_time DESC, n.notification_id DESC
+    </select>
+
+    <select id="selectNotificationById" resultMap="TicketNotificationResult">
         SELECT notification_id, ticket_id, recipient_id, notification_type, event_key,
                title, content, read_status, read_time, create_time
         FROM ticket_notification
-        WHERE recipient_id = #{recipientId}
-        ORDER BY create_time DESC, notification_id DESC
+        WHERE notification_id = #{notificationId} AND recipient_id = #{recipientId}
     </select>
 
     <select id="countUnreadByRecipientId" resultType="int">

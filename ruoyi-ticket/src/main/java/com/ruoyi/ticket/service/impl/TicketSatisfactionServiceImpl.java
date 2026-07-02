@@ -10,6 +10,7 @@ import com.ruoyi.ticket.enums.TicketStatus;
 import com.ruoyi.ticket.mapper.TicketMapper;
 import com.ruoyi.ticket.mapper.TicketSatisfactionMapper;
 import com.ruoyi.ticket.service.ITicketSatisfactionService;
+import com.ruoyi.ticket.service.ITicketAccessPolicy;
 import com.ruoyi.ticket.vo.TicketSatisfactionStatisticsVO;
 import com.ruoyi.ticket.vo.TicketSatisfactionVO;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -25,15 +26,22 @@ import java.util.Objects;
 @Service
 public class TicketSatisfactionServiceImpl implements ITicketSatisfactionService {
 
+    private static final String SATISFACTION_ADD_PERMISSION = "ticket:satisfaction:add";
+    private static final String SATISFACTION_QUERY_PERMISSION = "ticket:satisfaction:query";
+
     @Autowired
     private TicketMapper ticketMapper;
 
     @Autowired
     private TicketSatisfactionMapper ticketSatisfactionMapper;
 
+    @Autowired
+    private ITicketAccessPolicy ticketAccessPolicy;
+
     @Override
     @Transactional(rollbackFor = Exception.class)
     public Long createSatisfaction(Long ticketId, TicketSatisfactionCreateDTO dto) {
+        ticketAccessPolicy.assertCanAccess(ticketId, SATISFACTION_ADD_PERMISSION);
         Ticket ticket = ticketMapper.selectTicketEntityById(ticketId);
         if (ticket == null) {
             throw new ServiceException("工单不存在");
@@ -69,6 +77,7 @@ public class TicketSatisfactionServiceImpl implements ITicketSatisfactionService
 
     @Override
     public TicketSatisfactionVO selectByTicketId(Long ticketId) {
+        ticketAccessPolicy.assertCanAccess(ticketId, SATISFACTION_QUERY_PERMISSION);
         return ticketSatisfactionMapper.selectVOByTicketId(ticketId);
     }
 

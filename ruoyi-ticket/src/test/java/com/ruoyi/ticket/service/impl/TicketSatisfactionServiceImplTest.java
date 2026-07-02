@@ -8,6 +8,7 @@ import com.ruoyi.ticket.dto.TicketSatisfactionCreateDTO;
 import com.ruoyi.ticket.enums.TicketStatus;
 import com.ruoyi.ticket.mapper.TicketMapper;
 import com.ruoyi.ticket.mapper.TicketSatisfactionMapper;
+import com.ruoyi.ticket.service.ITicketAccessPolicy;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -33,6 +34,7 @@ class TicketSatisfactionServiceImplTest {
 
     @Mock private TicketMapper ticketMapper;
     @Mock private TicketSatisfactionMapper ticketSatisfactionMapper;
+    @Mock private ITicketAccessPolicy ticketAccessPolicy;
     @InjectMocks private TicketSatisfactionServiceImpl ticketSatisfactionService;
     private MockedStatic<SecurityUtils> securityUtilsMock;
 
@@ -59,6 +61,16 @@ class TicketSatisfactionServiceImplTest {
         });
 
         assertThat(ticketSatisfactionService.createSatisfaction(1L, dto(5))).isEqualTo(10L);
+        verify(ticketAccessPolicy).assertCanAccess(1L, "ticket:satisfaction:add");
+    }
+
+    @Test
+    @DisplayName("查询评价详情前应校验工单访问范围")
+    void querySatisfactionShouldCheckAccess() {
+        ticketSatisfactionService.selectByTicketId(2L);
+
+        verify(ticketAccessPolicy).assertCanAccess(2L, "ticket:satisfaction:query");
+        verify(ticketSatisfactionMapper).selectVOByTicketId(2L);
     }
 
     @Test

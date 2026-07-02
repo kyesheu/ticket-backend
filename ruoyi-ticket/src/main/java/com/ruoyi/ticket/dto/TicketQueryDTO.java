@@ -6,6 +6,8 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 import io.swagger.v3.oas.annotations.media.Schema;
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.ruoyi.ticket.model.TicketAccessScope;
 
 /**
  * 工单列表查询请求体
@@ -50,6 +52,10 @@ private static final long serialVersionUID = 1L;
 
     private Map<String, Object> params;
 
+    /** 仅允许 Service 写入的工单访问范围。 */
+    @JsonIgnore
+    private TicketAccessScope accessScope;
+
     public String getStatus() { return status; }
     public void setStatus(String status) { this.status = status; }
     public String getPriority() { return priority; }
@@ -75,4 +81,6 @@ private static final long serialVersionUID = 1L;
         return params;
     }
     public void setParams(Map<String, Object> params) { this.params = params; }
+    public TicketAccessScope getAccessScope() { return accessScope; }
+    public void setAccessScope(TicketAccessScope accessScope) { this.accessScope = accessScope; }
 }

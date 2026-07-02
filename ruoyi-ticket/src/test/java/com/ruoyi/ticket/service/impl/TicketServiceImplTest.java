@@ -29,10 +29,13 @@ import com.ruoyi.ticket.dto.TicketCancelDTO;
 import com.ruoyi.ticket.dto.TicketConfirmDTO;
 import com.ruoyi.ticket.dto.TicketCreateDTO;
 import com.ruoyi.ticket.dto.TicketProcessDTO;
+import com.ruoyi.ticket.dto.TicketQueryDTO;
 import com.ruoyi.ticket.enums.TicketStatus;
 import com.ruoyi.ticket.mapper.TicketMapper;
 import com.ruoyi.ticket.mapper.TicketOperationLogMapper;
 import com.ruoyi.ticket.mapper.TicketSlaPolicyMapper;
+import com.ruoyi.ticket.model.TicketAccessScope;
+import com.ruoyi.ticket.service.ITicketAccessPolicy;
 import com.ruoyi.ticket.service.ITicketNotificationService;
 import org.mockito.ArgumentCaptor;
 
@@ -56,6 +59,9 @@ class TicketServiceImplTest {
 
     @Mock
     private ITicketNotificationService ticketNotificationService;
+
+    @Mock
+    private ITicketAccessPolicy ticketAccessPolicy;
 
     @InjectMocks
     private TicketServiceImpl ticketService;
@@ -110,6 +116,21 @@ class TicketServiceImplTest {
     }
 
     // ==================== 创建工单 ====================
+
+    @Test
+    @DisplayName("列表查询应使用服务端解析的部门数据范围")
+    void selectTicketListShouldUseResolvedAccessScope() {
+        TicketAccessScope scope = new TicketAccessScope(10L, 100L, false, true,
+                true, java.util.List.of(3L));
+        when(ticketAccessPolicy.resolveScope("ticket:ticket:list")).thenReturn(scope);
+        TicketQueryDTO query = new TicketQueryDTO();
+        query.getParams().put("dataScope", "1 = 1 OR 1 = 1");
+
+        ticketService.selectTicketList(query);
+
+        assertThat(query.getAccessScope()).isSameAs(scope);
+        verify(ticketMapper).selectTicketList(query);
+    }
 
     @Test
     @DisplayName("创建工单应生成唯一编号并写入 CREATE 日志")

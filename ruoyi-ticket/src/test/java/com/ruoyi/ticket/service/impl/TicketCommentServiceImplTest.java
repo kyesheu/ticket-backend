@@ -7,6 +7,7 @@ import com.ruoyi.ticket.dto.TicketCommentDTO;
 import com.ruoyi.ticket.mapper.TicketCommentMapper;
 import com.ruoyi.ticket.mapper.TicketMapper;
 import com.ruoyi.ticket.service.ITicketNotificationService;
+import com.ruoyi.ticket.service.ITicketAccessPolicy;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -32,6 +33,7 @@ class TicketCommentServiceImplTest {
     @Mock private TicketCommentMapper ticketCommentMapper;
     @Mock private TicketMapper ticketMapper;
     @Mock private ITicketNotificationService ticketNotificationService;
+    @Mock private ITicketAccessPolicy ticketAccessPolicy;
     @InjectMocks private TicketCommentServiceImpl ticketCommentService;
     private MockedStatic<SecurityUtils> securityUtilsMock;
 
@@ -65,9 +67,19 @@ class TicketCommentServiceImplTest {
 
         ticketCommentService.addComment(1L, dto);
 
+        verify(ticketAccessPolicy).assertCanAccess(1L, "ticket:comment:add");
         verify(ticketNotificationService).createNotification(eq(1L), eq(8L), eq(7L),
                 any(), eq("COMMENTED:11"), anyString(), anyString());
         verify(ticketNotificationService).createNotification(eq(1L), eq(9L), eq(7L),
                 any(), eq("COMMENTED:11"), anyString(), anyString());
+    }
+
+    @Test
+    @DisplayName("查询评论前应校验工单访问范围")
+    void listCommentsShouldCheckAccess() {
+        ticketCommentService.selectCommentsByTicketId(2L);
+
+        verify(ticketAccessPolicy).assertCanAccess(2L, "ticket:comment:list");
+        verify(ticketCommentMapper).selectCommentsByTicketId(2L);
     }
 }

@@ -120,9 +120,36 @@
         <if test="resolveOverdue != null and resolveOverdue != ''">
             AND t.resolve_overdue = #{resolveOverdue}
         </if>
-        <!-- 数据范围在 Service 层通过参数注入 -->
-        <if test="params.dataScope != null and params.dataScope != ''">
-            AND (${params.dataScope})
+        <!-- 访问范围只接受 Service 解析的结构化参数，禁止拼接请求侧 SQL -->
+        <if test="accessScope == null">
+            AND 1 = 0
+        </if>
+        <if test="accessScope != null and !accessScope.fullAccess">
+            AND (
+                t.creator_id = #{accessScope.userId}
+                OR t.assignee_id = #{accessScope.userId}
+                <if test="accessScope.includeDept">
+                    OR t.dept_id = #{accessScope.deptId}
+                </if>
+                <if test="accessScope.includeDeptChildren">
+                    OR t.dept_id IN (
+                        SELECT d.dept_id
+                        FROM sys_dept d
+                        WHERE d.dept_id = #{accessScope.deptId}
+                           OR FIND_IN_SET(#{accessScope.deptId}, d.ancestors)
+                    )
+                </if>
+                <if test="accessScope.customRoleIds != null and accessScope.customRoleIds.size() > 0">
+                    OR t.dept_id IN (
+                        SELECT rd.dept_id
+                        FROM sys_role_dept rd
+                        WHERE rd.role_id IN
+                        <foreach collection="accessScope.customRoleIds" item="roleId" open="(" separator="," close=")">
+                            #{roleId}
+                        </foreach>
+                    )
+                </if>
+            )
         </if>
         ORDER BY t.create_time DESC
     </select>
@@ -150,6 +177,41 @@
     <select id="selectTicketEntityById" parameterType="Long" resultMap="TicketResult">
         <include refid="selectTicketVo"/>
         WHERE t.del_flag = '0' AND t.ticket_id = #{ticketId}
+    </select>
+
+    <!-- 按服务端解析的访问范围校验单条工单 -->
+    <select id="countAccessibleTicket" resultType="int">
+        SELECT COUNT(*)
+        FROM ticket t
+        WHERE t.ticket_id = #{ticketId}
+          AND t.del_flag = '0'
+        <if test="!scope.fullAccess">
+          AND (
+              t.creator_id = #{scope.userId}
+              OR t.assignee_id = #{scope.userId}
+              <if test="scope.includeDept">
+                  OR t.dept_id = #{scope.deptId}
+              </if>
+              <if test="scope.includeDeptChildren">
+                  OR t.dept_id IN (
+                      SELECT d.dept_id
+                      FROM sys_dept d
+                      WHERE d.dept_id = #{scope.deptId}
+                         OR FIND_IN_SET(#{scope.deptId}, d.ancestors)
+                  )
+              </if>
+              <if test="scope.customRoleIds != null and scope.customRoleIds.size() > 0">
+                  OR t.dept_id IN (
+                      SELECT rd.dept_id
+                      FROM sys_role_dept rd
+                      WHERE rd.role_id IN
+                      <foreach collection="scope.customRoleIds" item="roleId" open="(" separator="," close=")">
+                          #{roleId}
+                      </foreach>
+                  )
+              </if>
+          )
+        </if>
     </select>
 
     <!-- 新增工单 -->

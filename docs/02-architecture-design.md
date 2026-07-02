@@ -1,6 +1,6 @@
 # 02 — 架构与设计规范
 
-> v1.2 | 2026-07-02
+> v1.3 | 2026-07-02
 
 ## 模块架构
 
@@ -268,3 +268,52 @@ SLA 状态，不直接访问全量告警列表。
 - 评价 Service 校验工单状态、创建人和唯一性，数据库唯一键处理并发重复提交。
 
 权限：`ticket:notification:list/read`、`ticket:satisfaction:add/query/list/statistics`。
+
+## v1.3 部门级数据权限设计
+
+### 访问策略模块
+
+在 `ruoyi-ticket` 内建立统一的工单访问策略 seam，集中处理角色范围和参与人例外。Controller
+不拼接范围条件，业务 Service 不复制角色遍历逻辑。
+
+```text
+Ticket Controller / Service
+          |
+          v
+ITicketAccessPolicy
+          |
+          +-- 列表：写入服务端生成的数据范围条件
+          +-- 单条：校验 ticketId 是否在可访问范围内
+          |
+          v
+TicketMapper + sys_role_dept + sys_dept
+```
+
+`ITicketAccessPolicy` 保持小接口：一个方法应用列表范围，一个方法断言单条工单可访问。
+角色合并、部门树、自定义部门、参与人例外和拒绝语义均隐藏在实现中。
+
+### 范围语义
+
+```text
+可访问工单 = 角色部门范围内工单 OR creator_id = 当前用户 OR assignee_id = 当前用户
+```
+
+- 超级管理员直接放行。
+- 全部数据权限直接放行。
+- 自定义部门读取 `sys_role_dept`。
+- 本部门匹配 `ticket.dept_id`。
+- 本部门及下级通过 `sys_dept.ancestors` 匹配。
+- 仅本人不增加部门条件，由创建人/指派人条件覆盖。
+- 多个启用且具备当前 ticket 权限的角色取并集。
+
+`ticket.dept_id` 是创建时部门快照。数据权限查询不得改为实时关联创建人的当前部门，否则用户调岗会
+改变历史工单归属。
+
+### SQL 与安全
+
+- 只允许服务端策略模块写入 `params.dataScope`，每次查询前先清空外部值。
+- 动态 SQL 只能由固定模板、数值型用户 ID、角色 ID组成，不接受请求参数中的 SQL 片段。
+- 列表查询和按 ID 可见性查询复用同一范围片段，避免列表不可见但详情可直达。
+- 无权访问与工单不存在统一抛出 `ServiceException("工单不存在")`。
+- 不修改 `ruoyi-framework` 的通用 `DataScopeAspect`；工单的“创建人或指派人”双用户字段语义由
+  `ruoyi-ticket` 自己封装，避免污染基础模块。

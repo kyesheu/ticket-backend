@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ruoyi.ticket.mapper.TicketSatisfactionMapper">
+    <resultMap id="TicketSatisfactionResult" type="com.ruoyi.ticket.domain.TicketSatisfaction">
+        <id property="satisfactionId" column="satisfaction_id" />
+        <result property="ticketId" column="ticket_id" />
+        <result property="evaluatorId" column="evaluator_id" />
+        <result property="score" column="score" />
+        <result property="content" column="content" />
+        <result property="createTime" column="create_time" />
+    </resultMap>
+
+    <select id="selectByTicketId" resultMap="TicketSatisfactionResult">
+        SELECT satisfaction_id, ticket_id, evaluator_id, score, content, create_time
+        FROM ticket_satisfaction WHERE ticket_id = #{ticketId}
+    </select>
+
+    <select id="selectSatisfactionList" resultMap="TicketSatisfactionResult">
+        SELECT satisfaction_id, ticket_id, evaluator_id, score, content, create_time
+        FROM ticket_satisfaction ORDER BY create_time DESC
+    </select>
+
+    <insert id="insertSatisfaction" useGeneratedKeys="true" keyProperty="satisfactionId">
+        INSERT INTO ticket_satisfaction (ticket_id, evaluator_id, score, content, create_time)
+        VALUES (#{ticketId}, #{evaluatorId}, #{score}, #{content}, #{createTime})
+    </insert>
+</mapper>

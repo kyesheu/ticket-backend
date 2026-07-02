@@ -4,6 +4,7 @@ import java.util.List;
 import org.apache.ibatis.annotations.Param;
 import com.ruoyi.ticket.domain.Ticket;
 import com.ruoyi.ticket.dto.TicketQueryDTO;
+import com.ruoyi.ticket.model.TicketAccessScope;
 import com.ruoyi.ticket.vo.TicketListVO;
 import com.ruoyi.ticket.vo.TicketVO;
 
@@ -53,6 +54,12 @@ public interface TicketMapper {
      * 查询工单实体（不含 JOIN，用于状态流转时更新）
      */
     Ticket selectTicketEntityById(@Param("ticketId") Long ticketId);
+
+    /**
+     * 统计当前范围内的指定工单，用于对象级访问校验。
+     */
+    int countAccessibleTicket(@Param("ticketId") Long ticketId,
+                              @Param("scope") TicketAccessScope scope);
 
     /** 查询响应超时候选工单。 */
     List<Ticket> selectResponseOverdueCandidates(@Param("detectedAt") java.util.Date detectedAt,

@@ -15,6 +15,7 @@ import com.ruoyi.ticket.mapper.TicketCommentMapper;
 import com.ruoyi.ticket.mapper.TicketMapper;
 import com.ruoyi.ticket.service.ITicketCommentService;
 import com.ruoyi.ticket.service.ITicketNotificationService;
+import com.ruoyi.ticket.service.ITicketAccessPolicy;
 import com.ruoyi.ticket.enums.TicketNotificationType;
 
 /**
@@ -27,6 +28,8 @@ public class TicketCommentServiceImpl implements ITicketCommentService {
 
     /** 默认评论类型 */
     private static final String DEFAULT_COMMENT_TYPE = "EXTERNAL";
+    private static final String COMMENT_LIST_PERMISSION = "ticket:comment:list";
+    private static final String COMMENT_ADD_PERMISSION = "ticket:comment:add";
 
     @Autowired
     private TicketCommentMapper ticketCommentMapper;
@@ -37,14 +40,19 @@ public class TicketCommentServiceImpl implements ITicketCommentService {
     @Autowired
     private ITicketNotificationService ticketNotificationService;
 
+    @Autowired
+    private ITicketAccessPolicy ticketAccessPolicy;
+
     @Override
     public List<TicketComment> selectCommentsByTicketId(Long ticketId) {
+        ticketAccessPolicy.assertCanAccess(ticketId, COMMENT_LIST_PERMISSION);
         return ticketCommentMapper.selectCommentsByTicketId(ticketId);
     }
 
     @Override
     @Transactional(rollbackFor = Exception.class)
     public int addComment(Long ticketId, TicketCommentDTO dto) {
+        ticketAccessPolicy.assertCanAccess(ticketId, COMMENT_ADD_PERMISSION);
         // 校验工单存在
         Ticket ticket = ticketMapper.selectTicketEntityById(ticketId);
         if (ticket == null) {

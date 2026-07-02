@@ -1,6 +1,6 @@
 # =============================================
-# Ticket API v1.1 冒烟测试 (PowerShell)
-# 用法: .\test-api.ps1
+# Ticket API v1.3 冒烟测试 (PowerShell)
+# 用法: .\scripts\ticket\smoke-test.ps1
 # =============================================
 
 $ErrorActionPreference = "Continue"
@@ -138,6 +138,63 @@ if ($AlertPage.rows.Count -gt 0) {
     Assert-Contains "  alert has ticketNo" "ticketNo" $R
 }
 
+function Assert-Equal($Desc, $Expected, $Actual) {
+    if ($Expected -eq $Actual) {
+        Write-Host "  [PASS] $Desc" -ForegroundColor Green
+        $script:Pass++
+    } else {
+        Write-Host "  [FAIL] $Desc (expected: $Expected, actual: $Actual)" -ForegroundColor Red
+        $script:Fail++
+    }
+}
+
+function Invoke-TicketLogin($Username, $Password) {
+    $Captcha = Invoke-RestMethod -Uri "$BaseUrl/captchaImage" -Method Get
+    $LoginData = @{ username = $Username; password = $Password }
+    if ($Captcha.captchaEnabled) {
+        $RawCode = (docker exec redis redis-cli --raw GET "captcha_codes:$($Captcha.uuid)").Trim()
+        try { $CaptchaCode = $RawCode | ConvertFrom-Json } catch { $CaptchaCode = $RawCode.Trim('"') }
+        $LoginData.code = [string]$CaptchaCode
+        $LoginData.uuid = $Captcha.uuid
+    }
+    $Response = Invoke-RestMethod -Uri "$BaseUrl/login" -Method Post `
+        -Body ($LoginData | ConvertTo-Json) -ContentType "application/json"
+    if (-not $Response.token) { throw "Login failed for $Username`: $($Response.msg)" }
+    return $Response.token
+}
+
+function New-SmokeRole($RoleName, $RoleKey, $DataScope, $MenuIds, $DeptIds) {
+    $Body = @{
+        roleName = $RoleName; roleKey = $RoleKey; roleSort = 99; dataScope = $DataScope
+        menuCheckStrictly = $false; deptCheckStrictly = $false
+        menuIds = $MenuIds; status = "0"
+    } | ConvertTo-Json
+    $Response = Invoke-RestMethod -Uri "$BaseUrl/system/role" -Method Post -Headers $Headers `
+        -Body $Body -ContentType "application/json"
+    if ($Response.code -ne 200) { throw "Create role failed: $RoleKey" }
+    $Role = (Invoke-RestMethod -Uri "$BaseUrl/system/role/list?roleKey=$RoleKey" -Headers $Headers).rows[0]
+    $ScopeBody = @{
+        roleId = $Role.roleId; dataScope = $DataScope
+        deptCheckStrictly = $false; deptIds = $DeptIds
+    } | ConvertTo-Json
+    $Response = Invoke-RestMethod -Uri "$BaseUrl/system/role/dataScope" -Method Put `
+        -Headers $Headers -Body $ScopeBody -ContentType "application/json"
+    if ($Response.code -ne 200) { throw "Configure role scope failed: $RoleKey" }
+    return [long]$Role.roleId
+}
+
+function New-SmokeUser($Username, $Password, $DeptId, $RoleIds) {
+    $Body = @{
+        deptId = $DeptId; userName = $Username; nickName = "V13 Smoke"
+        password = $Password; roleIds = $RoleIds; postIds = @(); status = "0"
+    } | ConvertTo-Json
+    $Response = Invoke-RestMethod -Uri "$BaseUrl/system/user" -Method Post -Headers $Headers `
+        -Body $Body -ContentType "application/json"
+    if ($Response.code -ne 200) { throw "Create user failed: $Username" }
+    $User = (Invoke-RestMethod -Uri "$BaseUrl/system/user/list?userName=$Username" -Headers $Headers).rows[0]
+    return [long]$User.userId
+}
+
 $NotificationPage = Invoke-RestMethod -Uri "$BaseUrl/ticket/notification/list?pageNum=1&pageSize=20" -Headers $Headers -Method Get
 Assert-Success "GET /ticket/notification/list" $NotificationPage
 Assert-Contains "  notification has SLA_OVERDUE" "SLA_OVERDUE" $NotificationPage
@@ -236,6 +293,106 @@ Write-Host "[7] Auth" -ForegroundColor Cyan
 
 try { $R = Invoke-RestMethod -Uri "$BaseUrl/ticket/list" -Method Get } catch { $R = $_.Exception.Message }
 Assert-Contains "GET /ticket/list (no token)" "401" $R
+
+# ============ v1.3 部门数据权限 ============
+Write-Host ""
+Write-Host "[8] v1.3 Department Data Scope" -ForegroundColor Cyan
+
+$ScopeSuffix = [DateTimeOffset]::Now.ToUnixTimeMilliseconds()
+$UserSuffix = $ScopeSuffix.ToString().Substring($ScopeSuffix.ToString().Length - 6)
+$ScopePassword = "Tmp!V13$ScopeSuffix"
+$ScopeRoleIds = New-Object System.Collections.Generic.List[long]
+$ScopeUserIds = New-Object System.Collections.Generic.List[long]
+
+try {
+    $TicketMenus = Invoke-RestMethod -Uri "$BaseUrl/system/menu/list" -Headers $Headers
+    $TicketMenuIds = @($TicketMenus.data | Where-Object {
+        $_.perms -and $_.perms.StartsWith("ticket:")
+    } | ForEach-Object { [long]$_.menuId })
+    if ($TicketMenuIds.Count -eq 0) { throw "Ticket permission menus not found" }
+
+    $AllRole = New-SmokeRole "V13 All $ScopeSuffix" "v13_all_$ScopeSuffix" "1" $TicketMenuIds @()
+    $CustomRole = New-SmokeRole "V13 Custom $ScopeSuffix" "v13_custom_$ScopeSuffix" "2" $TicketMenuIds @(103)
+    $DeptRole = New-SmokeRole "V13 Dept $ScopeSuffix" "v13_dept_$ScopeSuffix" "3" $TicketMenuIds @()
+    $ChildRole = New-SmokeRole "V13 Child $ScopeSuffix" "v13_child_$ScopeSuffix" "4" $TicketMenuIds @()
+    $SelfRole = New-SmokeRole "V13 Self $ScopeSuffix" "v13_self_$ScopeSuffix" "5" $TicketMenuIds @()
+    $OtherRole = New-SmokeRole "V13 Other $ScopeSuffix" "v13_other_$ScopeSuffix" "3" $TicketMenuIds @()
+    @($AllRole, $CustomRole, $DeptRole, $ChildRole, $SelfRole, $OtherRole) |
+        ForEach-Object { $ScopeRoleIds.Add($_) }
+
+    $AllUser = New-SmokeUser "v13all_$UserSuffix" $ScopePassword 105 @($AllRole)
+    $CustomUser = New-SmokeUser "v13custom_$UserSuffix" $ScopePassword 105 @($CustomRole)
+    $DeptUser = New-SmokeUser "v13dept_$UserSuffix" $ScopePassword 103 @($DeptRole)
+    $ChildUser = New-SmokeUser "v13child_$UserSuffix" $ScopePassword 101 @($ChildRole)
+    $SelfUser = New-SmokeUser "v13self_$UserSuffix" $ScopePassword 105 @($SelfRole)
+    $MultiUser = New-SmokeUser "v13multi_$UserSuffix" $ScopePassword 105 @($OtherRole, $CustomRole)
+    @($AllUser, $CustomUser, $DeptUser, $ChildUser, $SelfUser, $MultiUser) |
+        ForEach-Object { $ScopeUserIds.Add($_) }
+
+    $ScopeTitle = "V13-SCOPE-$ScopeSuffix"
+    $Body = @{
+        title = $ScopeTitle; content = "Department data scope smoke"
+        categoryId = 6; priority = "MEDIUM"
+    } | ConvertTo-Json
+    $ScopeTicket = (Invoke-RestMethod -Uri "$BaseUrl/ticket" -Method Post -Headers $Headers `
+        -Body $Body -ContentType "application/json").data
+
+    $ScopeCases = @(
+        @{ Name = "ALL"; Username = "v13all_$UserSuffix"; Expected = 1 },
+        @{ Name = "CUSTOM"; Username = "v13custom_$UserSuffix"; Expected = 1 },
+        @{ Name = "DEPT"; Username = "v13dept_$UserSuffix"; Expected = 1 },
+        @{ Name = "DEPT_AND_CHILD"; Username = "v13child_$UserSuffix"; Expected = 1 },
+        @{ Name = "SELF"; Username = "v13self_$UserSuffix"; Expected = 0 },
+        @{ Name = "MULTI_ROLE"; Username = "v13multi_$UserSuffix"; Expected = 1 }
+    )
+    foreach ($Case in $ScopeCases) {
+        $UserToken = Invoke-TicketLogin $Case.Username $ScopePassword
+        $UserHeaders = @{ Authorization = "Bearer $UserToken" }
+        $Page = Invoke-RestMethod -Uri "$BaseUrl/ticket/list?keyword=$ScopeTitle&pageNum=1&pageSize=10" `
+            -Headers $UserHeaders
+        Assert-Equal "$($Case.Name) list scope" $Case.Expected $Page.total
+    }
+
+    $SelfToken = Invoke-TicketLogin "v13self_$UserSuffix" $ScopePassword
+    $SelfHeaders = @{ Authorization = "Bearer $SelfToken" }
+    $InjectedPage = Invoke-RestMethod `
+        -Uri "$BaseUrl/ticket/list?keyword=$ScopeTitle&params%5BdataScope%5D=1%20%3D%201&pageNum=1&pageSize=10" `
+        -Headers $SelfHeaders
+    Assert-Equal "request dataScope injection is ignored" 0 $InjectedPage.total
+
+    $ObjectUris = @(
+        "$BaseUrl/ticket/$ScopeTicket",
+        "$BaseUrl/ticket/$ScopeTicket/comment",
+        "$BaseUrl/ticket/$ScopeTicket/logs",
+        "$BaseUrl/ticket/satisfaction/ticket/$ScopeTicket"
+    )
+    foreach ($Uri in $ObjectUris) {
+        $Response = Invoke-RestMethod -Uri $Uri -Headers $SelfHeaders
+        Assert-Contains "out-of-scope object returns not found" "工单不存在" $Response
+    }
+    $Body = @{ content = "unauthorized" } | ConvertTo-Json
+    $Response = Invoke-RestMethod -Uri "$BaseUrl/ticket/$ScopeTicket/comment" -Method Post `
+        -Headers $SelfHeaders -Body $Body -ContentType "application/json"
+    Assert-Contains "out-of-scope comment is rejected" "工单不存在" $Response
+
+    $Body = @{ assigneeId = $SelfUser; comment = "cross-department assignment" } | ConvertTo-Json
+    $Response = Invoke-RestMethod -Uri "$BaseUrl/ticket/$ScopeTicket/assign" -Method Put `
+        -Headers $Headers -Body $Body -ContentType "application/json"
+    Assert-Success "assign cross-department user" $Response
+    $Page = Invoke-RestMethod -Uri "$BaseUrl/ticket/list?keyword=$ScopeTitle&pageNum=1&pageSize=10" `
+        -Headers $SelfHeaders
+    Assert-Equal "assignee can see cross-department ticket" 1 $Page.total
+    $Response = Invoke-RestMethod -Uri "$BaseUrl/ticket/$ScopeTicket" -Headers $SelfHeaders
+    Assert-Success "assignee can access cross-department ticket detail" $Response
+}
+finally {
+    foreach ($UserId in $ScopeUserIds) {
+        try { Invoke-RestMethod -Uri "$BaseUrl/system/user/$UserId" -Method Delete -Headers $Headers | Out-Null } catch {}
+    }
+    foreach ($RoleId in $ScopeRoleIds) {
+        try { Invoke-RestMethod -Uri "$BaseUrl/system/role/$RoleId" -Method Delete -Headers $Headers | Out-Null } catch {}
+    }
+}
 
 # ============ 结果 ============
 Write-Host ""

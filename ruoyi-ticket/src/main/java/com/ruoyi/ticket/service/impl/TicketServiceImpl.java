@@ -28,6 +28,7 @@ import com.ruoyi.ticket.mapper.TicketOperationLogMapper;
 import com.ruoyi.ticket.mapper.TicketSlaPolicyMapper;
 import com.ruoyi.ticket.service.ITicketService;
 import com.ruoyi.ticket.service.ITicketNotificationService;
+import com.ruoyi.ticket.service.ITicketAccessPolicy;
 import com.ruoyi.ticket.vo.TicketListVO;
 import com.ruoyi.ticket.vo.TicketVO;
 
@@ -51,6 +52,15 @@ public class TicketServiceImpl implements ITicketService {
     /** 未超时标记 */
     private static final String NOT_OVERDUE = "0";
 
+    /** 工单列表权限字符 */
+    private static final String TICKET_LIST_PERMISSION = "ticket:ticket:list";
+
+    private static final String TICKET_QUERY_PERMISSION = "ticket:ticket:query";
+    private static final String TICKET_ASSIGN_PERMISSION = "ticket:ticket:assign";
+    private static final String TICKET_PROCESS_PERMISSION = "ticket:ticket:process";
+    private static final String TICKET_CONFIRM_PERMISSION = "ticket:ticket:confirm";
+    private static final String TICKET_CANCEL_PERMISSION = "ticket:ticket:cancel";
+
     @Autowired
     private TicketMapper ticketMapper;
 
@@ -63,22 +73,18 @@ public class TicketServiceImpl implements ITicketService {
     @Autowired
     private ITicketNotificationService ticketNotificationService;
 
+    @Autowired
+    private ITicketAccessPolicy ticketAccessPolicy;
+
     @Override
     public List<TicketListVO> selectTicketList(TicketQueryDTO query) {
-        // 数据范围控制：管理员看全部，普通用户只看自己相关工单
-        Long currentUserId = SecurityUtils.getUserId();
-        if (SecurityUtils.isAdmin()) {
-            // 管理员也显式设置 dataScope，防止用户通过 query params 注入 SQL
-            query.getParams().put("dataScope", "1 = 1");
-        } else {
-            query.getParams().put("dataScope",
-                    "t.creator_id = " + currentUserId + " OR t.assignee_id = " + currentUserId);
-        }
+        query.setAccessScope(ticketAccessPolicy.resolveScope(TICKET_LIST_PERMISSION));
         return ticketMapper.selectTicketList(query);
     }
 
     @Override
     public TicketVO selectTicketById(Long ticketId) {
+        ticketAccessPolicy.assertCanAccess(ticketId, TICKET_QUERY_PERMISSION);
         TicketVO vo = ticketMapper.selectTicketById(ticketId);
         if (vo == null) {
             throw new ServiceException("工单不存在");
@@ -133,7 +139,7 @@ public class TicketServiceImpl implements ITicketService {
     @Override
     @Transactional(rollbackFor = Exception.class)
     public void assignTicket(Long ticketId, TicketAssignDTO dto) {
-        Ticket ticket = getTicketOrThrow(ticketId);
+        Ticket ticket = getTicketOrThrow(ticketId, TICKET_ASSIGN_PERMISSION);
         TicketStatus currentStatus = toTicketStatus(ticket.getStatus());
 
         // 状态校验
@@ -165,7 +171,7 @@ public class TicketServiceImpl implements ITicketService {
     @Override
     @Transactional(rollbackFor = Exception.class)
     public void processTicket(Long ticketId, TicketProcessDTO dto) {
-        Ticket ticket = getTicketOrThrow(ticketId);
+        Ticket ticket = getTicketOrThrow(ticketId, TICKET_PROCESS_PERMISSION);
         TicketStatus currentStatus = toTicketStatus(ticket.getStatus());
 
         // 状态校验
@@ -198,7 +204,7 @@ public class TicketServiceImpl implements ITicketService {
     @Override
     @Transactional(rollbackFor = Exception.class)
     public void confirmTicket(Long ticketId, TicketConfirmDTO dto) {
-        Ticket ticket = getTicketOrThrow(ticketId);
+        Ticket ticket = getTicketOrThrow(ticketId, TICKET_CONFIRM_PERMISSION);
         TicketStatus currentStatus = toTicketStatus(ticket.getStatus());
 
         // 状态校验
@@ -227,7 +233,7 @@ public class TicketServiceImpl implements ITicketService {
     @Override
     @Transactional(rollbackFor = Exception.class)
     public void cancelTicket(Long ticketId, TicketCancelDTO dto) {
-        Ticket ticket = getTicketOrThrow(ticketId);
+        Ticket ticket = getTicketOrThrow(ticketId, TICKET_CANCEL_PERMISSION);
         TicketStatus currentStatus = toTicketStatus(ticket.getStatus());
 
         // 状态校验：只有 NEW 和 PROCESSING 可以取消
@@ -285,7 +291,8 @@ public class TicketServiceImpl implements ITicketService {
     /**
      * 查询工单实体，不存在则抛异常
      */
-    private Ticket getTicketOrThrow(Long ticketId) {
+    private Ticket getTicketOrThrow(Long ticketId, String permission) {
+        ticketAccessPolicy.assertCanAccess(ticketId, permission);
         Ticket ticket = ticketMapper.selectTicketEntityById(ticketId);
         if (ticket == null) {
             throw new ServiceException("工单不存在");

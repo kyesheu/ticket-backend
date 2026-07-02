@@ -6,6 +6,7 @@ import com.ruoyi.ticket.domain.TicketNotification;
 import com.ruoyi.ticket.dto.TicketNotificationQueryDTO;
 import com.ruoyi.ticket.mapper.TicketNotificationMapper;
 import com.ruoyi.ticket.vo.TicketNotificationVO;
+import com.ruoyi.ticket.enums.TicketNotificationType;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -24,6 +25,7 @@ import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.mockito.ArgumentMatchers.any;
 
 /** 工单通知 Service 测试。 */
 @ExtendWith(MockitoExtension.class)
@@ -100,5 +102,27 @@ class TicketNotificationServiceImplTest {
     void markAllReadShouldUseCurrentUser() {
         ticketNotificationService.markAllRead();
         verify(ticketNotificationMapper).markAllRead(7L);
+    }
+
+    @Test
+    @DisplayName("通知接收人与操作人相同时不自发通知")
+    void createNotificationShouldSkipOperator() {
+        int rows = ticketNotificationService.createNotification(1L, 7L, 7L,
+                TicketNotificationType.ASSIGNED, "ASSIGNED:1", "标题", "内容");
+
+        assertThat(rows).isZero();
+        verify(ticketNotificationMapper, never()).insertNotification(any());
+    }
+
+    @Test
+    @DisplayName("通知接收人与操作人不同时应写入通知")
+    void createNotificationShouldInsertForRecipient() {
+        when(ticketNotificationMapper.insertNotification(any())).thenReturn(1);
+
+        int rows = ticketNotificationService.createNotification(1L, 8L, 7L,
+                TicketNotificationType.ASSIGNED, "ASSIGNED:1", "标题", "内容");
+
+        assertThat(rows).isOne();
+        verify(ticketNotificationMapper).insertNotification(any());
     }
 }

@@ -42,7 +42,7 @@
     </select>
 
     <insert id="insertNotification" useGeneratedKeys="true" keyProperty="notificationId">
-        INSERT INTO ticket_notification
+        INSERT IGNORE INTO ticket_notification
             (ticket_id, recipient_id, notification_type, event_key, title, content, read_status, create_time)
         VALUES
             (#{ticketId}, #{recipientId}, #{notificationType}, #{eventKey}, #{title}, #{content},

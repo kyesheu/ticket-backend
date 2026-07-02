@@ -33,6 +33,7 @@ import com.ruoyi.ticket.enums.TicketStatus;
 import com.ruoyi.ticket.mapper.TicketMapper;
 import com.ruoyi.ticket.mapper.TicketOperationLogMapper;
 import com.ruoyi.ticket.mapper.TicketSlaPolicyMapper;
+import com.ruoyi.ticket.service.ITicketNotificationService;
 import org.mockito.ArgumentCaptor;
 
 /**
@@ -52,6 +53,9 @@ class TicketServiceImplTest {
 
     @Mock
     private TicketSlaPolicyMapper ticketSlaPolicyMapper;
+
+    @Mock
+    private ITicketNotificationService ticketNotificationService;
 
     @InjectMocks
     private TicketServiceImpl ticketService;
@@ -190,6 +194,9 @@ class TicketServiceImplTest {
 
         verify(ticketMapper).updateTicket(any(Ticket.class));
         verify(ticketOperationLogMapper).insertLog(any());
+        verify(ticketNotificationService).createNotification(
+                org.mockito.ArgumentMatchers.eq(1L), org.mockito.ArgumentMatchers.eq(2L),
+                org.mockito.ArgumentMatchers.eq(1L), any(), anyString(), anyString(), anyString());
     }
 
     @Test

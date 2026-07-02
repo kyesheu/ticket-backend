@@ -3,9 +3,11 @@ package com.ruoyi.ticket.service.impl;
 import com.ruoyi.ticket.domain.Ticket;
 import com.ruoyi.ticket.domain.TicketSlaAlert;
 import com.ruoyi.ticket.enums.TicketSlaAlertType;
+import com.ruoyi.ticket.enums.TicketNotificationType;
 import com.ruoyi.ticket.mapper.TicketMapper;
 import com.ruoyi.ticket.mapper.TicketSlaAlertMapper;
 import com.ruoyi.ticket.service.ITicketSlaService;
+import com.ruoyi.ticket.service.ITicketNotificationService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -29,6 +31,9 @@ public class TicketSlaServiceImpl implements ITicketSlaService {
 
     @Autowired
     private TicketSlaAlertMapper ticketSlaAlertMapper;
+
+    @Autowired
+    private ITicketNotificationService ticketNotificationService;
 
     @Override
     @Transactional(rollbackFor = Exception.class)
@@ -91,6 +96,12 @@ public class TicketSlaServiceImpl implements ITicketSlaService {
         alert.setDetectedAt(detectedAt);
         alert.setOverdueMinutes(calculateOverdueMinutes(dueAt, detectedAt));
         ticketSlaAlertMapper.insertAlert(alert);
+        Long recipientId = alertType == TicketSlaAlertType.RESPONSE_OVERDUE
+                ? ticket.getCreatorId()
+                : (ticket.getAssigneeId() != null ? ticket.getAssigneeId() : ticket.getCreatorId());
+        ticketNotificationService.createNotification(ticket.getTicketId(), recipientId, null,
+                TicketNotificationType.SLA_OVERDUE, "SLA_OVERDUE:" + alert.getAlertId(),
+                "工单 SLA 超时", alertType.getLabel());
     }
 
     private int calculateOverdueMinutes(Date dueAt, Date detectedAt) {

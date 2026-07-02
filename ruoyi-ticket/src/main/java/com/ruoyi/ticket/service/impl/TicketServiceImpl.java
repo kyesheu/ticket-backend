@@ -20,12 +20,14 @@ import com.ruoyi.ticket.dto.TicketCreateDTO;
 import com.ruoyi.ticket.dto.TicketProcessDTO;
 import com.ruoyi.ticket.dto.TicketQueryDTO;
 import com.ruoyi.ticket.enums.TicketOperationType;
+import com.ruoyi.ticket.enums.TicketNotificationType;
 import com.ruoyi.ticket.enums.TicketPriority;
 import com.ruoyi.ticket.enums.TicketStatus;
 import com.ruoyi.ticket.mapper.TicketMapper;
 import com.ruoyi.ticket.mapper.TicketOperationLogMapper;
 import com.ruoyi.ticket.mapper.TicketSlaPolicyMapper;
 import com.ruoyi.ticket.service.ITicketService;
+import com.ruoyi.ticket.service.ITicketNotificationService;
 import com.ruoyi.ticket.vo.TicketListVO;
 import com.ruoyi.ticket.vo.TicketVO;
 
@@ -57,6 +59,9 @@ public class TicketServiceImpl implements ITicketService {
 
     @Autowired
     private TicketSlaPolicyMapper ticketSlaPolicyMapper;
+
+    @Autowired
+    private ITicketNotificationService ticketNotificationService;
 
     @Override
     public List<TicketListVO> selectTicketList(TicketQueryDTO query) {
@@ -153,6 +158,8 @@ public class TicketServiceImpl implements ITicketService {
 
         saveOperationLog(ticketId, TicketOperationType.ASSIGN, fromStatus,
                 TicketStatus.PROCESSING, dto.getComment());
+        notifyTicket(ticket, dto.getAssigneeId(), TicketNotificationType.ASSIGNED,
+                "ASSIGNED:" + ticketId, "工单已分派", "您收到一条新工单");
     }
 
     @Override
@@ -184,6 +191,8 @@ public class TicketServiceImpl implements ITicketService {
 
         saveOperationLog(ticketId, TicketOperationType.PROCESS, fromStatus,
                 TicketStatus.WAIT_CONFIRM, dto.getComment());
+        notifyTicket(ticket, ticket.getCreatorId(), TicketNotificationType.PROCESSED,
+                "PROCESSED:" + ticketId, "工单处理完成", "工单等待您的确认");
     }
 
     @Override
@@ -211,6 +220,8 @@ public class TicketServiceImpl implements ITicketService {
 
         saveOperationLog(ticketId, TicketOperationType.CONFIRM, fromStatus,
                 TicketStatus.CLOSED, dto.getComment());
+        notifyTicket(ticket, ticket.getAssigneeId(), TicketNotificationType.CLOSED,
+                "CLOSED:" + ticketId, "工单已关闭", "工单已由创建人确认关闭");
     }
 
     @Override
@@ -241,6 +252,9 @@ public class TicketServiceImpl implements ITicketService {
 
         saveOperationLog(ticketId, TicketOperationType.CANCEL, fromStatus,
                 TicketStatus.CANCELLED, dto.getComment());
+        Long recipientId = ticket.getAssigneeId() != null ? ticket.getAssigneeId() : ticket.getCreatorId();
+        notifyTicket(ticket, recipientId, TicketNotificationType.CANCELLED,
+                "CANCELLED:" + ticketId, "工单已取消", "工单已被取消");
     }
 
     /**
@@ -305,5 +319,11 @@ public class TicketServiceImpl implements ITicketService {
         log.setComment(comment);
         log.setOperateTime(new Date());
         ticketOperationLogMapper.insertLog(log);
+    }
+
+    private void notifyTicket(Ticket ticket, Long recipientId, TicketNotificationType type,
+                              String eventKey, String title, String content) {
+        ticketNotificationService.createNotification(ticket.getTicketId(), recipientId,
+                SecurityUtils.getUserId(), type, eventKey, title, content);
     }
 }

@@ -77,7 +77,7 @@
 - 强制校验 `responseMinutes > 0` 且 `resolveMinutes > responseMinutes`
 - 验证：Service Mockito 单元测试、权限测试、策略接口 smoke
 
-## v1.1 阶段十一：工单时限快照与展示 ⏳
+## v1.1 阶段十一：工单时限快照与展示 ✅
 
 - 先列四种优先级、策略缺失/停用、临界截止时间、策略修改不追溯的测试用例
 - 创建工单时在同一事务内读取策略并写入截止时间快照
@@ -85,7 +85,7 @@
 - 不改变 v1.0 状态机和操作日志语义
 - 验证：`TicketServiceImpl` 单元测试、列表和详情接口 smoke
 
-## v1.1 阶段十二：超时扫描与幂等告警 ⏳
+## v1.1 阶段十二：超时扫描与幂等告警 ✅
 
 - 先列响应超时、解决超时、准时完成、终态、重复扫描和并发扫描测试用例
 - 实现 `ITicketSlaService`、`TicketSlaTask`、告警 Mapper/Service

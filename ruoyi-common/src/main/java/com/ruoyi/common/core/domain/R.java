@@ -1,5 +1,6 @@
 package com.ruoyi.common.core.domain;
 
+import java.io.Serial;
 import java.io.Serializable;
 import com.ruoyi.common.constant.HttpStatus;
 
@@ -10,7 +11,8 @@ import com.ruoyi.common.constant.HttpStatus;
  */
 public class R<T> implements Serializable
 {
-    private static final long serialVersionUID = 1L;
+    @Serial
+private static final long serialVersionUID = 1L;
 
     /** 成功 */
     public static final int SUCCESS = HttpStatus.SUCCESS;

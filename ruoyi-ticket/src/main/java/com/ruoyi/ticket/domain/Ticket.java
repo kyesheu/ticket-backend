@@ -1,8 +1,10 @@
 package com.ruoyi.ticket.domain;
 
-import java.util.Date;
 import com.fasterxml.jackson.annotation.JsonFormat;
 import com.ruoyi.common.core.domain.BaseEntity;
+
+import java.io.Serial;
+import java.util.Date;
 
 /**
  * 工单主表实体
@@ -11,6 +13,7 @@ import com.ruoyi.common.core.domain.BaseEntity;
  */
 public class Ticket extends BaseEntity {
 
+    @Serial
     private static final long serialVersionUID = 1L;
 
     /** 主键 */
@@ -50,6 +53,20 @@ public class Ticket extends BaseEntity {
     /** 关闭时间 */
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
     private Date closedAt;
+
+    /** 首次响应截止时间快照 */
+    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
+    private Date responseDueAt;
+
+    /** 解决截止时间快照 */
+    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
+    private Date resolveDueAt;
+
+    /** 响应是否超时：0 未超时，1 已超时 */
+    private String responseOverdue;
+
+    /** 解决是否超时：0 未超时，1 已超时 */
+    private String resolveOverdue;
 
     /** 删除标志：0存在 2删除 */
     private String delFlag;
@@ -162,6 +179,38 @@ public class Ticket extends BaseEntity {
 
     public void setClosedAt(Date closedAt) {
         this.closedAt = closedAt;
+    }
+
+    public Date getResponseDueAt() {
+        return responseDueAt;
+    }
+
+    public void setResponseDueAt(Date responseDueAt) {
+        this.responseDueAt = responseDueAt;
+    }
+
+    public Date getResolveDueAt() {
+        return resolveDueAt;
+    }
+
+    public void setResolveDueAt(Date resolveDueAt) {
+        this.resolveDueAt = resolveDueAt;
+    }
+
+    public String getResponseOverdue() {
+        return responseOverdue;
+    }
+
+    public void setResponseOverdue(String responseOverdue) {
+        this.responseOverdue = responseOverdue;
+    }
+
+    public String getResolveOverdue() {
+        return resolveOverdue;
+    }
+
+    public void setResolveOverdue(String resolveOverdue) {
+        this.resolveOverdue = resolveOverdue;
     }
 
     public String getDelFlag() {

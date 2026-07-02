@@ -1,5 +1,6 @@
 package com.ruoyi.ticket.vo;
 
+import java.io.Serial;
 import java.io.Serializable;
 import java.util.List;
 import com.ruoyi.ticket.domain.TicketCategory;
@@ -23,7 +24,8 @@ public final class TicketApiResponseVO {
     @Schema(description = "通用操作结果")
     public static class OperationResult implements Serializable {
 
-        private static final long serialVersionUID = 1L;
+        @Serial
+private static final long serialVersionUID = 1L;
 
         @Schema(description = "状态码")
         private Integer code;
@@ -54,7 +56,8 @@ public final class TicketApiResponseVO {
     @Schema(description = "工单ID响应")
     public static class TicketIdResult extends OperationResult {
 
-        private static final long serialVersionUID = 1L;
+        @Serial
+private static final long serialVersionUID = 1L;
 
         @Schema(description = "工单ID")
         private Long data;
@@ -74,7 +77,8 @@ public final class TicketApiResponseVO {
     @Schema(description = "工单分页响应")
     public static class TicketPageResult implements Serializable {
 
-        private static final long serialVersionUID = 1L;
+        @Serial
+private static final long serialVersionUID = 1L;
 
         @Schema(description = "总记录数")
         private Long total;
@@ -127,7 +131,8 @@ public final class TicketApiResponseVO {
     @Schema(description = "工单详情响应")
     public static class TicketDetailResult extends OperationResult {
 
-        private static final long serialVersionUID = 1L;
+        @Serial
+private static final long serialVersionUID = 1L;
 
         @Schema(description = "返回数据")
         private TicketVO data;
@@ -147,7 +152,8 @@ public final class TicketApiResponseVO {
     @Schema(description = "工单分类响应")
     public static class TicketCategoryResult extends OperationResult {
 
-        private static final long serialVersionUID = 1L;
+        @Serial
+private static final long serialVersionUID = 1L;
 
         @Schema(description = "返回数据")
         private TicketCategory data;
@@ -167,7 +173,8 @@ public final class TicketApiResponseVO {
     @Schema(description = "工单分类列表响应")
     public static class TicketCategoryListResult extends OperationResult {
 
-        private static final long serialVersionUID = 1L;
+        @Serial
+private static final long serialVersionUID = 1L;
 
         @Schema(description = "返回数据")
         private List<TicketCategory> data;
@@ -187,7 +194,8 @@ public final class TicketApiResponseVO {
     @Schema(description = "工单分类树响应")
     public static class TicketCategoryTreeResult extends OperationResult {
 
-        private static final long serialVersionUID = 1L;
+        @Serial
+private static final long serialVersionUID = 1L;
 
         @Schema(description = "返回数据")
         private List<TicketCategoryTreeVO> data;
@@ -207,7 +215,8 @@ public final class TicketApiResponseVO {
     @Schema(description = "工单评论列表响应")
     public static class TicketCommentListResult extends OperationResult {
 
-        private static final long serialVersionUID = 1L;
+        @Serial
+private static final long serialVersionUID = 1L;
 
         @Schema(description = "返回数据")
         private List<TicketComment> data;
@@ -227,7 +236,8 @@ public final class TicketApiResponseVO {
     @Schema(description = "工单操作日志列表响应")
     public static class TicketOperationLogListResult extends OperationResult {
 
-        private static final long serialVersionUID = 1L;
+        @Serial
+private static final long serialVersionUID = 1L;
 
         @Schema(description = "返回数据")
         private List<TicketOperationLog> data;

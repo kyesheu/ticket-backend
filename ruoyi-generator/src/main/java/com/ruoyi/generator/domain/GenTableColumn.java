@@ -1,4 +1,5 @@
 package com.ruoyi.generator.domain;
+import java.io.Serial;
 
 import jakarta.validation.constraints.NotBlank;
 import com.ruoyi.common.core.domain.BaseEntity;
@@ -11,7 +12,8 @@ import com.ruoyi.common.utils.StringUtils;
  */
 public class GenTableColumn extends BaseEntity
 {
-    private static final long serialVersionUID = 1L;
+    @Serial
+private static final long serialVersionUID = 1L;
 
     /** 编号 */
     private Long columnId;

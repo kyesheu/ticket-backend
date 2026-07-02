@@ -1,5 +1,5 @@
 # =============================================
-# Ticket API v1.0 冒烟测试 (PowerShell)
+# Ticket API v1.1 冒烟测试 (PowerShell)
 # 用法: .\test-api.ps1
 # =============================================
 
@@ -8,30 +8,38 @@ $BaseUrl = "http://localhost:8080"
 $Pass = 0
 $Fail = 0
 
+function Get-ResponseText($Response) {
+    if ($Response -is [string]) { return $Response }
+    return ($Response | ConvertTo-Json -Depth 10 -Compress)
+}
+
 function Assert-Success($Desc, $Response) {
-    if ($Response -match '"code":200') {
+    $Text = Get-ResponseText $Response
+    if ($Response.code -eq 200 -or $Text -match '"code":200') {
         Write-Host "  [PASS] $Desc" -ForegroundColor Green
         $script:Pass++
     } else {
         Write-Host "  [FAIL] $Desc" -ForegroundColor Red
-        Write-Host "    Response: $($Response.Substring(0, [Math]::Min(200, $Response.Length)))"
+        Write-Host "    Response: $($Text.Substring(0, [Math]::Min(200, $Text.Length)))"
         $script:Fail++
     }
 }
 
 function Assert-Error($Desc, $Response) {
-    if ($Response -match '"code":500') {
+    $Text = Get-ResponseText $Response
+    if ($Response.code -eq 500 -or $Text -match '500') {
         Write-Host "  [PASS] $Desc" -ForegroundColor Green
         $script:Pass++
     } else {
         Write-Host "  [FAIL] $Desc" -ForegroundColor Red
-        Write-Host "    Response: $($Response.Substring(0, [Math]::Min(200, $Response.Length)))"
+        Write-Host "    Response: $($Text.Substring(0, [Math]::Min(200, $Text.Length)))"
         $script:Fail++
     }
 }
 
 function Assert-Contains($Desc, $Expected, $Response) {
-    if ($Response -match $Expected) {
+    $Text = Get-ResponseText $Response
+    if ($Text -match $Expected) {
         Write-Host "  [PASS] $Desc" -ForegroundColor Green
         $script:Pass++
     } else {
@@ -43,11 +51,20 @@ function Assert-Contains($Desc, $Expected, $Response) {
 # ============ 登录 ============
 Write-Host ""
 Write-Host "[0] Login" -ForegroundColor Cyan
-$Body = '{"username":"admin","password":"admin123"}'
+$Captcha = Invoke-RestMethod -Uri "$BaseUrl/captchaImage" -Method Get
+$LoginData = @{ username = "admin"; password = "admin123" }
+if ($Captcha.captchaEnabled) {
+    $RawCode = (docker exec redis redis-cli --raw GET "captcha_codes:$($Captcha.uuid)").Trim()
+    try { $CaptchaCode = $RawCode | ConvertFrom-Json } catch { $CaptchaCode = $RawCode.Trim('"') }
+    $LoginData.code = [string]$CaptchaCode
+    $LoginData.uuid = $Captcha.uuid
+}
+$Body = $LoginData | ConvertTo-Json
 $LoginResp = Invoke-RestMethod -Uri "$BaseUrl/login" -Method Post -Body $Body -ContentType "application/json"
 $Token = $LoginResp.token
 $Headers = @{ "Authorization" = "Bearer $Token" }
-Write-Host "  Token: $($Token.Substring(0, 30))..."
+if (-not $Token) { throw "Login failed: $($LoginResp.msg)" }
+Write-Host "  [PASS] Login" -ForegroundColor Green
 
 # ============ 分类测试 ============
 Write-Host ""
@@ -61,7 +78,8 @@ $R = Invoke-RestMethod -Uri "$BaseUrl/ticket/category/list" -Headers $Headers -M
 Assert-Success "GET /ticket/category/list" $R
 
 # 新增
-$Body = '{"parentId":1,"categoryName":"PS-TEST","orderNum":99}'
+$CategoryName = "PS-TEST-$([DateTimeOffset]::Now.ToUnixTimeSeconds())"
+$Body = @{ parentId = 1; categoryName = $CategoryName; orderNum = 99 } | ConvertTo-Json
 try { $R = Invoke-RestMethod -Uri "$BaseUrl/ticket/category" -Method Post -Body $Body -ContentType "application/json" -Headers $Headers } catch { $R = $_.Exception.Message }
 Assert-Success "POST /ticket/category (create)" $R
 
@@ -94,6 +112,28 @@ Assert-Contains "  list has total" "total" $R
 $R = Invoke-RestMethod -Uri "$BaseUrl/ticket/$T1" -Headers $Headers -Method Get
 Assert-Success "GET /ticket/$T1 (detail)" $R
 Assert-Contains "  detail has ticketNo" "ticketNo" $R
+Assert-Contains "  detail has responseDueAt" "responseDueAt" $R
+Assert-Contains "  detail has resolveDueAt" "resolveDueAt" $R
+
+# ============ SLA ============
+Write-Host ""
+Write-Host "[2.1] SLA API" -ForegroundColor Cyan
+
+$R = Invoke-RestMethod -Uri "$BaseUrl/ticket/sla/list" -Headers $Headers -Method Get
+Assert-Success "GET /ticket/sla/list" $R
+Assert-Contains "  policy has responseMinutes" "responseMinutes" $R
+
+$R = Invoke-RestMethod -Uri "$BaseUrl/ticket/sla-alert/scan" -Headers $Headers -Method Post
+Assert-Success "POST /ticket/sla-alert/scan" $R
+
+$AlertPage = Invoke-RestMethod -Uri "$BaseUrl/ticket/sla-alert/list?pageNum=1&pageSize=20" -Headers $Headers -Method Get
+Assert-Success "GET /ticket/sla-alert/list" $AlertPage
+if ($AlertPage.rows.Count -gt 0) {
+    $AlertId = $AlertPage.rows[0].alertId
+    $R = Invoke-RestMethod -Uri "$BaseUrl/ticket/sla-alert/$AlertId" -Headers $Headers -Method Get
+    Assert-Success "GET /ticket/sla-alert/{id}" $R
+    Assert-Contains "  alert has ticketNo" "ticketNo" $R
+}
 
 # ============ 合法状态流转 ============
 Write-Host ""

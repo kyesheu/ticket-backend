@@ -1,4 +1,5 @@
 package com.ruoyi.ticket.dto;
+import java.io.Serial;
 
 import java.io.Serializable;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -11,7 +12,8 @@ import io.swagger.v3.oas.annotations.media.Schema;
 @Schema(description = "处理工单请求")
 public class TicketProcessDTO implements Serializable {
 
-    private static final long serialVersionUID = 1L;
+    @Serial
+private static final long serialVersionUID = 1L;
 
     @Schema(description = "处理备注", requiredMode = Schema.RequiredMode.REQUIRED)
     private String comment;

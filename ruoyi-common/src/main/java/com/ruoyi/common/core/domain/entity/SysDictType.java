@@ -1,4 +1,5 @@
 package com.ruoyi.common.core.domain.entity;
+import java.io.Serial;
 
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
@@ -16,7 +17,8 @@ import com.ruoyi.common.core.domain.BaseEntity;
  */
 public class SysDictType extends BaseEntity
 {
-    private static final long serialVersionUID = 1L;
+    @Serial
+private static final long serialVersionUID = 1L;
 
     /** 字典主键 */
     @Excel(name = "字典主键", cellType = ColumnType.NUMERIC)

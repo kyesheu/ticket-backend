@@ -15,6 +15,10 @@
         <result property="deptId"      column="dept_id"      />
         <result property="processedAt" column="processed_at" />
         <result property="closedAt"    column="closed_at"    />
+        <result property="responseDueAt" column="response_due_at" />
+        <result property="resolveDueAt" column="resolve_due_at" />
+        <result property="responseOverdue" column="response_overdue" />
+        <result property="resolveOverdue" column="resolve_overdue" />
         <result property="delFlag"     column="del_flag"     />
         <result property="createBy"    column="create_by"    />
         <result property="createTime"  column="create_time"  />
@@ -38,6 +42,10 @@
         <result property="assigneeName" column="assignee_name" />
         <result property="createTime"   column="create_time"   />
         <result property="updateTime"   column="update_time"   />
+        <result property="responseDueAt" column="response_due_at" />
+        <result property="resolveDueAt" column="resolve_due_at" />
+        <result property="responseOverdue" column="response_overdue" />
+        <result property="resolveOverdue" column="resolve_overdue" />
     </resultMap>
 
     <resultMap type="com.ruoyi.ticket.vo.TicketVO" id="TicketVOResult">
@@ -57,6 +65,10 @@
         <result property="deptName"     column="dept_name"     />
         <result property="processedAt"  column="processed_at"  />
         <result property="closedAt"     column="closed_at"     />
+        <result property="responseDueAt" column="response_due_at" />
+        <result property="resolveDueAt" column="resolve_due_at" />
+        <result property="responseOverdue" column="response_overdue" />
+        <result property="resolveOverdue" column="resolve_overdue" />
         <result property="createTime"   column="create_time"   />
         <result property="updateTime"   column="update_time"   />
         <result property="remark"       column="remark"        />
@@ -65,7 +77,8 @@
     <sql id="selectTicketVo">
         SELECT t.ticket_id, t.ticket_no, t.title, t.content, t.category_id,
                t.priority, t.status, t.creator_id, t.assignee_id, t.dept_id,
-               t.processed_at, t.closed_at, t.del_flag, t.create_by, t.create_time,
+               t.processed_at, t.closed_at, t.response_due_at, t.resolve_due_at,
+               t.response_overdue, t.resolve_overdue, t.del_flag, t.create_by, t.create_time,
                t.update_by, t.update_time, t.remark
         FROM ticket t
     </sql>
@@ -76,7 +89,8 @@
                c.category_name,
                u.nick_name AS creator_name,
                a.nick_name AS assignee_name,
-               t.create_time, t.update_time
+               t.create_time, t.update_time, t.response_due_at, t.resolve_due_at,
+               t.response_overdue, t.resolve_overdue
         FROM ticket t
         LEFT JOIN ticket_category c ON c.category_id = t.category_id
         LEFT JOIN sys_user u ON u.user_id = t.creator_id
@@ -100,6 +114,12 @@
         <if test="endTime != null">
             AND t.create_time &lt;= #{endTime}
         </if>
+        <if test="responseOverdue != null and responseOverdue != ''">
+            AND t.response_overdue = #{responseOverdue}
+        </if>
+        <if test="resolveOverdue != null and resolveOverdue != ''">
+            AND t.resolve_overdue = #{resolveOverdue}
+        </if>
         <!-- 数据范围在 Service 层通过参数注入 -->
         <if test="params.dataScope != null and params.dataScope != ''">
             AND (${params.dataScope})
@@ -115,7 +135,8 @@
                t.creator_id, u.nick_name AS creator_name,
                t.assignee_id, a.nick_name AS assignee_name,
                t.dept_id, d.dept_name,
-               t.processed_at, t.closed_at,
+               t.processed_at, t.closed_at, t.response_due_at, t.resolve_due_at,
+               t.response_overdue, t.resolve_overdue,
                t.create_time, t.update_time, t.remark
         FROM ticket t
         LEFT JOIN ticket_category c ON c.category_id = t.category_id
@@ -135,11 +156,13 @@
     <insert id="insertTicket" parameterType="com.ruoyi.ticket.domain.Ticket" useGeneratedKeys="true" keyProperty="ticketId">
         INSERT INTO ticket (
             ticket_no, title, content, category_id, priority, status,
-            creator_id, assignee_id, dept_id, processed_at, closed_at, del_flag,
+            creator_id, assignee_id, dept_id, processed_at, closed_at,
+            response_due_at, resolve_due_at, response_overdue, resolve_overdue, del_flag,
             create_by, create_time, update_by, update_time, remark
         ) VALUES (
             #{ticketNo}, #{title}, #{content}, #{categoryId}, #{priority}, #{status},
-            #{creatorId}, #{assigneeId}, #{deptId}, #{processedAt}, #{closedAt}, #{delFlag},
+            #{creatorId}, #{assigneeId}, #{deptId}, #{processedAt}, #{closedAt},
+            #{responseDueAt}, #{resolveDueAt}, #{responseOverdue}, #{resolveOverdue}, #{delFlag},
             #{createBy}, #{createTime}, #{updateBy}, #{updateTime}, #{remark}
         )
     </insert>
@@ -178,5 +201,47 @@
         WHERE user_id = #{userId} AND del_flag = '0'
         LIMIT 1
     </select>
+
+    <!-- 响应超时扫描候选：取消工单退出 SLA，完成时间等于截止时间不算超时 -->
+    <select id="selectResponseOverdueCandidates" resultMap="TicketResult">
+        <include refid="selectTicketVo" />
+        WHERE t.del_flag = '0'
+          AND t.status != 'CANCELLED'
+          AND t.response_overdue = '0'
+          AND t.response_due_at IS NOT NULL
+          AND t.response_due_at &lt; #{detectedAt}
+          AND (t.processed_at IS NULL OR t.processed_at &gt; t.response_due_at)
+        ORDER BY t.response_due_at ASC
+        LIMIT #{limit}
+    </select>
+
+    <!-- 解决超时扫描候选 -->
+    <select id="selectResolveOverdueCandidates" resultMap="TicketResult">
+        <include refid="selectTicketVo" />
+        WHERE t.del_flag = '0'
+          AND t.status != 'CANCELLED'
+          AND t.resolve_overdue = '0'
+          AND t.resolve_due_at IS NOT NULL
+          AND t.resolve_due_at &lt; #{detectedAt}
+          AND (t.closed_at IS NULL OR t.closed_at &gt; t.resolve_due_at)
+        ORDER BY t.resolve_due_at ASC
+        LIMIT #{limit}
+    </select>
+
+    <update id="markResponseOverdue" parameterType="Long">
+        UPDATE ticket
+        SET response_overdue = '1'
+        WHERE ticket_id = #{ticketId}
+          AND response_overdue = '0'
+          AND del_flag = '0'
+    </update>
+
+    <update id="markResolveOverdue" parameterType="Long">
+        UPDATE ticket
+        SET resolve_overdue = '1'
+        WHERE ticket_id = #{ticketId}
+          AND resolve_overdue = '0'
+          AND del_flag = '0'
+    </update>
 
 </mapper>

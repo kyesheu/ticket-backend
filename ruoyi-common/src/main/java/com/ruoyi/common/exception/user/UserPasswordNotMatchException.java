@@ -1,4 +1,5 @@
 package com.ruoyi.common.exception.user;
+import java.io.Serial;
 
 /**
  * 用户密码不正确或不符合规范异常类
@@ -7,7 +8,8 @@ package com.ruoyi.common.exception.user;
  */
 public class UserPasswordNotMatchException extends UserException
 {
-    private static final long serialVersionUID = 1L;
+    @Serial
+private static final long serialVersionUID = 1L;
 
     public UserPasswordNotMatchException()
     {

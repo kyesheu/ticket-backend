@@ -1,4 +1,5 @@
 package com.ruoyi.common.exception.user;
+import java.io.Serial;
 
 /**
  * 黑名单IP异常类
@@ -7,7 +8,8 @@ package com.ruoyi.common.exception.user;
  */
 public class BlackListException extends UserException
 {
-    private static final long serialVersionUID = 1L;
+    @Serial
+private static final long serialVersionUID = 1L;
 
     public BlackListException()
     {

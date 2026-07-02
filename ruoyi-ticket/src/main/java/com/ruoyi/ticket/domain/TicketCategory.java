@@ -1,8 +1,10 @@
 package com.ruoyi.ticket.domain;
 
-import java.util.List;
 import com.ruoyi.common.core.domain.BaseEntity;
 import io.swagger.v3.oas.annotations.media.Schema;
+
+import java.io.Serial;
+import java.util.List;
 
 /**
  * 工单分类表实体
@@ -12,7 +14,8 @@ import io.swagger.v3.oas.annotations.media.Schema;
 @Schema(description = "工单分类")
 public class TicketCategory extends BaseEntity {
 
-    private static final long serialVersionUID = 1L;
+    @Serial
+private static final long serialVersionUID = 1L;
 
     @Schema(description = "分类ID")
     private Long categoryId;

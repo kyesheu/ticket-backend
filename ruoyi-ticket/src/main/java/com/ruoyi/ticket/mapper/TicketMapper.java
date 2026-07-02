@@ -53,4 +53,18 @@ public interface TicketMapper {
      * 查询工单实体（不含 JOIN，用于状态流转时更新）
      */
     Ticket selectTicketEntityById(@Param("ticketId") Long ticketId);
+
+    /** 查询响应超时候选工单。 */
+    List<Ticket> selectResponseOverdueCandidates(@Param("detectedAt") java.util.Date detectedAt,
+                                                  @Param("limit") int limit);
+
+    /** 查询解决超时候选工单。 */
+    List<Ticket> selectResolveOverdueCandidates(@Param("detectedAt") java.util.Date detectedAt,
+                                                 @Param("limit") int limit);
+
+    /** 条件标记响应超时，已标记时返回 0。 */
+    int markResponseOverdue(@Param("ticketId") Long ticketId);
+
+    /** 条件标记解决超时，已标记时返回 0。 */
+    int markResolveOverdue(@Param("ticketId") Long ticketId);
 }

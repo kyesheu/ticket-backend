@@ -1,5 +1,6 @@
 package com.ruoyi.common.core.page;
 
+import java.io.Serial;
 import java.io.Serializable;
 import java.util.List;
 
@@ -10,7 +11,8 @@ import java.util.List;
  */
 public class TableDataInfo implements Serializable
 {
-    private static final long serialVersionUID = 1L;
+    @Serial
+private static final long serialVersionUID = 1L;
 
     /** 总记录数 */
     private long total;

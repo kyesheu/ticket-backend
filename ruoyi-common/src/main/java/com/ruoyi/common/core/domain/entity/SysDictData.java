@@ -1,4 +1,5 @@
 package com.ruoyi.common.core.domain.entity;
+import java.io.Serial;
 
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
@@ -16,7 +17,8 @@ import com.ruoyi.common.core.domain.BaseEntity;
  */
 public class SysDictData extends BaseEntity
 {
-    private static final long serialVersionUID = 1L;
+    @Serial
+private static final long serialVersionUID = 1L;
 
     /** 字典编码 */
     @Excel(name = "字典编码", cellType = ColumnType.NUMERIC)

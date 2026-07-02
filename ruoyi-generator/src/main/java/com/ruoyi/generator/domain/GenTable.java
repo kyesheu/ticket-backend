@@ -1,4 +1,5 @@
 package com.ruoyi.generator.domain;
+import java.io.Serial;
 
 import java.util.List;
 import jakarta.validation.Valid;
@@ -15,7 +16,8 @@ import com.ruoyi.common.utils.StringUtils;
  */
 public class GenTable extends BaseEntity
 {
-    private static final long serialVersionUID = 1L;
+    @Serial
+private static final long serialVersionUID = 1L;
 
     /** 编号 */
     private Long tableId;

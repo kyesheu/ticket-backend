@@ -16,7 +16,8 @@ import com.ruoyi.common.core.domain.BaseEntity;
  */
 public class ${subClassName} extends BaseEntity
 {
-    private static final long serialVersionUID = 1L;
+    @Serial
+private static final long serialVersionUID = 1L;
 
 #foreach ($column in $subTable.columns)
 #if(!$table.isSuperColumn($column.javaField))

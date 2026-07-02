@@ -1,4 +1,5 @@
 package com.ruoyi.ticket.vo;
+import java.io.Serial;
 
 import java.io.Serializable;
 import java.util.Date;
@@ -13,7 +14,8 @@ import io.swagger.v3.oas.annotations.media.Schema;
 @Schema(description = "工单列表项")
 public class TicketListVO implements Serializable {
 
-    private static final long serialVersionUID = 1L;
+    @Serial
+private static final long serialVersionUID = 1L;
 
     @Schema(description = "工单ID")
     private Long ticketId;
@@ -47,6 +49,20 @@ public class TicketListVO implements Serializable {
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
     private Date updateTime;
 
+    @Schema(description = "首次响应截止时间")
+    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
+    private Date responseDueAt;
+
+    @Schema(description = "解决截止时间")
+    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
+    private Date resolveDueAt;
+
+    @Schema(description = "响应是否超时：0否 1是")
+    private String responseOverdue;
+
+    @Schema(description = "解决是否超时：0否 1是")
+    private String resolveOverdue;
+
     public Long getTicketId() { return ticketId; }
     public void setTicketId(Long ticketId) { this.ticketId = ticketId; }
     public String getTicketNo() { return ticketNo; }
@@ -67,4 +83,12 @@ public class TicketListVO implements Serializable {
     public void setCreateTime(Date createTime) { this.createTime = createTime; }
     public Date getUpdateTime() { return updateTime; }
     public void setUpdateTime(Date updateTime) { this.updateTime = updateTime; }
+    public Date getResponseDueAt() { return responseDueAt; }
+    public void setResponseDueAt(Date responseDueAt) { this.responseDueAt = responseDueAt; }
+    public Date getResolveDueAt() { return resolveDueAt; }
+    public void setResolveDueAt(Date resolveDueAt) { this.resolveDueAt = resolveDueAt; }
+    public String getResponseOverdue() { return responseOverdue; }
+    public void setResponseOverdue(String responseOverdue) { this.responseOverdue = responseOverdue; }
+    public String getResolveOverdue() { return resolveOverdue; }
+    public void setResolveOverdue(String resolveOverdue) { this.resolveOverdue = resolveOverdue; }
 }

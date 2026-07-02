@@ -1,4 +1,5 @@
 package com.ruoyi.common.exception.user;
+import java.io.Serial;
 
 /**
  * 用户错误最大次数异常类
@@ -7,7 +8,8 @@ package com.ruoyi.common.exception.user;
  */
 public class UserPasswordRetryLimitExceedException extends UserException
 {
-    private static final long serialVersionUID = 1L;
+    @Serial
+private static final long serialVersionUID = 1L;
 
     public UserPasswordRetryLimitExceedException(int retryLimitCount, int lockTime)
     {

@@ -1,5 +1,7 @@
 package com.ruoyi.common.exception.job;
 
+import java.io.Serial;
+
 /**
  * 计划策略异常
  * 
@@ -7,9 +9,10 @@ package com.ruoyi.common.exception.job;
  */
 public class TaskException extends Exception
 {
+    @Serial
     private static final long serialVersionUID = 1L;
 
-    private Code code;
+    private final Code code;
 
     public TaskException(String msg, Code code)
     {

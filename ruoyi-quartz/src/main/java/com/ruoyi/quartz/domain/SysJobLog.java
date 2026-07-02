@@ -1,4 +1,5 @@
 package com.ruoyi.quartz.domain;
+import java.io.Serial;
 
 import java.util.Date;
 import org.apache.commons.lang3.builder.ToStringBuilder;
@@ -14,7 +15,8 @@ import com.ruoyi.common.core.domain.BaseEntity;
  */
 public class SysJobLog extends BaseEntity
 {
-    private static final long serialVersionUID = 1L;
+    @Serial
+private static final long serialVersionUID = 1L;
 
     /** ID */
     @Excel(name = "日志序号")

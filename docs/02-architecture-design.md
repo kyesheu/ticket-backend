@@ -1,6 +1,6 @@
 # 02 — 架构与设计规范
 
-> v1.0 | 2026-06-25
+> v1.1 | 2026-07-02
 
 ## 模块架构
 
@@ -204,3 +204,57 @@ Controller 用 `@PreAuthorize("@ss.hasPermi('...')")`。v1.0 不走 `@DataScope`
 - 状态枚举用 String 存储，扩展不影响存量数据
 - `ticket_operation_log` 是后续智能分派、相似工单推荐的训练数据基础
 - 后续 AI 模块新增 `ruoyi-ai`，通过调用 ticket Service 接口获取数据，保持边界清晰
+
+## v1.1 SLA 设计
+
+### 新增组件
+
+```text
+controller/       TicketSlaPolicyController、TicketSlaAlertController
+service/          ITicketSlaPolicyService、ITicketSlaAlertService、ITicketSlaService
+service/impl/     对应实现
+mapper/           TicketSlaPolicyMapper、TicketSlaAlertMapper
+domain/           TicketSlaPolicy、TicketSlaAlert
+dto/              TicketSlaPolicyDTO、TicketSlaAlertQueryDTO
+vo/               TicketSlaPolicyVO、TicketSlaAlertVO、TicketSlaStatusVO
+enums/            TicketSlaAlertType
+task/             TicketSlaTask
+```
+
+### 依赖与调用方向
+
+`ruoyi-ticket` 仍只依赖 `ruoyi-common`。`TicketSlaTask` 作为 Spring Bean 暴露
+`scanOverdue()`，由现有 Quartz 的 `sys_job.invoke_target` 配置
+`ticketSlaTask.scanOverdue` 调用。不得让 `ruoyi-ticket` 依赖 `ruoyi-quartz`，也不得在
+`ruoyi-quartz` 中新增 ticket 业务代码。
+
+### 创建时限快照
+
+`TicketServiceImpl.insertTicket` 在同一事务中查询启用策略并计算：
+
+```text
+responseDueAt = createTime + responseMinutes
+resolveDueAt  = createTime + resolveMinutes
+```
+
+`resolveMinutes` 必须大于 `responseMinutes`。策略变更只影响新工单。
+
+### 扫描与幂等
+
+`ITicketSlaService.scanOverdue()` 分页扫描需要判定的工单，单页处理，避免一次加载全部数据。
+每种超时在同一事务中更新工单标记并插入告警。`ticket_sla_alert` 使用
+`uk_ticket_alert_type(ticket_id, alert_type)` 保证并发和重复执行幂等；插入发生唯一键冲突时按
+“已处理”结束，不重复记录。
+
+扫描只负责事实判定和持久化，不发送外部消息。Quartz Job 禁止并发执行，默认 Cron 为
+`0 0/5 * * * ?`。
+
+### 权限
+
+```text
+ticket:sla:list / query / add / edit
+ticket:sla-alert:list / query / scan
+```
+
+策略维护和手工扫描仅管理员权限开放。普通用户在工单列表、详情中只能看到其有权查看工单的
+SLA 状态，不直接访问全量告警列表。

@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ruoyi.ticket.mapper.TicketSlaPolicyMapper">
+
+    <resultMap id="TicketSlaPolicyResult" type="com.ruoyi.ticket.domain.TicketSlaPolicy">
+        <id property="policyId" column="policy_id" />
+        <result property="priority" column="priority" />
+        <result property="responseMinutes" column="response_minutes" />
+        <result property="resolveMinutes" column="resolve_minutes" />
+        <result property="status" column="status" />
+        <result property="createBy" column="create_by" />
+        <result property="createTime" column="create_time" />
+        <result property="updateBy" column="update_by" />
+        <result property="updateTime" column="update_time" />
+        <result property="remark" column="remark" />
+    </resultMap>
+
+    <sql id="selectPolicyColumns">
+        SELECT policy_id, priority, response_minutes, resolve_minutes, status,
+               create_by, create_time, update_by, update_time, remark
+        FROM ticket_sla_policy
+    </sql>
+
+    <select id="selectPolicyList" resultMap="TicketSlaPolicyResult">
+        <include refid="selectPolicyColumns" />
+        ORDER BY response_minutes ASC
+    </select>
+
+    <select id="selectPolicyById" parameterType="Long" resultMap="TicketSlaPolicyResult">
+        <include refid="selectPolicyColumns" />
+        WHERE policy_id = #{policyId}
+    </select>
+
+    <select id="selectPolicyByPriority" parameterType="String" resultMap="TicketSlaPolicyResult">
+        <include refid="selectPolicyColumns" />
+        WHERE priority = #{priority}
+    </select>
+
+    <select id="selectEnabledPolicyByPriority" parameterType="String" resultMap="TicketSlaPolicyResult">
+        <include refid="selectPolicyColumns" />
+        WHERE priority = #{priority}
+          AND status = '0'
+    </select>
+
+    <insert id="insertPolicy" parameterType="com.ruoyi.ticket.domain.TicketSlaPolicy"
+            useGeneratedKeys="true" keyProperty="policyId">
+        INSERT INTO ticket_sla_policy (
+            priority, response_minutes, resolve_minutes, status,
+            create_by, create_time, remark
+        ) VALUES (
+            #{priority}, #{responseMinutes}, #{resolveMinutes}, #{status},
+            #{createBy}, #{createTime}, #{remark}
+        )
+    </insert>
+
+    <update id="updatePolicy" parameterType="com.ruoyi.ticket.domain.TicketSlaPolicy">
+        UPDATE ticket_sla_policy
+        SET response_minutes = #{responseMinutes},
+            resolve_minutes = #{resolveMinutes},
+            status = #{status},
+            update_by = #{updateBy},
+            update_time = #{updateTime},
+            remark = #{remark}
+        WHERE policy_id = #{policyId}
+    </update>
+
+</mapper>

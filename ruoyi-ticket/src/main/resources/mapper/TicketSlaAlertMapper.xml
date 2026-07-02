@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ruoyi.ticket.mapper.TicketSlaAlertMapper">
+
+    <resultMap id="TicketSlaAlertResult" type="com.ruoyi.ticket.domain.TicketSlaAlert">
+        <id property="alertId" column="alert_id" />
+        <result property="ticketId" column="ticket_id" />
+        <result property="alertType" column="alert_type" />
+        <result property="dueAt" column="due_at" />
+        <result property="detectedAt" column="detected_at" />
+        <result property="overdueMinutes" column="overdue_minutes" />
+    </resultMap>
+
+    <select id="selectAlertsByTicketId" parameterType="Long" resultMap="TicketSlaAlertResult">
+        SELECT alert_id, ticket_id, alert_type, due_at, detected_at, overdue_minutes
+        FROM ticket_sla_alert
+        WHERE ticket_id = #{ticketId}
+        ORDER BY detected_at DESC
+    </select>
+
+    <insert id="insertAlert" parameterType="com.ruoyi.ticket.domain.TicketSlaAlert"
+            useGeneratedKeys="true" keyProperty="alertId">
+        INSERT INTO ticket_sla_alert (
+            ticket_id, alert_type, due_at, detected_at, overdue_minutes
+        ) VALUES (
+            #{ticketId}, #{alertType}, #{dueAt}, #{detectedAt}, #{overdueMinutes}
+        )
+    </insert>
+
+</mapper>

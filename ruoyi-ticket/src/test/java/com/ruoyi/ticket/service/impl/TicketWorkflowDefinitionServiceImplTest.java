@@ -160,6 +160,49 @@ class TicketWorkflowDefinitionServiceImplTest {
                 .isInstanceOf(ServiceException.class).hasMessageContaining("环路");
     }
 
+    @Test
+    @DisplayName("自定义字段条件缺少合法 key 时不允许发布")
+    void publishCustomFieldConditionWithoutValidKeyShouldFail() {
+        mockConditionalGraph("CUSTOM_FIELD", "bad-key");
+
+        assertThatThrownBy(() -> service.publishDefinition(1L))
+                .isInstanceOf(ServiceException.class).hasMessageContaining("key 格式无效");
+    }
+
+    @Test
+    @DisplayName("普通条件携带 conditionKey 时不允许发布")
+    void publishStandardConditionWithConditionKeyShouldFail() {
+        mockConditionalGraph("PRIORITY", "LOCATION");
+
+        assertThatThrownBy(() -> service.publishDefinition(1L))
+                .isInstanceOf(ServiceException.class).hasMessageContaining("不能配置");
+    }
+
+    @Test
+    @DisplayName("合法自定义字段条件应允许发布")
+    void publishValidCustomFieldConditionShouldSucceed() {
+        mockConditionalGraph("CUSTOM_FIELD", "LOCATION");
+        when(definitionMapper.publishDefinition(any())).thenReturn(1);
+
+        service.publishDefinition(1L);
+
+        verify(definitionMapper).publishDefinition(any());
+    }
+
+    private void mockConditionalGraph(String field, String conditionKey) {
+        TicketWorkflowDefinition definition = definition("DRAFT"); definition.setWorkflowKey("LEAVE");
+        when(definitionMapper.selectDefinitionById(1L)).thenReturn(definition);
+        when(nodeMapper.selectNodeListByDefinitionId(1L)).thenReturn(List.of(
+                node("START", "START", null), node("MATCH", "PROCESS", "ROLE"),
+                node("DEFAULT", "PROCESS", "ROLE"), node("END", "END", null)));
+        TicketWorkflowTransition condition = transition("START", "MATCH", "0");
+        condition.setConditionField(field); condition.setConditionKey(conditionKey);
+        condition.setConditionOperator("EQ"); condition.setConditionValue("HIGH");
+        when(transitionMapper.selectTransitionListByDefinitionId(1L)).thenReturn(List.of(
+                condition, transition("START", "DEFAULT", "1"),
+                transition("MATCH", "END", "1"), transition("DEFAULT", "END", "1")));
+    }
+
     private TicketWorkflowDefinitionDTO createValidDefinitionDTO() {
         TicketWorkflowDefinitionDTO dto = new TicketWorkflowDefinitionDTO();
         dto.setWorkflowKey("LEAVE");

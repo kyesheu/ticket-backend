@@ -1,0 +1,56 @@
+package com.ruoyi.ticket.vo;
+
+import com.ruoyi.ticket.domain.TicketCustomFieldOption;
+
+import java.io.Serial;
+import java.io.Serializable;
+import java.math.BigDecimal;
+import java.util.List;
+
+/** 自定义字段定义响应对象。 */
+public class TicketCustomFieldDefinitionVO implements Serializable {
+    @Serial private static final long serialVersionUID = 1L;
+    private Long fieldId;
+    private Long categoryId;
+    private String fieldKey;
+    private String fieldName;
+    private String fieldType;
+    private String requiredFlag;
+    private String defaultValue;
+    private Integer maxLength;
+    private BigDecimal minNumber;
+    private BigDecimal maxNumber;
+    private Integer sortOrder;
+    private String status;
+    private String remark;
+    private List<TicketCustomFieldOption> options;
+
+    public Long getFieldId() { return fieldId; }
+    public void setFieldId(Long fieldId) { this.fieldId = fieldId; }
+    public Long getCategoryId() { return categoryId; }
+    public void setCategoryId(Long categoryId) { this.categoryId = categoryId; }
+    public String getFieldKey() { return fieldKey; }
+    public void setFieldKey(String fieldKey) { this.fieldKey = fieldKey; }
+    public String getFieldName() { return fieldName; }
+    public void setFieldName(String fieldName) { this.fieldName = fieldName; }
+    public String getFieldType() { return fieldType; }
+    public void setFieldType(String fieldType) { this.fieldType = fieldType; }
+    public String getRequiredFlag() { return requiredFlag; }
+    public void setRequiredFlag(String requiredFlag) { this.requiredFlag = requiredFlag; }
+    public String getDefaultValue() { return defaultValue; }
+    public void setDefaultValue(String defaultValue) { this.defaultValue = defaultValue; }
+    public Integer getMaxLength() { return maxLength; }
+    public void setMaxLength(Integer maxLength) { this.maxLength = maxLength; }
+    public BigDecimal getMinNumber() { return minNumber; }
+    public void setMinNumber(BigDecimal minNumber) { this.minNumber = minNumber; }
+    public BigDecimal getMaxNumber() { return maxNumber; }
+    public void setMaxNumber(BigDecimal maxNumber) { this.maxNumber = maxNumber; }
+    public Integer getSortOrder() { return sortOrder; }
+    public void setSortOrder(Integer sortOrder) { this.sortOrder = sortOrder; }
+    public String getStatus() { return status; }
+    public void setStatus(String status) { this.status = status; }
+    public String getRemark() { return remark; }
+    public void setRemark(String remark) { this.remark = remark; }
+    public List<TicketCustomFieldOption> getOptions() { return options; }
+    public void setOptions(List<TicketCustomFieldOption> options) { this.options = options; }
+}

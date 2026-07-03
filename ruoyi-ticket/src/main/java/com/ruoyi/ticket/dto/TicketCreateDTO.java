@@ -2,6 +2,7 @@ package com.ruoyi.ticket.dto;
 import java.io.Serial;
 
 import java.io.Serializable;
+import java.util.List;
 import io.swagger.v3.oas.annotations.media.Schema;
 
 /**
@@ -27,6 +28,9 @@ private static final long serialVersionUID = 1L;
     @Schema(description = "优先级：LOW/MEDIUM/HIGH/URGENT，默认 MEDIUM")
     private String priority;
 
+    @Schema(description = "自定义字段")
+    private List<TicketCustomFieldInputDTO> customFields;
+
     public String getTitle() { return title; }
     public void setTitle(String title) { this.title = title; }
     public String getContent() { return content; }
@@ -35,4 +39,6 @@ private static final long serialVersionUID = 1L;
     public void setCategoryId(Long categoryId) { this.categoryId = categoryId; }
     public String getPriority() { return priority; }
     public void setPriority(String priority) { this.priority = priority; }
+    public List<TicketCustomFieldInputDTO> getCustomFields() { return customFields; }
+    public void setCustomFields(List<TicketCustomFieldInputDTO> customFields) { this.customFields = customFields; }
 }

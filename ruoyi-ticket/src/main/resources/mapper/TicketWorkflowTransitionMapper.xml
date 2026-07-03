@@ -7,6 +7,7 @@
         <result property="sourceNodeKey" column="source_node_key"/>
         <result property="targetNodeKey" column="target_node_key"/>
         <result property="conditionField" column="condition_field"/>
+        <result property="conditionKey" column="condition_key"/>
         <result property="conditionOperator" column="condition_operator"/>
         <result property="conditionValue" column="condition_value"/>
         <result property="defaultTransition" column="is_default"/>
@@ -14,17 +15,17 @@
     </resultMap>
     <select id="selectTransitionListByDefinitionId" resultMap="TransitionResult">
         SELECT transition_id, definition_id, source_node_key, target_node_key,
-               condition_field, condition_operator, condition_value, is_default, sort_order
+               condition_field, condition_key, condition_operator, condition_value, is_default, sort_order
         FROM ticket_workflow_transition
         WHERE definition_id = #{definitionId}
         ORDER BY source_node_key, sort_order, transition_id
     </select>
     <insert id="insertTransition" useGeneratedKeys="true" keyProperty="transitionId">
         INSERT INTO ticket_workflow_transition
-            (definition_id, source_node_key, target_node_key, condition_field,
+            (definition_id, source_node_key, target_node_key, condition_field, condition_key,
              condition_operator, condition_value, is_default, sort_order)
         VALUES
-            (#{definitionId}, #{sourceNodeKey}, #{targetNodeKey}, #{conditionField},
+            (#{definitionId}, #{sourceNodeKey}, #{targetNodeKey}, #{conditionField}, #{conditionKey},
              #{conditionOperator}, #{conditionValue}, #{defaultTransition}, #{sortOrder})
     </insert>
     <delete id="deleteTransitionsByDefinitionId">

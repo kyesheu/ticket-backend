@@ -9,5 +9,6 @@ public enum TicketWorkflowConditionField {
 
     PRIORITY,
     CATEGORY,
-    CREATOR_DEPT
+    CREATOR_DEPT,
+    CUSTOM_FIELD
 }

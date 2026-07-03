@@ -16,6 +16,9 @@ import com.ruoyi.ticket.mapper.TicketWorkflowInstanceMapper;
 import com.ruoyi.ticket.mapper.TicketWorkflowNodeMapper;
 import com.ruoyi.ticket.mapper.TicketWorkflowTaskMapper;
 import com.ruoyi.ticket.mapper.TicketWorkflowTransitionMapper;
+import com.ruoyi.ticket.mapper.TicketCustomFieldValueMapper;
+import com.ruoyi.ticket.domain.TicketCustomFieldValue;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -23,6 +26,7 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.mockito.Spy;
 
 import java.util.List;
 
@@ -50,6 +54,8 @@ class TicketWorkflowEngineImplTest {
     @Mock private TicketWorkflowInstanceMapper instanceMapper;
     @Mock private TicketWorkflowTaskMapper taskMapper;
     @Mock private TicketWorkflowAssigneeMapper assigneeMapper;
+    @Mock private TicketCustomFieldValueMapper customFieldValueMapper;
+    @Spy private ObjectMapper objectMapper = new ObjectMapper();
     @InjectMocks private TicketWorkflowEngineImpl engine;
 
     @Test
@@ -96,6 +102,72 @@ class TicketWorkflowEngineImplTest {
         verify(taskMapper).insertTask(taskCaptor.capture());
         assertThat(taskCaptor.getValue().getNodeKey()).isEqualTo("URGENT");
         assertThat(taskCaptor.getValue().getResolvedAssigneeId()).isEqualTo(9L);
+    }
+
+    @Test
+    @DisplayName("自定义字段 EQ 命中时应进入条件节点")
+    void shouldRouteByCustomFieldEquality() {
+        Ticket ticket = ticket();
+        TicketCategory category = new TicketCategory(); category.setWorkflowKey("CUSTOM");
+        when(categoryMapper.selectCategoryById(6L)).thenReturn(category);
+        TicketWorkflowTransition condition = line("START", "MATCH", "CUSTOM_FIELD", "EQ", "SHANGHAI", "0");
+        condition.setConditionKey("LOCATION");
+        mockDefinition("CUSTOM", List.of(node("START", "START", null, null),
+                node("MATCH", "PROCESS", "USER", 9L), node("DEFAULT", "PROCESS", "USER", 8L)),
+                List.of(condition, line("START", "DEFAULT", null, null, null, "1")));
+        when(customFieldValueMapper.selectByTicketAndKey(100L, "LOCATION"))
+                .thenReturn(customValue("TEXT", "SHANGHAI"));
+        when(ticketMapper.checkUserExists(9L)).thenReturn(1);
+
+        engine.startInstance(ticket);
+
+        ArgumentCaptor<TicketWorkflowTask> captor = ArgumentCaptor.forClass(TicketWorkflowTask.class);
+        verify(taskMapper).insertTask(captor.capture());
+        assertThat(captor.getValue().getNodeKey()).isEqualTo("MATCH");
+    }
+
+    @Test
+    @DisplayName("自定义多选字段 IN 命中任一选项时应进入条件节点")
+    void shouldRouteByCustomMultiSelectMembership() {
+        Ticket ticket = ticket();
+        TicketCategory category = new TicketCategory(); category.setWorkflowKey("CUSTOM");
+        when(categoryMapper.selectCategoryById(6L)).thenReturn(category);
+        TicketWorkflowTransition condition = line("START", "MATCH", "CUSTOM_FIELD", "IN", "A,B", "0");
+        condition.setConditionKey("TAGS");
+        mockDefinition("CUSTOM", List.of(node("START", "START", null, null),
+                node("MATCH", "PROCESS", "USER", 9L), node("DEFAULT", "PROCESS", "USER", 8L)),
+                List.of(condition, line("START", "DEFAULT", null, null, null, "1")));
+        when(customFieldValueMapper.selectByTicketAndKey(100L, "TAGS"))
+                .thenReturn(customValue("MULTI_SELECT", "[\"B\",\"C\"]"));
+        when(ticketMapper.checkUserExists(9L)).thenReturn(1);
+
+        engine.startInstance(ticket);
+
+        ArgumentCaptor<TicketWorkflowTask> captor = ArgumentCaptor.forClass(TicketWorkflowTask.class);
+        verify(taskMapper).insertTask(captor.capture());
+        assertThat(captor.getValue().getNodeKey()).isEqualTo("MATCH");
+    }
+
+    @Test
+    @DisplayName("自定义字段缺失或类型不兼容时应走默认分支")
+    void shouldUseDefaultForMissingOrIncompatibleCustomField() {
+        Ticket ticket = ticket();
+        TicketCategory category = new TicketCategory(); category.setWorkflowKey("CUSTOM");
+        when(categoryMapper.selectCategoryById(6L)).thenReturn(category);
+        TicketWorkflowTransition condition = line("START", "MATCH", "CUSTOM_FIELD", "EQ", "A", "0");
+        condition.setConditionKey("TAGS");
+        mockDefinition("CUSTOM", List.of(node("START", "START", null, null),
+                node("MATCH", "PROCESS", "USER", 9L), node("DEFAULT", "PROCESS", "USER", 8L)),
+                List.of(condition, line("START", "DEFAULT", null, null, null, "1")));
+        when(customFieldValueMapper.selectByTicketAndKey(100L, "TAGS"))
+                .thenReturn(customValue("MULTI_SELECT", "[\"A\"]"));
+        when(ticketMapper.checkUserExists(8L)).thenReturn(1);
+
+        engine.startInstance(ticket);
+
+        ArgumentCaptor<TicketWorkflowTask> captor = ArgumentCaptor.forClass(TicketWorkflowTask.class);
+        verify(taskMapper).insertTask(captor.capture());
+        assertThat(captor.getValue().getNodeKey()).isEqualTo("DEFAULT");
     }
 
     @Test
@@ -200,5 +272,10 @@ class TicketWorkflowEngineImplTest {
         TicketWorkflowTransition line = new TicketWorkflowTransition(); line.setSourceNodeKey(source);
         line.setTargetNodeKey(target); line.setConditionField(field); line.setConditionOperator(operator);
         line.setConditionValue(value); line.setDefaultTransition(defaultLine); return line;
+    }
+
+    private TicketCustomFieldValue customValue(String fieldType, String normalizedValue) {
+        TicketCustomFieldValue value = new TicketCustomFieldValue();
+        value.setFieldTypeSnapshot(fieldType); value.setNormalizedValue(normalizedValue); return value;
     }
 }

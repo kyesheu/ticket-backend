@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ruoyi.ticket.mapper.TicketCustomFieldValueMapper">
+    <resultMap id="ValueResult" type="com.ruoyi.ticket.domain.TicketCustomFieldValue">
+        <id property="valueId" column="value_id"/><result property="ticketId" column="ticket_id"/>
+        <result property="fieldId" column="field_id"/><result property="fieldKeySnapshot" column="field_key_snapshot"/>
+        <result property="fieldNameSnapshot" column="field_name_snapshot"/><result property="fieldTypeSnapshot" column="field_type_snapshot"/>
+        <result property="normalizedValue" column="normalized_value"/><result property="displayValueSnapshot" column="display_value_snapshot"/>
+        <result property="sortOrderSnapshot" column="sort_order_snapshot"/><result property="createTime" column="create_time"/>
+    </resultMap>
+    <sql id="columns">SELECT value_id, ticket_id, field_id, field_key_snapshot, field_name_snapshot,
+        field_type_snapshot, normalized_value, display_value_snapshot, sort_order_snapshot, create_time
+        FROM ticket_custom_field_value</sql>
+    <select id="selectByTicketId" resultMap="ValueResult"><include refid="columns"/>
+        WHERE ticket_id=#{ticketId} ORDER BY sort_order_snapshot, value_id</select>
+    <select id="selectByTicketAndKey" resultMap="ValueResult"><include refid="columns"/>
+        WHERE ticket_id=#{ticketId} AND field_key_snapshot=#{fieldKey}</select>
+    <insert id="insertValue" useGeneratedKeys="true" keyProperty="valueId">INSERT INTO ticket_custom_field_value
+        (ticket_id, field_id, field_key_snapshot, field_name_snapshot, field_type_snapshot,
+         normalized_value, display_value_snapshot, sort_order_snapshot, create_time)
+        VALUES (#{ticketId}, #{fieldId}, #{fieldKeySnapshot}, #{fieldNameSnapshot}, #{fieldTypeSnapshot},
+        #{normalizedValue}, #{displayValueSnapshot}, #{sortOrderSnapshot}, #{createTime})</insert>
+</mapper>

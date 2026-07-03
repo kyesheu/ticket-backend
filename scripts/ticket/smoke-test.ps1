@@ -66,6 +66,21 @@ $Headers = @{ "Authorization" = "Bearer $Token" }
 if (-not $Token) { throw "Login failed: $($LoginResp.msg)" }
 Write-Host "  [PASS] Login" -ForegroundColor Green
 
+function Get-RequiredCustomFieldInputs($CategoryId) {
+    $Form = Invoke-RestMethod -Uri "$BaseUrl/ticket/custom-field/form/$CategoryId" -Headers $Headers -Method Get
+    $Inputs = @()
+    foreach ($Field in $Form.data) {
+        if ($Field.requiredFlag -ne "1" -or $Field.defaultValue) { continue }
+        $Value = switch ($Field.fieldType) {
+            "TEXT" { "smoke" }; "NUMBER" { if ($Field.minNumber) { $Field.minNumber } else { 1 } }
+            "DATE" { "2026-07-03" }; "DATETIME" { "2026-07-03 10:20:30" }; "BOOLEAN" { $true }
+            "SINGLE_SELECT" { $Field.options[0].optionValue }; "MULTI_SELECT" { @($Field.options[0].optionValue) }
+        }
+        $Inputs += @{ fieldKey = $Field.fieldKey; value = $Value }
+    }
+    return $Inputs
+}
+
 # ============ 分类测试 ============
 Write-Host ""
 Write-Host "[1] Category API" -ForegroundColor Cyan
@@ -91,7 +106,8 @@ Assert-Error "DELETE /ticket/category/2 (has children - should fail)" $R
 Write-Host ""
 Write-Host "[2] Ticket Creation" -ForegroundColor Cyan
 
-$Body1 = '{"title":"PS-Smoke-1 WiFi Issue","content":"Office WiFi down","categoryId":6,"priority":"HIGH"}'
+$Body1 = @{ title = "PS-Smoke-1 WiFi Issue"; content = "Office WiFi down"; categoryId = 6;
+    priority = "HIGH"; customFields = @(Get-RequiredCustomFieldInputs 6) } | ConvertTo-Json -Depth 10
 $R1 = Invoke-RestMethod -Uri "$BaseUrl/ticket" -Method Post -Body $Body1 -ContentType "application/json" -Headers $Headers
 $T1 = $R1.data
 Assert-Success "POST /ticket (create ticket 1)" $R1
@@ -332,8 +348,8 @@ try {
     $ScopeTitle = "V13-SCOPE-$ScopeSuffix"
     $Body = @{
         title = $ScopeTitle; content = "Department data scope smoke"
-        categoryId = 6; priority = "MEDIUM"
-    } | ConvertTo-Json
+        categoryId = 6; priority = "MEDIUM"; customFields = @(Get-RequiredCustomFieldInputs 6)
+    } | ConvertTo-Json -Depth 10
     $ScopeTicket = (Invoke-RestMethod -Uri "$BaseUrl/ticket" -Method Post -Headers $Headers `
         -Body $Body -ContentType "application/json").data
 
@@ -403,6 +419,26 @@ $WorkflowSmokeScripts = @(
     "workflow-task-smoke.ps1"
 )
 foreach ($ScriptName in $WorkflowSmokeScripts) {
+    try {
+        & (Join-Path $PSScriptRoot $ScriptName) | ForEach-Object { Write-Host "  $_" }
+        Write-Host "  [PASS] $ScriptName" -ForegroundColor Green
+        $Pass++
+    }
+    catch {
+        Write-Host "  [FAIL] $ScriptName - $($_.Exception.Message)" -ForegroundColor Red
+        $Fail++
+    }
+}
+
+# ============ v2.1 自定义字段 ============
+Write-Host ""
+Write-Host "[10] v2.1 Custom Fields" -ForegroundColor Cyan
+$CustomFieldSmokeScripts = @(
+    "custom-field-definition-smoke.ps1",
+    "custom-field-value-smoke.ps1",
+    "custom-field-workflow-smoke.ps1"
+)
+foreach ($ScriptName in $CustomFieldSmokeScripts) {
     try {
         & (Join-Path $PSScriptRoot $ScriptName) | ForEach-Object { Write-Host "  $_" }
         Write-Host "  [PASS] $ScriptName" -ForegroundColor Green

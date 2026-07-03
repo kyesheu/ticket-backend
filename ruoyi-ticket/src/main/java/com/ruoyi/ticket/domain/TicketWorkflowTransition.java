@@ -28,6 +28,9 @@ public class TicketWorkflowTransition implements Serializable {
     /** 条件字段 */
     private String conditionField;
 
+    /** 自定义字段条件 key */
+    private String conditionKey;
+
     /** 条件运算符 */
     private String conditionOperator;
 
@@ -79,6 +82,9 @@ public class TicketWorkflowTransition implements Serializable {
     public void setConditionField(String conditionField) {
         this.conditionField = conditionField;
     }
+
+    public String getConditionKey() { return conditionKey; }
+    public void setConditionKey(String conditionKey) { this.conditionKey = conditionKey; }
 
     public String getConditionOperator() {
         return conditionOperator;

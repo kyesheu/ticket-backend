@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ruoyi.ticket.mapper.TicketCustomFieldDefinitionMapper">
+    <resultMap id="DefinitionResult" type="com.ruoyi.ticket.domain.TicketCustomFieldDefinition">
+        <id property="fieldId" column="field_id"/><result property="categoryId" column="category_id"/>
+        <result property="fieldKey" column="field_key"/><result property="fieldName" column="field_name"/>
+        <result property="fieldType" column="field_type"/><result property="requiredFlag" column="required_flag"/>
+        <result property="defaultValue" column="default_value"/><result property="maxLength" column="max_length"/>
+        <result property="minNumber" column="min_number"/><result property="maxNumber" column="max_number"/>
+        <result property="sortOrder" column="sort_order"/><result property="status" column="status"/>
+        <result property="createBy" column="create_by"/><result property="createTime" column="create_time"/>
+        <result property="updateBy" column="update_by"/><result property="updateTime" column="update_time"/>
+        <result property="remark" column="remark"/>
+    </resultMap>
+    <sql id="columns">SELECT field_id, category_id, field_key, field_name, field_type, required_flag,
+        default_value, max_length, min_number, max_number, sort_order, status,
+        create_by, create_time, update_by, update_time, remark FROM ticket_custom_field_definition</sql>
+    <select id="selectByCategoryId" resultMap="DefinitionResult"><include refid="columns"/>
+        WHERE category_id = #{categoryId} ORDER BY sort_order, field_id</select>
+    <select id="selectEnabledByCategoryId" resultMap="DefinitionResult"><include refid="columns"/>
+        WHERE category_id = #{categoryId} AND status = '0' ORDER BY sort_order, field_id</select>
+    <select id="selectById" resultMap="DefinitionResult"><include refid="columns"/>
+        WHERE field_id = #{fieldId}</select>
+    <select id="selectByCategoryAndKey" resultMap="DefinitionResult"><include refid="columns"/>
+        WHERE category_id = #{categoryId} AND field_key = #{fieldKey}</select>
+    <insert id="insertDefinition" useGeneratedKeys="true" keyProperty="fieldId">
+        INSERT INTO ticket_custom_field_definition
+        (category_id, field_key, field_name, field_type, required_flag, default_value, max_length,
+         min_number, max_number, sort_order, status, create_by, create_time, remark)
+        VALUES (#{categoryId}, #{fieldKey}, #{fieldName}, #{fieldType}, #{requiredFlag}, #{defaultValue},
+        #{maxLength}, #{minNumber}, #{maxNumber}, #{sortOrder}, #{status}, #{createBy}, #{createTime}, #{remark})
+    </insert>
+    <update id="updateDefinition">UPDATE ticket_custom_field_definition SET field_name=#{fieldName},
+        required_flag=#{requiredFlag}, default_value=#{defaultValue}, max_length=#{maxLength},
+        min_number=#{minNumber}, max_number=#{maxNumber}, sort_order=#{sortOrder}, status=#{status},
+        update_by=#{updateBy}, update_time=#{updateTime}, remark=#{remark} WHERE field_id=#{fieldId}</update>
+</mapper>

@@ -10,6 +10,7 @@ import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.inOrder;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -42,7 +43,9 @@ import com.ruoyi.ticket.model.TicketAccessScope;
 import com.ruoyi.ticket.service.ITicketAccessPolicy;
 import com.ruoyi.ticket.service.ITicketWorkflowEngine;
 import com.ruoyi.ticket.service.ITicketNotificationService;
+import com.ruoyi.ticket.service.ITicketCustomFieldService;
 import org.mockito.ArgumentCaptor;
+import org.mockito.InOrder;
 
 /**
  * TicketServiceImpl 单元测试（Mock Mapper 层）
@@ -73,6 +76,9 @@ class TicketServiceImplTest {
 
     @Mock
     private TicketWorkflowInstanceMapper ticketWorkflowInstanceMapper;
+
+    @Mock
+    private ITicketCustomFieldService ticketCustomFieldService;
 
     @InjectMocks
     private TicketServiceImpl ticketService;
@@ -157,6 +163,25 @@ class TicketServiceImplTest {
 
         verify(ticketMapper).insertTicket(any(Ticket.class));
         verify(ticketOperationLogMapper).insertLog(any());
+    }
+
+    @Test
+    @DisplayName("创建工单应先保存自定义字段再启动流程")
+    void createTicketShouldSaveCustomFieldsBeforeStartingWorkflow() {
+        when(ticketMapper.selectMaxTicketNo(anyString())).thenReturn(null);
+        when(ticketMapper.insertTicket(any(Ticket.class))).thenAnswer(invocation -> {
+            invocation.<Ticket>getArgument(0).setTicketId(9L);
+            return 1;
+        });
+        TicketCreateDTO dto = new TicketCreateDTO();
+        dto.setTitle("带自定义字段的工单");
+        dto.setCategoryId(6L);
+
+        ticketService.createTicket(dto);
+
+        InOrder order = inOrder(ticketCustomFieldService, ticketWorkflowEngine);
+        order.verify(ticketCustomFieldService).validateAndSave(9L, 6L, dto.getCustomFields());
+        order.verify(ticketWorkflowEngine).startInstance(any(Ticket.class));
     }
 
     @Test

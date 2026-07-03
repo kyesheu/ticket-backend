@@ -32,6 +32,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
+import java.util.regex.Pattern;
 
 /**
  * 工单流程定义 Service 实现
@@ -43,6 +44,7 @@ public class TicketWorkflowDefinitionServiceImpl implements ITicketWorkflowDefin
 
     private static final String YES = "1";
     private static final String NO = "0";
+    private static final Pattern CUSTOM_FIELD_KEY_PATTERN = Pattern.compile("^[A-Z][A-Z0-9_]{0,63}$");
 
     @Autowired private TicketWorkflowDefinitionMapper definitionMapper;
     @Autowired private TicketWorkflowNodeMapper nodeMapper;
@@ -196,19 +198,32 @@ public class TicketWorkflowDefinitionServiceImpl implements ITicketWorkflowDefin
     private void validateCondition(TicketWorkflowTransition transition) {
         if (YES.equals(transition.getDefaultTransition())) {
             if (transition.getConditionField() != null || transition.getConditionOperator() != null
-                    || transition.getConditionValue() != null) {
+                    || transition.getConditionValue() != null || transition.getConditionKey() != null) {
                 throw new ServiceException("默认连线不能配置条件");
             }
             return;
         }
         try {
-            TicketWorkflowConditionField.valueOf(transition.getConditionField());
+            TicketWorkflowConditionField field = TicketWorkflowConditionField.valueOf(transition.getConditionField());
             TicketWorkflowConditionOperator.valueOf(transition.getConditionOperator());
+            validateConditionKey(field, transition.getConditionKey());
         } catch (IllegalArgumentException | NullPointerException exception) {
             throw new ServiceException("流程条件字段或运算符无效");
         }
         if (transition.getConditionValue() == null || transition.getConditionValue().isBlank()) {
             throw new ServiceException("流程条件值不能为空");
+        }
+    }
+
+    private void validateConditionKey(TicketWorkflowConditionField field, String conditionKey) {
+        if (field == TicketWorkflowConditionField.CUSTOM_FIELD) {
+            if (conditionKey == null || !CUSTOM_FIELD_KEY_PATTERN.matcher(conditionKey).matches()) {
+                throw new ServiceException("自定义字段条件 key 格式无效");
+            }
+            return;
+        }
+        if (conditionKey != null) {
+            throw new ServiceException("非自定义字段条件不能配置 conditionKey");
         }
     }
 

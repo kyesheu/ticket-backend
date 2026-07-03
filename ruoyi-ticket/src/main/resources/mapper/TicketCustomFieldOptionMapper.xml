@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ruoyi.ticket.mapper.TicketCustomFieldOptionMapper">
+    <resultMap id="OptionResult" type="com.ruoyi.ticket.domain.TicketCustomFieldOption">
+        <id property="optionId" column="option_id"/><result property="fieldId" column="field_id"/>
+        <result property="optionValue" column="option_value"/><result property="optionLabel" column="option_label"/>
+        <result property="sortOrder" column="sort_order"/><result property="status" column="status"/>
+        <result property="createBy" column="create_by"/><result property="createTime" column="create_time"/>
+        <result property="updateBy" column="update_by"/><result property="updateTime" column="update_time"/>
+        <result property="remark" column="remark"/>
+    </resultMap>
+    <select id="selectByFieldId" resultMap="OptionResult">SELECT option_id, field_id, option_value,
+        option_label, sort_order, status, create_by, create_time, update_by, update_time, remark
+        FROM ticket_custom_field_option WHERE field_id=#{fieldId} ORDER BY sort_order, option_id</select>
+    <select id="selectEnabledByFieldId" resultMap="OptionResult">SELECT option_id, field_id, option_value,
+        option_label, sort_order, status, create_by, create_time, update_by, update_time, remark
+        FROM ticket_custom_field_option WHERE field_id=#{fieldId} AND status='0' ORDER BY sort_order, option_id</select>
+    <select id="selectById" resultMap="OptionResult">SELECT option_id, field_id, option_value,
+        option_label, sort_order, status, create_by, create_time, update_by, update_time, remark
+        FROM ticket_custom_field_option WHERE option_id=#{optionId}</select>
+    <insert id="insertOption" useGeneratedKeys="true" keyProperty="optionId">INSERT INTO ticket_custom_field_option
+        (field_id, option_value, option_label, sort_order, status, create_by, create_time, remark)
+        VALUES (#{fieldId}, #{optionValue}, #{optionLabel}, #{sortOrder}, #{status}, #{createBy}, #{createTime}, #{remark})</insert>
+    <update id="updateOption">UPDATE ticket_custom_field_option SET option_label=#{optionLabel},
+        sort_order=#{sortOrder}, status=#{status}, update_by=#{updateBy}, update_time=#{updateTime}, remark=#{remark}
+        WHERE option_id=#{optionId} AND field_id=#{fieldId}</update>
+    <update id="disableByFieldId">UPDATE ticket_custom_field_option SET status='1',
+        update_by=#{updateBy}, update_time=NOW() WHERE field_id=#{fieldId}</update>
+</mapper>

@@ -33,6 +33,11 @@ import com.ruoyi.ticket.service.ITicketWorkflowEngine;
 import com.ruoyi.ticket.service.ITicketAccessPolicy;
 import com.ruoyi.ticket.service.ITicketNotificationService;
 import com.ruoyi.ticket.domain.TicketOperationLog;
+import com.ruoyi.ticket.domain.TicketCustomFieldValue;
+import com.ruoyi.ticket.enums.TicketCustomFieldType;
+import com.ruoyi.ticket.mapper.TicketCustomFieldValueMapper;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -42,6 +47,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+import java.util.Set;
 
 /**
  * 工单流程引擎实现
@@ -65,6 +71,8 @@ public class TicketWorkflowEngineImpl implements ITicketWorkflowEngine {
     @Autowired private TicketOperationLogMapper operationLogMapper;
     @Autowired private ITicketNotificationService notificationService;
     @Autowired private ITicketAccessPolicy accessPolicy;
+    @Autowired private TicketCustomFieldValueMapper customFieldValueMapper;
+    @Autowired private ObjectMapper objectMapper;
 
     @Override
     @Transactional(rollbackFor = Exception.class)
@@ -142,14 +150,56 @@ public class TicketWorkflowEngineImpl implements ITicketWorkflowEngine {
 
     private boolean matches(TicketWorkflowTransition line, Ticket ticket) {
         TicketWorkflowConditionField field = TicketWorkflowConditionField.valueOf(line.getConditionField());
+        if (field == TicketWorkflowConditionField.CUSTOM_FIELD) {
+            return matchesCustomField(line, ticket.getTicketId());
+        }
         String actual = switch (field) {
             case PRIORITY -> ticket.getPriority();
             case CATEGORY -> String.valueOf(ticket.getCategoryId());
             case CREATOR_DEPT -> String.valueOf(ticket.getDeptId());
+            case CUSTOM_FIELD -> null;
         };
         TicketWorkflowConditionOperator operator = TicketWorkflowConditionOperator.valueOf(line.getConditionOperator());
         if (operator == TicketWorkflowConditionOperator.EQ) return line.getConditionValue().equals(actual);
         return List.of(line.getConditionValue().split(",")).stream().map(String::trim).anyMatch(actual::equals);
+    }
+
+    private boolean matchesCustomField(TicketWorkflowTransition line, Long ticketId) {
+        if (line.getConditionKey() == null) {
+            return false;
+        }
+        TicketCustomFieldValue value = customFieldValueMapper.selectByTicketAndKey(ticketId, line.getConditionKey());
+        if (value == null || value.getNormalizedValue() == null || value.getFieldTypeSnapshot() == null) {
+            return false;
+        }
+        TicketCustomFieldType fieldType;
+        TicketWorkflowConditionOperator operator;
+        try {
+            fieldType = TicketCustomFieldType.valueOf(value.getFieldTypeSnapshot());
+            operator = TicketWorkflowConditionOperator.valueOf(line.getConditionOperator());
+        } catch (IllegalArgumentException exception) {
+            return false;
+        }
+        if (fieldType == TicketCustomFieldType.MULTI_SELECT) {
+            return operator == TicketWorkflowConditionOperator.IN && matchesMultiSelect(line, value.getNormalizedValue());
+        }
+        if (operator == TicketWorkflowConditionOperator.EQ) {
+            return line.getConditionValue().equals(value.getNormalizedValue());
+        }
+        Set<String> expectedValues = List.of(line.getConditionValue().split(",")).stream()
+                .map(String::trim).collect(Collectors.toSet());
+        return expectedValues.contains(value.getNormalizedValue());
+    }
+
+    private boolean matchesMultiSelect(TicketWorkflowTransition line, String normalizedValue) {
+        try {
+            Set<String> actualValues = Set.copyOf(objectMapper.readValue(normalizedValue, List.class).stream()
+                    .map(String::valueOf).toList());
+            return List.of(line.getConditionValue().split(",")).stream()
+                    .map(String::trim).anyMatch(actualValues::contains);
+        } catch (JsonProcessingException | IllegalArgumentException exception) {
+            return false;
+        }
     }
 
     private AssigneeSnapshot resolveAssignee(TicketWorkflowNode node, Ticket ticket) {

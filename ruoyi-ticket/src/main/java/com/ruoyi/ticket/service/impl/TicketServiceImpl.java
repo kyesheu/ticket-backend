@@ -32,6 +32,7 @@ import com.ruoyi.ticket.service.ITicketService;
 import com.ruoyi.ticket.service.ITicketNotificationService;
 import com.ruoyi.ticket.service.ITicketAccessPolicy;
 import com.ruoyi.ticket.service.ITicketWorkflowEngine;
+import com.ruoyi.ticket.service.ITicketCustomFieldService;
 import com.ruoyi.ticket.vo.TicketListVO;
 import com.ruoyi.ticket.vo.TicketVO;
 
@@ -85,6 +86,9 @@ public class TicketServiceImpl implements ITicketService {
     @Autowired
     private TicketWorkflowInstanceMapper ticketWorkflowInstanceMapper;
 
+    @Autowired
+    private ITicketCustomFieldService ticketCustomFieldService;
+
     @Override
     public List<TicketListVO> selectTicketList(TicketQueryDTO query) {
         query.setAccessScope(ticketAccessPolicy.resolveScope(TICKET_LIST_PERMISSION));
@@ -98,6 +102,7 @@ public class TicketServiceImpl implements ITicketService {
         if (vo == null) {
             throw new ServiceException("工单不存在");
         }
+        vo.setCustomFields(ticketCustomFieldService.selectValueSnapshots(ticketId));
         // 查询评论列表和操作日志（阶段六完善 Service 注入后补充）
         return vo;
     }
@@ -141,6 +146,8 @@ public class TicketServiceImpl implements ITicketService {
         // 写入创建日志
         saveOperationLog(ticket.getTicketId(), TicketOperationType.CREATE,
                 null, TicketStatus.NEW, null);
+
+        ticketCustomFieldService.validateAndSave(ticket.getTicketId(), ticket.getCategoryId(), dto.getCustomFields());
 
         ticketWorkflowEngine.startInstance(ticket);
 

@@ -22,6 +22,7 @@ public class TicketWorkflowTransitionDTO implements Serializable {
     private String targetNodeKey;
 
     private String conditionField;
+    private String conditionKey;
     private String conditionOperator;
     private String conditionValue;
     private String defaultTransition;
@@ -33,6 +34,8 @@ public class TicketWorkflowTransitionDTO implements Serializable {
     public void setTargetNodeKey(String targetNodeKey) { this.targetNodeKey = targetNodeKey; }
     public String getConditionField() { return conditionField; }
     public void setConditionField(String conditionField) { this.conditionField = conditionField; }
+    public String getConditionKey() { return conditionKey; }
+    public void setConditionKey(String conditionKey) { this.conditionKey = conditionKey; }
     public String getConditionOperator() { return conditionOperator; }
     public void setConditionOperator(String conditionOperator) { this.conditionOperator = conditionOperator; }
     public String getConditionValue() { return conditionValue; }

@@ -1,6 +1,6 @@
 # 02 — 架构与设计规范
 
-> v2.0 | 2026-07-02
+> v2.1 | 2026-07-03
 
 ## 模块架构
 
@@ -381,3 +381,31 @@ Controller 不读取流程图自行判断，现有业务 Service 不复制路由
 - 内置标准流程表达原 `NEW → PROCESSING → WAIT_CONFIRM → CLOSED` 行为，旧接口通过兼容适配调用流程引擎。
 - v2.0 前创建且没有流程实例的工单继续由原状态机处理，避免在线迁移风险。
 - 工单访问仍先经过 `ITicketAccessPolicy`；任务处理权限是在对象访问权基础上的附加校验。
+
+## v2.1 自定义字段设计
+
+### 核心 seam
+
+`ITicketCustomFieldService` 是自定义字段运行时 seam，向工单创建和详情提供小接口：查询分类表单、校验并保存值、查询工单值、按 key 读取规范化值。字段类型转换、选项解析、快照和错误语义隐藏在实现内。
+
+```text
+TicketService / TicketWorkflowEngine
+              |
+              v
+   ITicketCustomFieldService
+              |
+   Definition + Option + Value Mapper
+```
+
+字段管理使用独立 `ITicketCustomFieldDefinitionService`，负责定义与选项的原子保存。Controller 不执行类型判断，流程引擎不直接解析 JSON。
+
+### 定义与快照
+
+- 定义归属分类，字段 key 和类型不可变，禁止物理删除。
+- 选项使用稳定 value 和可变 label；value 在字段内唯一。
+- 工单值同时保存定义 ID、字段 key/name/type 快照、规范化值和展示标签快照。
+- 详情从值表读取历史快照，不实时关联定义覆盖名称或标签。
+
+### 流程条件扩展
+
+`ticket_workflow_transition` 新增 `condition_key`。`condition_field = CUSTOM_FIELD` 时，key 必填且符合字段 key 格式；值仍通过参数化 SQL 保存。引擎通过 `ITicketCustomFieldService` 读取规范化值，缺失或类型不兼容返回“不命中”。

@@ -7,6 +7,7 @@ import java.util.List;
 import com.fasterxml.jackson.annotation.JsonFormat;
 import com.ruoyi.ticket.domain.TicketComment;
 import com.ruoyi.ticket.domain.TicketOperationLog;
+import com.ruoyi.ticket.domain.TicketCustomFieldValue;
 import io.swagger.v3.oas.annotations.media.Schema;
 
 /**
@@ -101,6 +102,9 @@ private static final long serialVersionUID = 1L;
     @Schema(description = "操作日志列表")
     private List<TicketOperationLog> logs;
 
+    @Schema(description = "自定义字段值快照")
+    private List<TicketCustomFieldValue> customFields;
+
     public Long getTicketId() { return ticketId; }
     public void setTicketId(Long ticketId) { this.ticketId = ticketId; }
     public String getTicketNo() { return ticketNo; }
@@ -151,4 +155,6 @@ private static final long serialVersionUID = 1L;
     public void setComments(List<TicketComment> comments) { this.comments = comments; }
     public List<TicketOperationLog> getLogs() { return logs; }
     public void setLogs(List<TicketOperationLog> logs) { this.logs = logs; }
+    public List<TicketCustomFieldValue> getCustomFields() { return customFields; }
+    public void setCustomFields(List<TicketCustomFieldValue> customFields) { this.customFields = customFields; }
 }

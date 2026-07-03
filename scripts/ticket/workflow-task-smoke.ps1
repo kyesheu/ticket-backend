@@ -13,10 +13,22 @@ if ($captcha.captchaEnabled) {
 $login = Invoke-RestMethod -Uri "$baseUrl/login" -Method Post `
     -Body ($loginData | ConvertTo-Json) -ContentType "application/json"
 $headers = @{ Authorization = "Bearer $($login.token)" }
+$form = Invoke-RestMethod -Uri "$baseUrl/ticket/custom-field/form/6" -Headers $headers -Method Get
+$customFields = @()
+foreach ($field in $form.data) {
+    if ($field.requiredFlag -ne "1" -or $field.defaultValue) { continue }
+    $value = switch ($field.fieldType) {
+        "TEXT" { "smoke" }; "NUMBER" { 1 }; "DATE" { "2026-07-03" }
+        "DATETIME" { "2026-07-03 10:20:30" }; "BOOLEAN" { $true }
+        "SINGLE_SELECT" { $field.options[0].optionValue }; "MULTI_SELECT" { @($field.options[0].optionValue) }
+    }
+    $customFields += @{ fieldKey = $field.fieldKey; value = $value }
+}
 
 function New-SmokeTicket($name) {
     $body = @{ title = "$name $([DateTimeOffset]::Now.ToUnixTimeMilliseconds())";
-               content = "workflow task smoke"; categoryId = 6; priority = "HIGH" } | ConvertTo-Json
+               content = "workflow task smoke"; categoryId = 6; priority = "HIGH";
+               customFields = $customFields } | ConvertTo-Json -Depth 10
     $response = Invoke-RestMethod -Uri "$baseUrl/ticket" -Headers $headers -Method Post `
         -Body $body -ContentType "application/json"
     if ($response.code -ne 200) { throw "create ticket failed: $($response.msg)" }

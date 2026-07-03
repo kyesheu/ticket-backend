@@ -57,7 +57,8 @@ class TicketWorkflowModelTest {
         assertThat(TicketWorkflowConditionField.values()).containsExactly(
                 TicketWorkflowConditionField.PRIORITY,
                 TicketWorkflowConditionField.CATEGORY,
-                TicketWorkflowConditionField.CREATOR_DEPT);
+                TicketWorkflowConditionField.CREATOR_DEPT,
+                TicketWorkflowConditionField.CUSTOM_FIELD);
         assertThat(TicketWorkflowConditionOperator.values()).containsExactly(
                 TicketWorkflowConditionOperator.EQ,
                 TicketWorkflowConditionOperator.IN);

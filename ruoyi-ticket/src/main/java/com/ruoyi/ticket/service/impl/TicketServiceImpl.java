@@ -33,6 +33,8 @@ import com.ruoyi.ticket.service.ITicketNotificationService;
 import com.ruoyi.ticket.service.ITicketAccessPolicy;
 import com.ruoyi.ticket.service.ITicketWorkflowEngine;
 import com.ruoyi.ticket.service.ITicketCustomFieldService;
+import com.ruoyi.ticket.service.ITicketAttachmentService;
+import com.ruoyi.ticket.enums.TicketAttachmentBusinessType;
 import com.ruoyi.ticket.vo.TicketListVO;
 import com.ruoyi.ticket.vo.TicketVO;
 
@@ -88,6 +90,9 @@ public class TicketServiceImpl implements ITicketService {
 
     @Autowired
     private ITicketCustomFieldService ticketCustomFieldService;
+
+    @Autowired
+    private ITicketAttachmentService ticketAttachmentService;
 
     @Override
     public List<TicketListVO> selectTicketList(TicketQueryDTO query) {
@@ -148,6 +153,9 @@ public class TicketServiceImpl implements ITicketService {
                 null, TicketStatus.NEW, null);
 
         ticketCustomFieldService.validateAndSave(ticket.getTicketId(), ticket.getCategoryId(), dto.getCustomFields());
+
+        ticketAttachmentService.bindAttachments(ticket.getTicketId(), TicketAttachmentBusinessType.TICKET,
+                ticket.getTicketId(), dto.getAttachmentIds());
 
         ticketWorkflowEngine.startInstance(ticket);
 

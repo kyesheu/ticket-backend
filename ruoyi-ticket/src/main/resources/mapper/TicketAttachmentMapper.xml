@@ -1,0 +1,93 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ruoyi.ticket.mapper.TicketAttachmentMapper">
+    <resultMap id="AttachmentResult" type="com.ruoyi.ticket.domain.TicketAttachment">
+        <id property="attachmentId" column="attachment_id"/>
+        <result property="ticketId" column="ticket_id"/>
+        <result property="businessType" column="business_type"/>
+        <result property="businessId" column="business_id"/>
+        <result property="originalName" column="original_name"/>
+        <result property="storagePath" column="storage_path"/>
+        <result property="contentType" column="content_type"/>
+        <result property="fileExtension" column="file_extension"/>
+        <result property="fileSize" column="file_size"/>
+        <result property="uploaderId" column="uploader_id"/>
+        <result property="createBy" column="create_by"/>
+        <result property="createTime" column="create_time"/>
+        <result property="deletedFlag" column="deleted_flag"/>
+        <result property="deleteBy" column="delete_by"/>
+        <result property="deleteTime" column="delete_time"/>
+        <result property="storageDeletedFlag" column="storage_deleted_flag"/>
+        <result property="storageDeleteTime" column="storage_delete_time"/>
+    </resultMap>
+
+    <sql id="attachmentColumns">
+        SELECT attachment_id, ticket_id, business_type, business_id, original_name, storage_path,
+               content_type, file_extension, file_size, uploader_id, create_by, create_time,
+               deleted_flag, delete_by, delete_time, storage_deleted_flag, storage_delete_time
+        FROM ticket_attachment
+    </sql>
+
+    <select id="selectById" resultMap="AttachmentResult">
+        <include refid="attachmentColumns"/>
+        WHERE attachment_id = #{attachmentId} AND deleted_flag = '0'
+    </select>
+
+    <select id="selectByTicketId" resultMap="AttachmentResult">
+        <include refid="attachmentColumns"/>
+        WHERE ticket_id = #{ticketId} AND deleted_flag = '0'
+        ORDER BY create_time, attachment_id
+    </select>
+
+    <select id="selectByBusiness" resultMap="AttachmentResult">
+        <include refid="attachmentColumns"/>
+        WHERE business_type = #{businessType} AND business_id = #{businessId} AND deleted_flag = '0'
+        ORDER BY create_time, attachment_id
+    </select>
+
+    <select id="selectByIds" resultMap="AttachmentResult">
+        <include refid="attachmentColumns"/>
+        WHERE attachment_id IN
+        <foreach collection="attachmentIds" item="attachmentId" open="(" separator="," close=")">
+            #{attachmentId}
+        </foreach>
+        AND deleted_flag = '0'
+    </select>
+
+    <select id="countByTicketId" resultType="int">
+        SELECT COUNT(*) FROM ticket_attachment WHERE ticket_id = #{ticketId} AND deleted_flag = '0'
+    </select>
+
+    <insert id="insertAttachment" useGeneratedKeys="true" keyProperty="attachmentId">
+        INSERT INTO ticket_attachment
+            (ticket_id, business_type, business_id, original_name, storage_path, content_type,
+             file_extension, file_size, uploader_id, create_by, create_time, deleted_flag, storage_deleted_flag)
+        VALUES
+            (#{ticketId}, #{businessType}, #{businessId}, #{originalName}, #{storagePath}, #{contentType},
+             #{fileExtension}, #{fileSize}, #{uploaderId}, #{createBy}, #{createTime}, #{deletedFlag}, '0')
+    </insert>
+
+    <update id="bindAttachments">
+        UPDATE ticket_attachment
+        SET ticket_id = #{ticketId}, business_type = #{businessType}, business_id = #{businessId}
+        WHERE attachment_id IN
+        <foreach collection="attachmentIds" item="attachmentId" open="(" separator="," close=")">
+            #{attachmentId}
+        </foreach>
+        AND uploader_id = #{uploaderId}
+        AND ticket_id IS NULL AND business_type IS NULL AND business_id IS NULL
+        AND deleted_flag = '0'
+    </update>
+
+    <update id="logicallyDelete">
+        UPDATE ticket_attachment
+        SET deleted_flag = '1', delete_by = #{deleteBy}, delete_time = NOW()
+        WHERE attachment_id = #{attachmentId} AND deleted_flag = '0'
+    </update>
+
+    <update id="markStorageDeleted">
+        UPDATE ticket_attachment
+        SET storage_deleted_flag = '1', storage_delete_time = NOW()
+        WHERE attachment_id = #{attachmentId} AND deleted_flag = '1' AND storage_deleted_flag = '0'
+    </update>
+</mapper>

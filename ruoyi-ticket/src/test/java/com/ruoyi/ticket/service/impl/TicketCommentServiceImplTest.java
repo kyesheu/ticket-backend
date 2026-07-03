@@ -8,6 +8,8 @@ import com.ruoyi.ticket.mapper.TicketCommentMapper;
 import com.ruoyi.ticket.mapper.TicketMapper;
 import com.ruoyi.ticket.service.ITicketNotificationService;
 import com.ruoyi.ticket.service.ITicketAccessPolicy;
+import com.ruoyi.ticket.service.ITicketAttachmentService;
+import com.ruoyi.ticket.enums.TicketAttachmentBusinessType;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -34,6 +36,7 @@ class TicketCommentServiceImplTest {
     @Mock private TicketMapper ticketMapper;
     @Mock private ITicketNotificationService ticketNotificationService;
     @Mock private ITicketAccessPolicy ticketAccessPolicy;
+    @Mock private ITicketAttachmentService ticketAttachmentService;
     @InjectMocks private TicketCommentServiceImpl ticketCommentService;
     private MockedStatic<SecurityUtils> securityUtilsMock;
 
@@ -81,5 +84,26 @@ class TicketCommentServiceImplTest {
 
         verify(ticketAccessPolicy).assertCanAccess(2L, "ticket:comment:list");
         verify(ticketCommentMapper).selectCommentsByTicketId(2L);
+    }
+
+    @Test
+    @DisplayName("添加评论后应绑定评论附件")
+    void addCommentShouldBindCommentAttachments() {
+        Ticket ticket = new Ticket();
+        ticket.setTicketId(1L);
+        when(ticketMapper.selectTicketEntityById(1L)).thenReturn(ticket);
+        when(ticketCommentMapper.insertComment(any(TicketComment.class))).thenAnswer(invocation -> {
+            TicketComment comment = invocation.getArgument(0);
+            comment.setCommentId(11L);
+            return 1;
+        });
+        TicketCommentDTO dto = new TicketCommentDTO();
+        dto.setContent("附件见评论");
+        dto.setAttachmentIds(java.util.List.of(31L));
+
+        ticketCommentService.addComment(1L, dto);
+
+        verify(ticketAttachmentService).bindAttachments(1L, TicketAttachmentBusinessType.COMMENT,
+                11L, dto.getAttachmentIds());
     }
 }

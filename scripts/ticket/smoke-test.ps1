@@ -380,7 +380,8 @@ try {
         "$BaseUrl/ticket/$ScopeTicket",
         "$BaseUrl/ticket/$ScopeTicket/comment",
         "$BaseUrl/ticket/$ScopeTicket/logs",
-        "$BaseUrl/ticket/satisfaction/ticket/$ScopeTicket"
+        "$BaseUrl/ticket/satisfaction/ticket/$ScopeTicket",
+        "$BaseUrl/ticket/attachment/ticket/$ScopeTicket"
     )
     foreach ($Uri in $ObjectUris) {
         $Response = Invoke-RestMethod -Uri $Uri -Headers $SelfHeaders
@@ -448,6 +449,19 @@ foreach ($ScriptName in $CustomFieldSmokeScripts) {
         Write-Host "  [FAIL] $ScriptName - $($_.Exception.Message)" -ForegroundColor Red
         $Fail++
     }
+}
+
+# ============ v2.2 附件 ============
+Write-Host ""
+Write-Host "[11] v2.2 Attachments" -ForegroundColor Cyan
+try {
+    & (Join-Path $PSScriptRoot "attachment-smoke.ps1") | ForEach-Object { Write-Host "  $_" }
+    Write-Host "  [PASS] attachment-smoke.ps1" -ForegroundColor Green
+    $Pass++
+}
+catch {
+    Write-Host "  [FAIL] attachment-smoke.ps1 - $($_.Exception.Message)" -ForegroundColor Red
+    $Fail++
 }
 
 # ============ 结果 ============

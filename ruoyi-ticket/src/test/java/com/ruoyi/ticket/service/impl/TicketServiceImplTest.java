@@ -1,5 +1,7 @@
 package com.ruoyi.ticket.service.impl;
 
+import java.util.List;
+
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
@@ -44,6 +46,8 @@ import com.ruoyi.ticket.service.ITicketAccessPolicy;
 import com.ruoyi.ticket.service.ITicketWorkflowEngine;
 import com.ruoyi.ticket.service.ITicketNotificationService;
 import com.ruoyi.ticket.service.ITicketCustomFieldService;
+import com.ruoyi.ticket.service.ITicketAttachmentService;
+import com.ruoyi.ticket.enums.TicketAttachmentBusinessType;
 import org.mockito.ArgumentCaptor;
 import org.mockito.InOrder;
 
@@ -79,6 +83,9 @@ class TicketServiceImplTest {
 
     @Mock
     private ITicketCustomFieldService ticketCustomFieldService;
+
+    @Mock
+    private ITicketAttachmentService ticketAttachmentService;
 
     @InjectMocks
     private TicketServiceImpl ticketService;
@@ -181,6 +188,26 @@ class TicketServiceImplTest {
 
         InOrder order = inOrder(ticketCustomFieldService, ticketWorkflowEngine);
         order.verify(ticketCustomFieldService).validateAndSave(9L, 6L, dto.getCustomFields());
+        order.verify(ticketWorkflowEngine).startInstance(any(Ticket.class));
+    }
+
+    @Test
+    @DisplayName("创建工单应在启动流程前绑定附件")
+    void createTicketShouldBindAttachmentsBeforeStartingWorkflow() {
+        when(ticketMapper.selectMaxTicketNo(anyString())).thenReturn(null);
+        when(ticketMapper.insertTicket(any(Ticket.class))).thenAnswer(invocation -> {
+            invocation.<Ticket>getArgument(0).setTicketId(9L);
+            return 1;
+        });
+        TicketCreateDTO dto = new TicketCreateDTO();
+        dto.setTitle("带附件的工单");
+        dto.setAttachmentIds(List.of(31L, 32L));
+
+        ticketService.createTicket(dto);
+
+        InOrder order = inOrder(ticketAttachmentService, ticketWorkflowEngine);
+        order.verify(ticketAttachmentService).bindAttachments(9L, TicketAttachmentBusinessType.TICKET,
+                9L, dto.getAttachmentIds());
         order.verify(ticketWorkflowEngine).startInstance(any(Ticket.class));
     }
 

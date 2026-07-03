@@ -31,6 +31,9 @@ private static final long serialVersionUID = 1L;
     @Schema(description = "自定义字段")
     private List<TicketCustomFieldInputDTO> customFields;
 
+    @Schema(description = "待绑定的临时附件ID")
+    private List<Long> attachmentIds;
+
     public String getTitle() { return title; }
     public void setTitle(String title) { this.title = title; }
     public String getContent() { return content; }
@@ -41,4 +44,6 @@ private static final long serialVersionUID = 1L;
     public void setPriority(String priority) { this.priority = priority; }
     public List<TicketCustomFieldInputDTO> getCustomFields() { return customFields; }
     public void setCustomFields(List<TicketCustomFieldInputDTO> customFields) { this.customFields = customFields; }
+    public List<Long> getAttachmentIds() { return attachmentIds; }
+    public void setAttachmentIds(List<Long> attachmentIds) { this.attachmentIds = attachmentIds; }
 }

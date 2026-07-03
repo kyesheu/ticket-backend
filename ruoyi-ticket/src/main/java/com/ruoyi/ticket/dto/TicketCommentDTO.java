@@ -2,6 +2,7 @@ package com.ruoyi.ticket.dto;
 import java.io.Serial;
 
 import java.io.Serializable;
+import java.util.List;
 import io.swagger.v3.oas.annotations.media.Schema;
 
 /**
@@ -21,8 +22,13 @@ private static final long serialVersionUID = 1L;
     @Schema(description = "评论类型：INTERNAL 内部备注 / EXTERNAL 公开评论，默认 EXTERNAL")
     private String commentType;
 
+    @Schema(description = "待绑定的临时附件ID")
+    private List<Long> attachmentIds;
+
     public String getContent() { return content; }
     public void setContent(String content) { this.content = content; }
     public String getCommentType() { return commentType; }
     public void setCommentType(String commentType) { this.commentType = commentType; }
+    public List<Long> getAttachmentIds() { return attachmentIds; }
+    public void setAttachmentIds(List<Long> attachmentIds) { this.attachmentIds = attachmentIds; }
 }

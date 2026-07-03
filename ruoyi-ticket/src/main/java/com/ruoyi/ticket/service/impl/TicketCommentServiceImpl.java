@@ -17,6 +17,8 @@ import com.ruoyi.ticket.service.ITicketCommentService;
 import com.ruoyi.ticket.service.ITicketNotificationService;
 import com.ruoyi.ticket.service.ITicketAccessPolicy;
 import com.ruoyi.ticket.enums.TicketNotificationType;
+import com.ruoyi.ticket.enums.TicketAttachmentBusinessType;
+import com.ruoyi.ticket.service.ITicketAttachmentService;
 
 /**
  * 工单评论 Service 实现
@@ -42,6 +44,9 @@ public class TicketCommentServiceImpl implements ITicketCommentService {
 
     @Autowired
     private ITicketAccessPolicy ticketAccessPolicy;
+
+    @Autowired
+    private ITicketAttachmentService ticketAttachmentService;
 
     @Override
     public List<TicketComment> selectCommentsByTicketId(Long ticketId) {
@@ -74,6 +79,8 @@ public class TicketCommentServiceImpl implements ITicketCommentService {
         comment.setUpdateBy(SecurityUtils.getUsername());
         comment.setUpdateTime(new Date());
         int rows = ticketCommentMapper.insertComment(comment);
+        ticketAttachmentService.bindAttachments(ticketId, TicketAttachmentBusinessType.COMMENT,
+                comment.getCommentId(), dto.getAttachmentIds());
         String eventKey = "COMMENTED:" + comment.getCommentId();
         Long operatorId = SecurityUtils.getUserId();
         ticketNotificationService.createNotification(ticketId, ticket.getCreatorId(), operatorId,

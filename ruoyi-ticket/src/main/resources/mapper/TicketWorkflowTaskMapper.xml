@@ -1,0 +1,100 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ruoyi.ticket.mapper.TicketWorkflowTaskMapper">
+    <resultMap id="TaskResult" type="com.ruoyi.ticket.domain.TicketWorkflowTask">
+        <id property="taskId" column="task_id"/>
+        <result property="instanceId" column="instance_id"/>
+        <result property="nodeKey" column="node_key"/>
+        <result property="nodeName" column="node_name"/>
+        <result property="taskStatus" column="task_status"/>
+        <result property="assigneeType" column="assignee_type"/>
+        <result property="assigneeRefId" column="assignee_ref_id"/>
+        <result property="resolvedAssigneeId" column="resolved_assignee_id"/>
+        <result property="completedBy" column="completed_by"/>
+        <result property="actionType" column="action_type"/>
+        <result property="comment" column="comment"/>
+        <result property="createdAt" column="created_at"/>
+        <result property="completedAt" column="completed_at"/>
+    </resultMap>
+    <resultMap id="TaskVOResult" type="com.ruoyi.ticket.vo.TicketWorkflowTaskVO">
+        <id property="taskId" column="task_id"/>
+        <result property="instanceId" column="instance_id"/>
+        <result property="ticketId" column="ticket_id"/>
+        <result property="ticketNo" column="ticket_no"/>
+        <result property="title" column="title"/>
+        <result property="nodeKey" column="node_key"/>
+        <result property="nodeName" column="node_name"/>
+        <result property="taskStatus" column="task_status"/>
+        <result property="assigneeType" column="assignee_type"/>
+        <result property="createdAt" column="created_at"/>
+    </resultMap>
+    <select id="selectPendingTaskByInstanceId" resultMap="TaskResult">
+        SELECT task_id, instance_id, node_key, node_name, task_status, assignee_type,
+               assignee_ref_id, resolved_assignee_id, completed_by, action_type,
+               comment, created_at, completed_at
+        FROM ticket_workflow_task
+        WHERE instance_id = #{instanceId} AND task_status = 'PENDING'
+        ORDER BY task_id DESC LIMIT 1
+    </select>
+    <select id="selectTaskById" resultMap="TaskResult">
+        SELECT task_id, instance_id, node_key, node_name, task_status, assignee_type,
+               assignee_ref_id, resolved_assignee_id, completed_by, action_type,
+               comment, created_at, completed_at
+        FROM ticket_workflow_task WHERE task_id = #{taskId}
+    </select>
+    <select id="selectPreviousCompletedTask" resultMap="TaskResult">
+        SELECT task_id, instance_id, node_key, node_name, task_status, assignee_type,
+               assignee_ref_id, resolved_assignee_id, completed_by, action_type,
+               comment, created_at, completed_at
+        FROM ticket_workflow_task
+        WHERE instance_id = #{instanceId} AND task_id &lt; #{taskId} AND task_status = 'COMPLETED'
+        ORDER BY task_id DESC LIMIT 1
+    </select>
+    <insert id="insertTask" useGeneratedKeys="true" keyProperty="taskId">
+        INSERT INTO ticket_workflow_task
+            (instance_id, node_key, node_name, task_status, assignee_type,
+             assignee_ref_id, resolved_assignee_id, completed_by, action_type,
+             comment, created_at, completed_at)
+        VALUES
+            (#{instanceId}, #{nodeKey}, #{nodeName}, #{taskStatus}, #{assigneeType},
+             #{assigneeRefId}, #{resolvedAssigneeId}, #{completedBy}, #{actionType},
+             #{comment}, #{createdAt}, #{completedAt})
+    </insert>
+    <update id="completePendingTask">
+        UPDATE ticket_workflow_task
+        SET task_status = #{taskStatus}, completed_by = #{completedBy},
+            action_type = #{actionType}, comment = #{comment}, completed_at = #{completedAt}
+        WHERE task_id = #{taskId} AND task_status = 'PENDING'
+    </update>
+    <update id="closePendingTasks">
+        UPDATE ticket_workflow_task
+        SET task_status = #{taskStatus}, completed_by = #{completedBy}, completed_at = #{completedAt}
+        WHERE instance_id = #{instanceId} AND task_status = 'PENDING'
+    </update>
+    <select id="selectPendingTaskList" resultMap="TaskVOResult">
+        SELECT wt.task_id, wt.instance_id, wi.ticket_id, t.ticket_no, t.title,
+               wt.node_key, wt.node_name, wt.task_status, wt.assignee_type, wt.created_at
+        FROM ticket_workflow_task wt
+        INNER JOIN ticket_workflow_instance wi ON wi.instance_id = wt.instance_id
+        INNER JOIN ticket t ON t.ticket_id = wi.ticket_id AND t.del_flag = '0'
+        WHERE wt.task_status = 'PENDING'
+          AND (wt.resolved_assignee_id = #{userId}
+               OR (wt.assignee_type = 'ROLE' AND EXISTS (
+                   SELECT 1 FROM sys_user_role ur
+                   INNER JOIN sys_user u ON u.user_id = ur.user_id
+                   INNER JOIN sys_role r ON r.role_id = ur.role_id
+                   WHERE ur.user_id = #{userId} AND ur.role_id = wt.assignee_ref_id
+                     AND u.status = '0' AND u.del_flag = '0'
+                     AND r.status = '0' AND r.del_flag = '0'
+               )))
+        ORDER BY wt.created_at DESC, wt.task_id DESC
+    </select>
+    <select id="selectTaskDetail" resultMap="TaskVOResult">
+        SELECT wt.task_id, wt.instance_id, wi.ticket_id, t.ticket_no, t.title,
+               wt.node_key, wt.node_name, wt.task_status, wt.assignee_type, wt.created_at
+        FROM ticket_workflow_task wt
+        INNER JOIN ticket_workflow_instance wi ON wi.instance_id = wt.instance_id
+        INNER JOIN ticket t ON t.ticket_id = wi.ticket_id AND t.del_flag = '0'
+        WHERE wt.task_id = #{taskId}
+    </select>
+</mapper>

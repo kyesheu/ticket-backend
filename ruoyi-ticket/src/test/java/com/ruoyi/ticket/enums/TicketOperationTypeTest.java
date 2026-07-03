@@ -14,16 +14,18 @@ import org.junit.jupiter.api.Test;
 class TicketOperationTypeTest {
 
     @Test
-    @DisplayName("枚举包含全部 5 个操作类型")
-    void shouldContainFiveValues() {
+    @DisplayName("枚举包含全部操作类型")
+    void shouldContainAllValues() {
         TicketOperationType[] values = TicketOperationType.values();
-        assertThat(values).hasSize(5);
+        assertThat(values).hasSize(7);
         assertThat(values).containsExactly(
                 TicketOperationType.CREATE,
                 TicketOperationType.ASSIGN,
                 TicketOperationType.PROCESS,
                 TicketOperationType.CONFIRM,
-                TicketOperationType.CANCEL);
+                TicketOperationType.CANCEL,
+                TicketOperationType.RETURN,
+                TicketOperationType.TERMINATE);
     }
 
     @Test
@@ -34,5 +36,7 @@ class TicketOperationTypeTest {
         assertThat(TicketOperationType.PROCESS.getLabel()).isEqualTo("处理");
         assertThat(TicketOperationType.CONFIRM.getLabel()).isEqualTo("确认");
         assertThat(TicketOperationType.CANCEL.getLabel()).isEqualTo("取消");
+        assertThat(TicketOperationType.RETURN.getLabel()).isEqualTo("退回");
+        assertThat(TicketOperationType.TERMINATE.getLabel()).isEqualTo("终止");
     }
 }

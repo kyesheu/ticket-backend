@@ -9,6 +9,7 @@ import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.never;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -34,8 +35,12 @@ import com.ruoyi.ticket.enums.TicketStatus;
 import com.ruoyi.ticket.mapper.TicketMapper;
 import com.ruoyi.ticket.mapper.TicketOperationLogMapper;
 import com.ruoyi.ticket.mapper.TicketSlaPolicyMapper;
+import com.ruoyi.ticket.mapper.TicketWorkflowInstanceMapper;
+import com.ruoyi.ticket.domain.TicketWorkflowInstance;
+import com.ruoyi.ticket.dto.TicketWorkflowTaskActionDTO;
 import com.ruoyi.ticket.model.TicketAccessScope;
 import com.ruoyi.ticket.service.ITicketAccessPolicy;
+import com.ruoyi.ticket.service.ITicketWorkflowEngine;
 import com.ruoyi.ticket.service.ITicketNotificationService;
 import org.mockito.ArgumentCaptor;
 
@@ -62,6 +67,12 @@ class TicketServiceImplTest {
 
     @Mock
     private ITicketAccessPolicy ticketAccessPolicy;
+
+    @Mock
+    private ITicketWorkflowEngine ticketWorkflowEngine;
+
+    @Mock
+    private TicketWorkflowInstanceMapper ticketWorkflowInstanceMapper;
 
     @InjectMocks
     private TicketServiceImpl ticketService;
@@ -221,6 +232,17 @@ class TicketServiceImplTest {
     }
 
     @Test
+    @DisplayName("新流程工单使用旧分派接口时应适配当前任务")
+    void assignWorkflowTicketShouldCompleteCurrentTask() {
+        when(ticketWorkflowInstanceMapper.selectInstanceByTicketId(1L)).thenReturn(new TicketWorkflowInstance());
+        TicketAssignDTO dto = new TicketAssignDTO(); dto.setAssigneeId(2L); dto.setComment("assign");
+        ticketService.assignTicket(1L, dto);
+        verify(ticketWorkflowEngine).completeCurrentTask(org.mockito.ArgumentMatchers.eq(1L),
+                any(TicketWorkflowTaskActionDTO.class));
+        verify(ticketMapper, never()).updateTicket(any());
+    }
+
+    @Test
     @DisplayName("分派时指派人不存在应抛异常")
     void assignWithInvalidAssigneeShouldThrow() {
         when(ticketMapper.selectTicketEntityById(1L)).thenReturn(newTicket);
@@ -267,6 +289,16 @@ class TicketServiceImplTest {
     }
 
     @Test
+    @DisplayName("新流程工单使用旧处理接口时应适配当前任务")
+    void processWorkflowTicketShouldCompleteCurrentTask() {
+        when(ticketWorkflowInstanceMapper.selectInstanceByTicketId(2L)).thenReturn(new TicketWorkflowInstance());
+        TicketProcessDTO dto = new TicketProcessDTO(); dto.setComment("process");
+        ticketService.processTicket(2L, dto);
+        verify(ticketWorkflowEngine).completeCurrentTask(org.mockito.ArgumentMatchers.eq(2L),
+                any(TicketWorkflowTaskActionDTO.class));
+    }
+
+    @Test
     @DisplayName("处理时备注为空应抛异常")
     void processWithEmptyCommentShouldThrow() {
         when(ticketMapper.selectTicketEntityById(2L)).thenReturn(processingTicket);
@@ -296,6 +328,15 @@ class TicketServiceImplTest {
     }
 
     @Test
+    @DisplayName("新流程工单使用旧确认接口时应适配当前任务")
+    void confirmWorkflowTicketShouldCompleteCurrentTask() {
+        when(ticketWorkflowInstanceMapper.selectInstanceByTicketId(3L)).thenReturn(new TicketWorkflowInstance());
+        ticketService.confirmTicket(3L, new TicketConfirmDTO());
+        verify(ticketWorkflowEngine).completeCurrentTask(org.mockito.ArgumentMatchers.eq(3L),
+                any(TicketWorkflowTaskActionDTO.class));
+    }
+
+    @Test
     @DisplayName("NEW 状态工单不能确认")
     void confirmNewTicketShouldThrow() {
         when(ticketMapper.selectTicketEntityById(1L)).thenReturn(newTicket);
@@ -319,6 +360,16 @@ class TicketServiceImplTest {
 
         verify(ticketMapper).updateTicket(any(Ticket.class));
         verify(ticketOperationLogMapper).insertLog(any());
+    }
+
+    @Test
+    @DisplayName("新流程工单使用旧取消接口时应取消流程实例")
+    void cancelWorkflowTicketShouldCancelInstance() {
+        when(ticketWorkflowInstanceMapper.selectInstanceByTicketId(1L)).thenReturn(new TicketWorkflowInstance());
+        TicketCancelDTO dto = new TicketCancelDTO(); dto.setComment("cancel");
+        ticketService.cancelTicket(1L, dto);
+        verify(ticketWorkflowEngine).cancelInstance(1L, "cancel");
+        verify(ticketMapper, never()).updateTicket(any());
     }
 
     @Test

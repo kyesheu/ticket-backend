@@ -1,6 +1,6 @@
 # 02 — 架构与设计规范
 
-> v1.3 | 2026-07-02
+> v2.0 | 2026-07-02
 
 ## 模块架构
 
@@ -317,3 +317,67 @@ TicketMapper + sys_role_dept + sys_dept
 - 无权访问与工单不存在统一抛出 `ServiceException("工单不存在")`。
 - 不修改 `ruoyi-framework` 的通用 `DataScopeAspect`；工单的“创建人或指派人”双用户字段语义由
   `ruoyi-ticket` 自己封装，避免污染基础模块。
+
+## v2.0 动态流程设计
+
+### 核心 seam
+
+动态流程仍归属 `ruoyi-ticket`，不引入 Flowable，不修改基础模块。以 `ITicketWorkflowEngine` 作为核心
+seam，向工单模块提供小接口：启动实例、完成任务、退回任务、取消实例、终止实例。版本解析、图校验、
+条件路由、处理人解析、并发控制、状态映射和日志写入均隐藏在实现内。
+
+```text
+TicketService / WorkflowTaskController
+                  |
+                  v
+        ITicketWorkflowEngine
+                  |
+      +-----------+------------+
+      |           |            |
+  Definition   Runtime      Assignee
+  validation   routing      resolution
+      |           |            |
+      +-----------+------------+
+                  |
+ WorkflowDefinition/Node/Transition Mapper
+ WorkflowInstance/Task Mapper + Ticket Mapper
+```
+
+Controller 不读取流程图自行判断，现有业务 Service 不复制路由和处理人规则。Mapper 只负责持久化，
+流程不变量集中在引擎实现中，通过 `ITicketWorkflowEngine` 的可观察结果测试。
+
+### 定义模型与发布约束
+
+- `ticket_workflow_definition`：版本化流程定义，`workflow_key + version` 唯一。
+- `ticket_workflow_node`：节点类型限定为 `START / ASSIGN / PROCESS / CONFIRM / END`。
+- `ticket_workflow_transition`：连线条件限定为白名单字段、运算符和值，不存储脚本或 SQL。
+- 草稿版本可整体编辑；发布时校验一个开始节点、至少一个结束节点、节点可达、人工节点处理人完整、
+  条件分支存在唯一默认连线。
+- 已发布定义及其节点、连线不可更新和删除；新版本从旧版本复制为新草稿后编辑。
+
+### 运行模型
+
+- `ticket_workflow_instance` 一对一关联新工单并引用不可变定义版本。
+- `ticket_workflow_task` 保存人工节点任务。任务状态为 `PENDING / COMPLETED / RETURNED / CANCELLED / TERMINATED`。
+- 每个运行实例最多一个 `PENDING` 任务。进入节点时解析处理人并写入任务快照。
+- 完成任务使用条件更新 `WHERE task_status = 'PENDING'` 实现乐观并发控制；影响行数不是 1 时按重复处理拒绝。
+- 路由在一个事务内完成：关闭旧任务、选择连线、推进实例、创建新任务、更新工单、写操作日志、触发通知。
+
+### 处理人规则
+
+`assignee_type` 仅允许 `USER / ROLE / CREATOR_DEPT_LEADER / TICKET_ASSIGNEE / TICKET_CREATOR`：
+
+- `USER`：定义保存用户 ID，节点激活时校验用户有效并固化到任务。
+- `ROLE`：任务保存角色 ID，处理时校验当前用户拥有该启用角色及 ticket 处理权限。
+- `CREATOR_DEPT_LEADER`：按工单 `dept_id` 快照查询部门负责人，节点激活时固化负责人用户 ID。
+- `TICKET_ASSIGNEE`：读取工单当前指派人并固化到任务，用于标准流程处理节点。
+- `TICKET_CREATOR`：读取工单创建人并固化到任务，用于标准流程确认节点。
+
+无法解析处理人时不得跳过节点，当前动作事务回滚并返回明确业务错误。
+
+### 兼容现有工单语义
+
+- `ticket.status` 保留为列表、SLA、通知和统计使用的粗粒度业务状态；流程节点是细粒度运行状态。
+- 内置标准流程表达原 `NEW → PROCESSING → WAIT_CONFIRM → CLOSED` 行为，旧接口通过兼容适配调用流程引擎。
+- v2.0 前创建且没有流程实例的工单继续由原状态机处理，避免在线迁移风险。
+- 工单访问仍先经过 `ITicketAccessPolicy`；任务处理权限是在对象访问权基础上的附加校验。

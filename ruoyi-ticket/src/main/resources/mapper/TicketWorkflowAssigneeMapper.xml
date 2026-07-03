@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ruoyi.ticket.mapper.TicketWorkflowAssigneeMapper">
+
+    <select id="selectDepartmentLeaderUserId" resultType="Long">
+        SELECT u.user_id
+        FROM sys_dept d
+        INNER JOIN sys_user u ON u.user_name = d.leader
+        WHERE d.dept_id = #{departmentId}
+          AND d.status = '0'
+          AND u.status = '0'
+          AND u.del_flag = '0'
+        LIMIT 1
+    </select>
+
+    <select id="countEnabledRoleById" resultType="int">
+        SELECT COUNT(*)
+        FROM sys_role
+        WHERE role_id = #{roleId}
+          AND status = '0'
+          AND del_flag = '0'
+    </select>
+
+    <select id="countUserEnabledRole" resultType="int">
+        SELECT COUNT(*)
+        FROM sys_user_role ur
+        INNER JOIN sys_user u ON u.user_id = ur.user_id
+        INNER JOIN sys_role r ON r.role_id = ur.role_id
+        WHERE ur.user_id = #{userId}
+          AND ur.role_id = #{roleId}
+          AND u.status = '0' AND u.del_flag = '0'
+          AND r.status = '0' AND r.del_flag = '0'
+    </select>
+
+</mapper>

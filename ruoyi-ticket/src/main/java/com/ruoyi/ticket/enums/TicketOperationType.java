@@ -12,7 +12,13 @@ public enum TicketOperationType {
     ASSIGN("分派"),
     PROCESS("处理"),
     CONFIRM("确认"),
-    CANCEL("取消");
+    CANCEL("取消"),
+
+    /** 退回流程任务 */
+    RETURN("退回"),
+
+    /** 管理员终止流程 */
+    TERMINATE("终止");
 
     private final String label;
 

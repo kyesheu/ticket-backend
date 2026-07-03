@@ -35,6 +35,9 @@ private static final long serialVersionUID = 1L;
     @Schema(description = "状态：0正常 1停用")
     private String status;
 
+    @Schema(description = "绑定的流程稳定标识")
+    private String workflowKey;
+
     @Schema(description = "删除标志：0存在 2删除")
     private String delFlag;
 
@@ -53,6 +56,8 @@ private static final long serialVersionUID = 1L;
     public void setOrderNum(Integer orderNum) { this.orderNum = orderNum; }
     public String getStatus() { return status; }
     public void setStatus(String status) { this.status = status; }
+    public String getWorkflowKey() { return workflowKey; }
+    public void setWorkflowKey(String workflowKey) { this.workflowKey = workflowKey; }
     public String getDelFlag() { return delFlag; }
     public void setDelFlag(String delFlag) { this.delFlag = delFlag; }
     public List<TicketCategory> getChildren() { return children; }

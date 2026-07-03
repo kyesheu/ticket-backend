@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ruoyi.ticket.mapper.TicketWorkflowInstanceMapper">
+    <resultMap id="InstanceResult" type="com.ruoyi.ticket.domain.TicketWorkflowInstance">
+        <id property="instanceId" column="instance_id"/>
+        <result property="ticketId" column="ticket_id"/>
+        <result property="definitionId" column="definition_id"/>
+        <result property="workflowStatus" column="workflow_status"/>
+        <result property="currentNodeKey" column="current_node_key"/>
+        <result property="startedAt" column="started_at"/>
+        <result property="endedAt" column="ended_at"/>
+        <result property="createTime" column="create_time"/>
+        <result property="updateTime" column="update_time"/>
+    </resultMap>
+    <select id="selectInstanceByTicketId" resultMap="InstanceResult">
+        SELECT instance_id, ticket_id, definition_id, workflow_status, current_node_key,
+               started_at, ended_at, create_time, update_time
+        FROM ticket_workflow_instance WHERE ticket_id = #{ticketId}
+    </select>
+    <select id="selectInstanceById" resultMap="InstanceResult">
+        SELECT instance_id, ticket_id, definition_id, workflow_status, current_node_key,
+               started_at, ended_at, create_time, update_time
+        FROM ticket_workflow_instance WHERE instance_id = #{instanceId}
+    </select>
+    <insert id="insertInstance" useGeneratedKeys="true" keyProperty="instanceId">
+        INSERT INTO ticket_workflow_instance
+            (ticket_id, definition_id, workflow_status, current_node_key,
+             started_at, ended_at, create_time, update_time)
+        VALUES
+            (#{ticketId}, #{definitionId}, #{workflowStatus}, #{currentNodeKey},
+             #{startedAt}, #{endedAt}, #{createTime}, #{updateTime})
+    </insert>
+    <update id="updateInstance">
+        UPDATE ticket_workflow_instance
+        SET workflow_status = #{workflowStatus}, current_node_key = #{currentNodeKey},
+            ended_at = #{endedAt}, update_time = #{updateTime}
+        WHERE instance_id = #{instanceId} AND workflow_status = 'RUNNING'
+    </update>
+</mapper>

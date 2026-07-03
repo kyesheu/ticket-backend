@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ruoyi.ticket.mapper.TicketWorkflowNodeMapper">
+    <resultMap id="NodeResult" type="com.ruoyi.ticket.domain.TicketWorkflowNode">
+        <id property="nodeId" column="node_id"/>
+        <result property="definitionId" column="definition_id"/>
+        <result property="nodeKey" column="node_key"/>
+        <result property="nodeName" column="node_name"/>
+        <result property="nodeType" column="node_type"/>
+        <result property="assigneeType" column="assignee_type"/>
+        <result property="assigneeValue" column="assignee_value"/>
+        <result property="sortOrder" column="sort_order"/>
+    </resultMap>
+    <select id="selectNodeListByDefinitionId" resultMap="NodeResult">
+        SELECT node_id, definition_id, node_key, node_name, node_type,
+               assignee_type, assignee_value, sort_order
+        FROM ticket_workflow_node
+        WHERE definition_id = #{definitionId}
+        ORDER BY sort_order, node_id
+    </select>
+    <insert id="insertNode" useGeneratedKeys="true" keyProperty="nodeId">
+        INSERT INTO ticket_workflow_node
+            (definition_id, node_key, node_name, node_type, assignee_type, assignee_value, sort_order)
+        VALUES
+            (#{definitionId}, #{nodeKey}, #{nodeName}, #{nodeType}, #{assigneeType}, #{assigneeValue}, #{sortOrder})
+    </insert>
+    <delete id="deleteNodesByDefinitionId">
+        DELETE FROM ticket_workflow_node WHERE definition_id = #{definitionId}
+    </delete>
+</mapper>

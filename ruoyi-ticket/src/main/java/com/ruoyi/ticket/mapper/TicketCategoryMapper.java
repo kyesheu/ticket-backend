@@ -57,4 +57,11 @@ public interface TicketCategoryMapper {
      * 批量更新子分类的 ancestors（父分类变更时级联更新）
      */
     int updateCategoryChildren(@Param("children") List<TicketCategory> children);
+
+    /**
+     * 绑定分类流程
+     */
+    int updateWorkflowKey(@Param("categoryId") Long categoryId,
+                          @Param("workflowKey") String workflowKey,
+                          @Param("updateBy") String updateBy);
 }

@@ -26,9 +26,12 @@ import com.ruoyi.ticket.enums.TicketStatus;
 import com.ruoyi.ticket.mapper.TicketMapper;
 import com.ruoyi.ticket.mapper.TicketOperationLogMapper;
 import com.ruoyi.ticket.mapper.TicketSlaPolicyMapper;
+import com.ruoyi.ticket.mapper.TicketWorkflowInstanceMapper;
+import com.ruoyi.ticket.dto.TicketWorkflowTaskActionDTO;
 import com.ruoyi.ticket.service.ITicketService;
 import com.ruoyi.ticket.service.ITicketNotificationService;
 import com.ruoyi.ticket.service.ITicketAccessPolicy;
+import com.ruoyi.ticket.service.ITicketWorkflowEngine;
 import com.ruoyi.ticket.vo.TicketListVO;
 import com.ruoyi.ticket.vo.TicketVO;
 
@@ -75,6 +78,12 @@ public class TicketServiceImpl implements ITicketService {
 
     @Autowired
     private ITicketAccessPolicy ticketAccessPolicy;
+
+    @Autowired
+    private ITicketWorkflowEngine ticketWorkflowEngine;
+
+    @Autowired
+    private TicketWorkflowInstanceMapper ticketWorkflowInstanceMapper;
 
     @Override
     public List<TicketListVO> selectTicketList(TicketQueryDTO query) {
@@ -133,12 +142,20 @@ public class TicketServiceImpl implements ITicketService {
         saveOperationLog(ticket.getTicketId(), TicketOperationType.CREATE,
                 null, TicketStatus.NEW, null);
 
+        ticketWorkflowEngine.startInstance(ticket);
+
         return ticket.getTicketId();
     }
 
     @Override
     @Transactional(rollbackFor = Exception.class)
     public void assignTicket(Long ticketId, TicketAssignDTO dto) {
+        if (ticketWorkflowInstanceMapper.selectInstanceByTicketId(ticketId) != null) {
+            TicketWorkflowTaskActionDTO action = new TicketWorkflowTaskActionDTO();
+            action.setAssigneeId(dto.getAssigneeId()); action.setComment(dto.getComment());
+            ticketWorkflowEngine.completeCurrentTask(ticketId, action);
+            return;
+        }
         Ticket ticket = getTicketOrThrow(ticketId, TICKET_ASSIGN_PERMISSION);
         TicketStatus currentStatus = toTicketStatus(ticket.getStatus());
 
@@ -171,6 +188,11 @@ public class TicketServiceImpl implements ITicketService {
     @Override
     @Transactional(rollbackFor = Exception.class)
     public void processTicket(Long ticketId, TicketProcessDTO dto) {
+        if (ticketWorkflowInstanceMapper.selectInstanceByTicketId(ticketId) != null) {
+            TicketWorkflowTaskActionDTO action = new TicketWorkflowTaskActionDTO(); action.setComment(dto.getComment());
+            ticketWorkflowEngine.completeCurrentTask(ticketId, action);
+            return;
+        }
         Ticket ticket = getTicketOrThrow(ticketId, TICKET_PROCESS_PERMISSION);
         TicketStatus currentStatus = toTicketStatus(ticket.getStatus());
 
@@ -204,6 +226,11 @@ public class TicketServiceImpl implements ITicketService {
     @Override
     @Transactional(rollbackFor = Exception.class)
     public void confirmTicket(Long ticketId, TicketConfirmDTO dto) {
+        if (ticketWorkflowInstanceMapper.selectInstanceByTicketId(ticketId) != null) {
+            TicketWorkflowTaskActionDTO action = new TicketWorkflowTaskActionDTO(); action.setComment(dto.getComment());
+            ticketWorkflowEngine.completeCurrentTask(ticketId, action);
+            return;
+        }
         Ticket ticket = getTicketOrThrow(ticketId, TICKET_CONFIRM_PERMISSION);
         TicketStatus currentStatus = toTicketStatus(ticket.getStatus());
 
@@ -233,6 +260,10 @@ public class TicketServiceImpl implements ITicketService {
     @Override
     @Transactional(rollbackFor = Exception.class)
     public void cancelTicket(Long ticketId, TicketCancelDTO dto) {
+        if (ticketWorkflowInstanceMapper.selectInstanceByTicketId(ticketId) != null) {
+            ticketWorkflowEngine.cancelInstance(ticketId, dto.getComment());
+            return;
+        }
         Ticket ticket = getTicketOrThrow(ticketId, TICKET_CANCEL_PERMISSION);
         TicketStatus currentStatus = toTicketStatus(ticket.getStatus());
 

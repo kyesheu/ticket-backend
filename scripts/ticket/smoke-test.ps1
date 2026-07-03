@@ -394,6 +394,26 @@ finally {
     }
 }
 
+# ============ v2.0 动态流程 ============
+Write-Host ""
+Write-Host "[9] v2.0 Workflow" -ForegroundColor Cyan
+$WorkflowSmokeScripts = @(
+    "workflow-definition-smoke.ps1",
+    "workflow-engine-smoke.ps1",
+    "workflow-task-smoke.ps1"
+)
+foreach ($ScriptName in $WorkflowSmokeScripts) {
+    try {
+        & (Join-Path $PSScriptRoot $ScriptName) | ForEach-Object { Write-Host "  $_" }
+        Write-Host "  [PASS] $ScriptName" -ForegroundColor Green
+        $Pass++
+    }
+    catch {
+        Write-Host "  [FAIL] $ScriptName - $($_.Exception.Message)" -ForegroundColor Red
+        $Fail++
+    }
+}
+
 # ============ 结果 ============
 Write-Host ""
 Write-Host "==========================================" -ForegroundColor Cyan

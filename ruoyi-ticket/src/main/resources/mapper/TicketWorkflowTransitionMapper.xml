@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ruoyi.ticket.mapper.TicketWorkflowTransitionMapper">
+    <resultMap id="TransitionResult" type="com.ruoyi.ticket.domain.TicketWorkflowTransition">
+        <id property="transitionId" column="transition_id"/>
+        <result property="definitionId" column="definition_id"/>
+        <result property="sourceNodeKey" column="source_node_key"/>
+        <result property="targetNodeKey" column="target_node_key"/>
+        <result property="conditionField" column="condition_field"/>
+        <result property="conditionOperator" column="condition_operator"/>
+        <result property="conditionValue" column="condition_value"/>
+        <result property="defaultTransition" column="is_default"/>
+        <result property="sortOrder" column="sort_order"/>
+    </resultMap>
+    <select id="selectTransitionListByDefinitionId" resultMap="TransitionResult">
+        SELECT transition_id, definition_id, source_node_key, target_node_key,
+               condition_field, condition_operator, condition_value, is_default, sort_order
+        FROM ticket_workflow_transition
+        WHERE definition_id = #{definitionId}
+        ORDER BY source_node_key, sort_order, transition_id
+    </select>
+    <insert id="insertTransition" useGeneratedKeys="true" keyProperty="transitionId">
+        INSERT INTO ticket_workflow_transition
+            (definition_id, source_node_key, target_node_key, condition_field,
+             condition_operator, condition_value, is_default, sort_order)
+        VALUES
+            (#{definitionId}, #{sourceNodeKey}, #{targetNodeKey}, #{conditionField},
+             #{conditionOperator}, #{conditionValue}, #{defaultTransition}, #{sortOrder})
+    </insert>
+    <delete id="deleteTransitionsByDefinitionId">
+        DELETE FROM ticket_workflow_transition WHERE definition_id = #{definitionId}
+    </delete>
+</mapper>

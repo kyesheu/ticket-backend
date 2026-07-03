@@ -1,6 +1,6 @@
 # 03 — 数据库设计
 
-> v1.2 | 2026-07-02 | MySQL 8.0 + InnoDB
+> v2.0 | 2026-07-02 | MySQL 8.0 + InnoDB
 
 ## 设计原则
 
@@ -171,3 +171,47 @@ v1.0 基线见 `sql/ticket-v1.0.sql`。v1.1 实现阶段新增 `sql/ticket-v1.1.
 
 索引：`uk_ticket_id(ticket_id)`、`idx_evaluator_id(evaluator_id)`、`idx_create_time(create_time)`。
 评分使用 `TINYINT` 并限制 1–5。v1.2 使用独立增量脚本 `sql/ticket-v1.2.sql`。
+
+## v2.0 动态流程表
+
+v2.0 使用独立增量脚本 `sql/ticket-v2.0.sql`，不得修改已发布脚本。`ticket_category` 新增可空字段
+`workflow_key VARCHAR(64)`；`ticket` 不增加可变当前节点字段，运行状态以实例表为准。
+
+### ticket_workflow_definition
+
+主要字段：`definition_id`、`workflow_key`、`workflow_name`、`version`、`definition_status`、
+`is_current`、BaseEntity 审计字段。状态为 `DRAFT / PUBLISHED / DISABLED`。
+
+索引：`uk_workflow_version(workflow_key, version)`、
+`idx_workflow_current(workflow_key, is_current, definition_status)`。
+
+### ticket_workflow_node
+
+主要字段：`node_id`、`definition_id`、`node_key`、`node_name`、`node_type`、`assignee_type`、
+`assignee_value`、`sort_order`。节点类型为 `START / ASSIGN / PROCESS / CONFIRM / END`，开始和结束节点不配置处理人。
+
+索引：`uk_definition_node(definition_id, node_key)`、`idx_node_definition(definition_id)`。
+
+### ticket_workflow_transition
+
+主要字段：`transition_id`、`definition_id`、`source_node_key`、`target_node_key`、`condition_field`、
+`condition_operator`、`condition_value`、`is_default`、`sort_order`。条件字段只允许 `PRIORITY / CATEGORY / CREATOR_DEPT`，
+运算符只允许 `EQ / IN`；默认连线的条件字段和值为空。
+
+索引：`idx_transition_source(definition_id, source_node_key, sort_order)`。
+
+### ticket_workflow_instance
+
+主要字段：`instance_id`、`ticket_id`、`definition_id`、`workflow_status`、`current_node_key`、
+`started_at`、`ended_at`、`create_time`、`update_time`。状态为 `RUNNING / COMPLETED / CANCELLED / TERMINATED`。
+
+索引：`uk_instance_ticket(ticket_id)`、`idx_instance_status(workflow_status, update_time)`。
+
+### ticket_workflow_task
+
+主要字段：`task_id`、`instance_id`、`node_key`、`node_name`、`task_status`、`assignee_type`、
+`assignee_ref_id`、`resolved_assignee_id`、`completed_by`、`action_type`、`comment`、`created_at`、`completed_at`。
+
+索引：`idx_task_instance(instance_id, created_at)`、
+`idx_task_user(resolved_assignee_id, task_status)`、`idx_task_role(assignee_ref_id, task_status)`。
+实例最多一个待办的约束由事务和任务条件更新共同保证；MySQL 8.0 不使用依赖状态值的伪唯一索引。

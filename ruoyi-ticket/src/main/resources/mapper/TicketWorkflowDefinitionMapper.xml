@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ruoyi.ticket.mapper.TicketWorkflowDefinitionMapper">
+    <resultMap id="DefinitionResult" type="com.ruoyi.ticket.domain.TicketWorkflowDefinition">
+        <id property="definitionId" column="definition_id"/>
+        <result property="workflowKey" column="workflow_key"/>
+        <result property="workflowName" column="workflow_name"/>
+        <result property="version" column="version"/>
+        <result property="definitionStatus" column="definition_status"/>
+        <result property="current" column="is_current"/>
+        <result property="createBy" column="create_by"/>
+        <result property="createTime" column="create_time"/>
+        <result property="updateBy" column="update_by"/>
+        <result property="updateTime" column="update_time"/>
+        <result property="remark" column="remark"/>
+    </resultMap>
+    <sql id="definitionColumns">
+        SELECT definition_id, workflow_key, workflow_name, version, definition_status,
+               is_current, create_by, create_time, update_by, update_time, remark
+        FROM ticket_workflow_definition
+    </sql>
+    <select id="selectDefinitionById" resultMap="DefinitionResult">
+        <include refid="definitionColumns"/> WHERE definition_id = #{definitionId}
+    </select>
+    <select id="selectCurrentDefinitionByKey" resultMap="DefinitionResult">
+        <include refid="definitionColumns"/>
+        WHERE workflow_key = #{workflowKey} AND definition_status = 'PUBLISHED' AND is_current = '1'
+    </select>
+    <select id="selectDefinitionList" resultMap="DefinitionResult">
+        <include refid="definitionColumns"/> ORDER BY workflow_key, version DESC
+    </select>
+    <select id="selectLatestDefinitionByKey" resultMap="DefinitionResult">
+        <include refid="definitionColumns"/>
+        WHERE workflow_key = #{workflowKey} ORDER BY version DESC LIMIT 1
+    </select>
+    <select id="selectLatestDefinitionByKeyForUpdate" resultMap="DefinitionResult">
+        <include refid="definitionColumns"/>
+        WHERE workflow_key = #{workflowKey} ORDER BY version DESC LIMIT 1 FOR UPDATE
+    </select>
+    <insert id="insertDefinition" useGeneratedKeys="true" keyProperty="definitionId">
+        INSERT INTO ticket_workflow_definition
+            (workflow_key, workflow_name, version, definition_status, is_current,
+             create_by, create_time, update_by, update_time, remark)
+        VALUES
+            (#{workflowKey}, #{workflowName}, #{version}, #{definitionStatus}, #{current},
+             #{createBy}, #{createTime}, #{updateBy}, #{updateTime}, #{remark})
+    </insert>
+    <update id="updateDefinition">
+        UPDATE ticket_workflow_definition
+        SET workflow_name = #{workflowName}, update_by = #{updateBy},
+            update_time = #{updateTime}, remark = #{remark}
+        WHERE definition_id = #{definitionId} AND definition_status = 'DRAFT'
+    </update>
+    <update id="clearCurrentByKey">
+        UPDATE ticket_workflow_definition SET is_current = '0'
+        WHERE workflow_key = #{workflowKey} AND is_current = '1'
+    </update>
+    <update id="publishDefinition">
+        UPDATE ticket_workflow_definition
+        SET definition_status = #{definitionStatus}, is_current = #{current},
+            update_by = #{updateBy}, update_time = #{updateTime}
+        WHERE definition_id = #{definitionId} AND definition_status = 'DRAFT'
+    </update>
+</mapper>

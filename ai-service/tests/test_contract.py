@@ -111,3 +111,32 @@ async def test_document_import_returns_chunk_count(client: AsyncClient) -> None:
 
     assert response.status_code == 200
     assert response.json() == {"accepted": True, "chunk_count": 1}
+
+
+@pytest.mark.anyio
+async def test_closed_ticket_sync_v1_contract_reaches_skeleton(client: AsyncClient) -> None:
+    payload = {
+        "contract_version": "v1", "ticket_id": 42, "title": "Redis 缓存穿透",
+        "category": "中间件", "description": "不存在的 key 被反复查询",
+        "solution": "参数校验、空值缓存和布隆过滤器", "status": "CLOSED",
+        "tags": ["Redis", "缓存"], "created_time": "2026-07-01T09:00:00+08:00",
+        "closed_time": "2026-07-01T10:00:00+08:00", "source_generation": 3,
+    }
+
+    response = await client.post(
+        "/api/v1/tickets/sync", headers={"X-Service-Token": TEST_TOKEN}, json=payload
+    )
+
+    assert response.status_code == 501
+    assert response.json()["detail"] == "stage 46 not implemented"
+
+
+@pytest.mark.anyio
+async def test_closed_ticket_sync_rejects_invalid_status(client: AsyncClient) -> None:
+    response = await client.post(
+        "/api/v1/tickets/sync",
+        headers={"X-Service-Token": TEST_TOKEN},
+        json={"contract_version": "v1", "ticket_id": 42, "status": "PROCESSING"},
+    )
+
+    assert response.status_code == 422

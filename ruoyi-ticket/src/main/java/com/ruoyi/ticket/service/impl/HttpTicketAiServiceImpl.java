@@ -12,6 +12,7 @@ import com.ruoyi.ticket.exception.TicketAiServiceException;
 import com.ruoyi.ticket.service.ITicketAiService;
 import com.ruoyi.ticket.vo.TicketAiAcceptedVO;
 import com.ruoyi.ticket.vo.TicketAiAssistVO;
+import com.ruoyi.ticket.vo.TicketAiClosedTicketSyncVO;
 import com.ruoyi.ticket.vo.TicketAiHealthVO;
 import com.ruoyi.ticket.vo.TicketAiSearchResultVO;
 import java.io.IOException;
@@ -59,8 +60,8 @@ public class HttpTicketAiServiceImpl implements ITicketAiService {
     }
 
     @Override
-    public TicketAiAcceptedVO syncClosedTicket(TicketAiClosedTicketSyncDTO dto) {
-        return post("/api/v1/tickets/sync", dto, TicketAiAcceptedVO.class);
+    public TicketAiClosedTicketSyncVO syncClosedTicket(TicketAiClosedTicketSyncDTO dto) {
+        return post("/api/v1/tickets/sync", dto, TicketAiClosedTicketSyncVO.class);
     }
 
     @Override

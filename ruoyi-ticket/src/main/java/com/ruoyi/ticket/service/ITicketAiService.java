@@ -5,6 +5,7 @@ import com.ruoyi.ticket.dto.TicketAiContextDTO;
 import com.ruoyi.ticket.dto.TicketAiDocumentImportDTO;
 import com.ruoyi.ticket.vo.TicketAiAcceptedVO;
 import com.ruoyi.ticket.vo.TicketAiAssistVO;
+import com.ruoyi.ticket.vo.TicketAiClosedTicketSyncVO;
 import com.ruoyi.ticket.vo.TicketAiHealthVO;
 import com.ruoyi.ticket.vo.TicketAiSearchResultVO;
 
@@ -20,7 +21,7 @@ public interface ITicketAiService {
     TicketAiAcceptedVO importDocument(TicketAiDocumentImportDTO dto);
 
     /** 同步已关闭工单知识快照。 */
-    TicketAiAcceptedVO syncClosedTicket(TicketAiClosedTicketSyncDTO dto);
+    TicketAiClosedTicketSyncVO syncClosedTicket(TicketAiClosedTicketSyncDTO dto);
 
     /** 检索相似知识。 */
     TicketAiSearchResultVO search(TicketAiContextDTO dto);

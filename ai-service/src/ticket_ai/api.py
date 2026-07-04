@@ -6,6 +6,7 @@ from ticket_ai.models import (
     AcceptedResponse,
     AssistResponse,
     ClosedTicketSyncRequest,
+    ClosedTicketSyncResponse,
     DocumentImportRequest,
     DocumentImportResponse,
     HealthResponse,
@@ -44,8 +45,9 @@ def import_document(request: DocumentImportRequest,
                             detail="document import unavailable") from exception
 
 
-@router.post("/tickets/sync", response_model=AcceptedResponse, dependencies=[Depends(verify_service_token)])
-def sync_ticket(request: ClosedTicketSyncRequest) -> AcceptedResponse:
+@router.post("/tickets/sync", response_model=ClosedTicketSyncResponse,
+             dependencies=[Depends(verify_service_token)])
+def sync_ticket(request: ClosedTicketSyncRequest) -> ClosedTicketSyncResponse:
     """接收关闭工单快照；阶段四十六实现实际同步。"""
 
     del request

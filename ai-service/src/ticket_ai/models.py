@@ -62,3 +62,8 @@ class AssistResponse(StrictModel):
 
 class AcceptedResponse(StrictModel):
     accepted: Literal[True] = True
+
+
+class DocumentImportResponse(StrictModel):
+    accepted: Literal[True] = True
+    chunk_count: int = Field(gt=0)

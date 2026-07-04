@@ -2,7 +2,9 @@ package com.ruoyi.ticket.config;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.ruoyi.ticket.service.ITicketAiService;
+import com.ruoyi.ticket.service.ITicketAiDocumentService;
 import com.ruoyi.ticket.service.impl.HttpTicketAiServiceImpl;
+import com.ruoyi.ticket.service.impl.TicketAiDocumentServiceImpl;
 import java.net.http.HttpClient;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
@@ -48,6 +50,13 @@ public class TicketAiConfiguration {
     public ITicketAiService ticketAiService(HttpClient httpClient, ObjectMapper objectMapper,
                                             TicketAiProperties properties) {
         return new HttpTicketAiServiceImpl(httpClient, objectMapper, properties);
+    }
+
+    /** 创建知识文档导入 Service。 */
+    @Bean
+    public ITicketAiDocumentService ticketAiDocumentService(ITicketAiService ticketAiService,
+                                                             TicketAiProperties properties) {
+        return new TicketAiDocumentServiceImpl(ticketAiService, properties);
     }
 
     private void validate(TicketAiProperties properties) {

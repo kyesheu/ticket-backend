@@ -30,6 +30,9 @@ public class TicketAiProperties {
     /** 单次允许读取的最大响应字节数。 */
     private int maxResponseBytes = DEFAULT_MAX_RESPONSE_BYTES;
 
+    /** 单个知识文档允许的最大字节数。 */
+    private int maxDocumentBytes = 10 * 1024 * 1024;
+
     public boolean isEnabled() {
         return enabled;
     }
@@ -76,5 +79,13 @@ public class TicketAiProperties {
 
     public void setMaxResponseBytes(int maxResponseBytes) {
         this.maxResponseBytes = maxResponseBytes;
+    }
+
+    public int getMaxDocumentBytes() {
+        return maxDocumentBytes;
+    }
+
+    public void setMaxDocumentBytes(int maxDocumentBytes) {
+        this.maxDocumentBytes = maxDocumentBytes;
     }
 }

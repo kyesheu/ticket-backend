@@ -13,6 +13,12 @@ public class TicketAiAcceptedVO implements Serializable {
 
     private Boolean accepted;
 
+    private Integer chunkCount;
+
     public Boolean getAccepted() { return accepted; }
     public void setAccepted(Boolean accepted) { this.accepted = accepted; }
+
+    public Integer getChunkCount() { return chunkCount; }
+
+    public void setChunkCount(Integer chunkCount) { this.chunkCount = chunkCount; }
 }

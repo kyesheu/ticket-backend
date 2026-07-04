@@ -32,6 +32,19 @@
 | 边界 | Python 响应超过配置上限 | Java 中止读取并返回统一异常 |
 | 边界 | `ticket.ai.enabled=false` | 不创建 HTTP 客户端和 adapter Bean |
 
+### 阶段四十五文档导入测试用例
+
+| 类型 | 场景 | 预期 |
+|---|---|---|
+| 合法 | UTF-8 `.txt`、`.md` 和含文本 `.pdf` | 解析、切片、向量化并返回切片数量 |
+| 合法 | 同一 `sourceId` 和相同内容重复导入 | 幂等返回，不产生重复有效切片 |
+| 合法 | 同一 `sourceId` 导入新内容 | 新切片完整替换旧切片 |
+| 非法 | 空文件、空白文本、非法 Base64 | 返回 422，不调用 Embedding 或向量库 |
+| 非法 | 非白名单扩展名、扩展名与 MIME 不匹配 | 返回 422 |
+| 非法 | 加密 PDF、扫描 PDF 或 PDF 无文本 | 返回 422，不做 OCR |
+| 边界 | 文件名 255 字符、内容达到配置上限 | 可导入；超过一位即拒绝 |
+| 边界 | Embedding 或向量库写入失败 | 返回明确失败，旧有效切片保持可查询 |
+
 ## v3.0 发布门禁（规划）
 
 - [ ] Java↔Python v1 HTTP 契约、服务认证、超时和响应限制测试通过
@@ -53,3 +66,14 @@
 - 全量 `mvn test` 通过：196 个测试，0 失败；`mvn clean compile` 全模块通过。
 - Python HTTP smoke 通过：健康检查 `UP/v1`、缺失凭据 `401`、合法凭据进入阶段骨架 `501`。
 - 未修改 `.env`、数据库、`ruoyi-common`、`ruoyi-framework`、`ruoyi-system` 或现有工单业务流程。
+
+### 阶段四十五实测结果（2026-07-04）
+
+- Java 新增管理员知识文档上传入口，校验稳定来源 ID、空文件、文件名、10 MB 上限、扩展名和 MIME；仅支持 UTF-8 TXT、Markdown 和文本型 PDF。
+- Python 使用 LangChain Text Splitters 解析切片，使用 OpenAI-compatible Embedding；模型、base URL 和 API key 只从运行环境读取。
+- Elasticsearch 使用独立 `ticket-knowledge-v1` 索引；新代次完成 Embedding 和批量写入后才切换为有效，随后清理旧代次。
+- 同一 `sourceId` 重复导入执行完整替换；Embedding 失败发生在写入前，不影响旧有效切片。
+- Python pytest 13/13 通过；Java AI 目标测试 15/15 通过。
+- 全量 `mvn test` 通过：200 个测试，0 失败；`mvn clean compile` 全模块通过。
+- 真实 Elasticsearch smoke 连续导入两个版本后保留 9 个有效切片、0 个失效切片。
+- 未修改 `.env`、MySQL 表、基础模块或现有工单业务流程。

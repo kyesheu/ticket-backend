@@ -4,13 +4,14 @@ import pytest
 from httpx import ASGITransport, AsyncClient
 
 from ticket_ai.config import Settings, get_settings
+from ticket_ai.dependencies import get_document_importer
 from ticket_ai.main import app
 
 TEST_TOKEN = "test-service-token-12345"
 
 
 def override_settings() -> Settings:
-    return Settings(service_token=TEST_TOKEN)
+    return Settings(service_token=TEST_TOKEN, embedding_api_key="test-key", embedding_model="test-model")
 
 
 app.dependency_overrides[get_settings] = override_settings
@@ -88,3 +89,25 @@ async def test_valid_business_request_reaches_stage_skeleton(client: AsyncClient
 
     assert response.status_code == 501
     assert response.json()["detail"] == "stage 47 not implemented"
+
+
+@pytest.mark.anyio
+async def test_document_import_returns_chunk_count(client: AsyncClient) -> None:
+    class FakeImporter:
+        def import_document(self, source_id: str, file_name: str, content_type: str, encoded: str) -> int:
+            assert (source_id, file_name, content_type, encoded) == ("doc-1", "a.txt", "text/plain", "YQ==")
+            return 1
+
+    app.dependency_overrides[get_document_importer] = lambda: FakeImporter()
+    try:
+        response = await client.post(
+            "/api/v1/documents/import",
+            headers={"X-Service-Token": TEST_TOKEN},
+            json={"contract_version": "v1", "source_id": "doc-1", "file_name": "a.txt",
+                  "content_type": "text/plain", "content_base64": "YQ=="},
+        )
+    finally:
+        app.dependency_overrides.pop(get_document_importer, None)
+
+    assert response.status_code == 200
+    assert response.json() == {"accepted": True, "chunk_count": 1}

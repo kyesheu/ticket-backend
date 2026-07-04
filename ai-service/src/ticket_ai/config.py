@@ -14,6 +14,11 @@ class Settings(BaseSettings):
     service_token: str = Field(min_length=16)
     contract_version: str = "v1"
     max_request_bytes: int = Field(default=1_048_576, ge=1_024, le=10_485_760)
+    elasticsearch_url: str = "http://127.0.0.1:9200"
+    knowledge_index: str = "ticket-knowledge-v1"
+    embedding_api_key: str = Field(min_length=1)
+    embedding_base_url: str | None = None
+    embedding_model: str = Field(min_length=1)
 
 
 @lru_cache

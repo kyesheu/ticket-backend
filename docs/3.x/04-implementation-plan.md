@@ -11,7 +11,7 @@
 - 是否涉及基础模块：只修改 `ruoyi-ticket` 和 `ruoyi-admin` 必要配置；不改 `ruoyi-common`、`ruoyi-framework`、`ruoyi-system`
 - 验证：Java 契约/配置测试、Python pytest、`mvn test`、`mvn clean compile`
 
-## v3.0 阶段四十五：知识库文档导入
+## v3.0 阶段四十五：知识库文档导入 ✅
 
 - 先列合法文档、空文件、非法类型、大小边界、解析失败、重复导入和向量化失败测试用例
 - Java 提供管理员导入入口并转发受控文件；Python 完成解析、切片、Embedding 和向量库存储

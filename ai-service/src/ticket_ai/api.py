@@ -7,11 +7,14 @@ from ticket_ai.models import (
     AssistResponse,
     ClosedTicketSyncRequest,
     DocumentImportRequest,
+    DocumentImportResponse,
     HealthResponse,
     SearchResponse,
     TicketContextRequest,
 )
 from ticket_ai.security import verify_service_token
+from ticket_ai.dependencies import get_document_importer
+from ticket_ai.knowledge import DocumentImporter, DocumentImportError
 
 router = APIRouter(prefix="/api/v1")
 
@@ -23,12 +26,22 @@ def health() -> HealthResponse:
     return HealthResponse()
 
 
-@router.post("/documents/import", response_model=AcceptedResponse, dependencies=[Depends(verify_service_token)])
-def import_document(request: DocumentImportRequest) -> AcceptedResponse:
-    """接收知识文档；阶段四十五实现实际导入。"""
+@router.post("/documents/import", response_model=DocumentImportResponse,
+             dependencies=[Depends(verify_service_token)])
+def import_document(request: DocumentImportRequest,
+                    importer: DocumentImporter = Depends(get_document_importer)) -> DocumentImportResponse:
+    """解析、切片、向量化并原子替换知识文档。"""
 
-    del request
-    raise HTTPException(status_code=status.HTTP_501_NOT_IMPLEMENTED, detail="stage 45 not implemented")
+    try:
+        count = importer.import_document(
+            request.source_id, request.file_name, request.content_type, request.content_base64
+        )
+        return DocumentImportResponse(chunk_count=count)
+    except DocumentImportError as exception:
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail=str(exception)) from exception
+    except Exception as exception:
+        raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                            detail="document import unavailable") from exception
 
 
 @router.post("/tickets/sync", response_model=AcceptedResponse, dependencies=[Depends(verify_service_token)])

@@ -1,6 +1,6 @@
 # 03 — 数据库设计
 
-> v2.1 | 2026-07-03 | MySQL 8.0 + InnoDB
+> v2.3 | 2026-07-04 | MySQL 8.0 + InnoDB
 
 ## 设计原则
 
@@ -237,3 +237,20 @@ v2.1 使用独立增量脚本 `sql/ticket-v2.1.sql`，新增 3 张表，并为 `
 主要字段：`value_id`、`ticket_id`、`field_id`、`field_key_snapshot`、`field_name_snapshot`、`field_type_snapshot`、`normalized_value`、`display_value_snapshot`、`sort_order_snapshot`、`create_time`。
 
 索引：`uk_ticket_field(ticket_id, field_id)`、`idx_value_ticket(ticket_id, sort_order_snapshot)`、`idx_value_field(field_id)`。值记录不可修改和删除。
+
+## v2.3 检索事件表
+
+v2.3 使用独立增量脚本 `sql/ticket-v2.3.sql`，只新增事务事件表和菜单权限，不修改已发布脚本。Elasticsearch 索引是可重建投影，不替代 MySQL 表。
+
+### ticket_search_event
+
+主要字段：`event_id`、`ticket_id`、`event_type`、`event_status`、`retry_count`、`next_retry_at`、`claimed_at`、`processed_at`、`error_message`、`create_time`、`update_time`。
+
+- `event_type`：`UPSERT / DELETE / REBUILD`；工单当前只物理保留，常规业务使用 `UPSERT`。
+- `event_status`：`PENDING / PROCESSING / SUCCEEDED / FAILED`。
+- `error_message` 只保存截断后的脱敏摘要，不保存请求、凭据或完整 ES 响应。
+- Worker 崩溃后，超过 claim 超时的 `PROCESSING` 事件可重新置为 `PENDING`。
+
+索引：`PRIMARY(event_id)`、`idx_event_dispatch(event_status, next_retry_at, event_id)`、`idx_event_ticket(ticket_id, event_id)`、`idx_event_claim(event_status, claimed_at)`。
+
+不对 `ticket_id` 建唯一约束：同一事务可合并事件，但并发事务必须各自留下事实记录，由消费者按 `event_id` 保证最终顺序。

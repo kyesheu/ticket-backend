@@ -47,6 +47,7 @@ import com.ruoyi.ticket.service.ITicketWorkflowEngine;
 import com.ruoyi.ticket.service.ITicketNotificationService;
 import com.ruoyi.ticket.service.ITicketCustomFieldService;
 import com.ruoyi.ticket.service.ITicketAttachmentService;
+import com.ruoyi.ticket.service.ITicketSearchEventService;
 import com.ruoyi.ticket.enums.TicketAttachmentBusinessType;
 import org.mockito.ArgumentCaptor;
 import org.mockito.InOrder;
@@ -86,6 +87,9 @@ class TicketServiceImplTest {
 
     @Mock
     private ITicketAttachmentService ticketAttachmentService;
+
+    @Mock
+    private ITicketSearchEventService ticketSearchEventService;
 
     @InjectMocks
     private TicketServiceImpl ticketService;
@@ -160,6 +164,10 @@ class TicketServiceImplTest {
     @DisplayName("创建工单应生成唯一编号并写入 CREATE 日志")
     void createTicketShouldGenerateNoAndLog() {
         when(ticketMapper.selectMaxTicketNo(anyString())).thenReturn(null);
+        when(ticketMapper.insertTicket(any(Ticket.class))).thenAnswer(invocation -> {
+            invocation.<Ticket>getArgument(0).setTicketId(8L);
+            return 1;
+        });
 
         TicketCreateDTO dto = new TicketCreateDTO();
         dto.setTitle("测试工单");
@@ -170,6 +178,7 @@ class TicketServiceImplTest {
 
         verify(ticketMapper).insertTicket(any(Ticket.class));
         verify(ticketOperationLogMapper).insertLog(any());
+        verify(ticketSearchEventService).publishUpsert(8L);
     }
 
     @Test

@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ruoyi.ticket.mapper.TicketSearchRebuildMapper">
+    <resultMap id="TicketSearchRebuildResult" type="com.ruoyi.ticket.domain.TicketSearchRebuild">
+        <id property="rebuildId" column="rebuild_id"/>
+        <result property="rebuildStatus" column="rebuild_status"/>
+        <result property="indexName" column="index_name"/>
+        <result property="totalCount" column="total_count"/>
+        <result property="processedCount" column="processed_count"/>
+        <result property="lastTicketId" column="last_ticket_id"/>
+        <result property="startEventId" column="start_event_id"/>
+        <result property="maxTicketId" column="max_ticket_id"/>
+        <result property="errorMessage" column="error_message"/>
+        <result property="startedAt" column="started_at"/>
+        <result property="endedAt" column="ended_at"/>
+        <result property="updateTime" column="update_time"/>
+    </resultMap>
+    <update id="tryStart">
+        UPDATE ticket_search_rebuild
+        SET rebuild_status = #{rebuildStatus}, index_name = #{indexName}, total_count = #{totalCount},
+            processed_count = 0, last_ticket_id = 0, start_event_id = #{startEventId},
+            max_ticket_id = #{maxTicketId}, error_message = NULL,
+            started_at = #{startedAt}, ended_at = NULL, update_time = #{updateTime}
+        WHERE rebuild_id = 1 AND rebuild_status != 'RUNNING'
+    </update>
+    <select id="selectCurrent" resultMap="TicketSearchRebuildResult">
+        SELECT rebuild_id, rebuild_status, index_name, total_count, processed_count, last_ticket_id,
+               start_event_id, max_ticket_id,
+               error_message, started_at, ended_at, update_time
+        FROM ticket_search_rebuild WHERE rebuild_id = 1
+    </select>
+    <update id="updateProgress">
+        UPDATE ticket_search_rebuild
+        SET processed_count = #{processedCount}, last_ticket_id = #{lastTicketId}, update_time = NOW()
+        WHERE rebuild_id = 1 AND rebuild_status = 'RUNNING'
+    </update>
+    <update id="markSucceeded">
+        UPDATE ticket_search_rebuild
+        SET rebuild_status = 'SUCCEEDED', processed_count = #{processedCount}, ended_at = NOW(), update_time = NOW()
+        WHERE rebuild_id = 1 AND rebuild_status = 'RUNNING'
+    </update>
+    <update id="markFailed">
+        UPDATE ticket_search_rebuild
+        SET rebuild_status = 'FAILED', error_message = #{errorMessage}, ended_at = NOW(), update_time = NOW()
+        WHERE rebuild_id = 1 AND rebuild_status = 'RUNNING'
+    </update>
+</mapper>

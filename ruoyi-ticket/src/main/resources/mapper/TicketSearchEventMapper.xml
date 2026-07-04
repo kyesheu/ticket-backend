@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ruoyi.ticket.mapper.TicketSearchEventMapper">
+    <resultMap id="TicketSearchEventResult" type="com.ruoyi.ticket.domain.TicketSearchEvent">
+        <id property="eventId" column="event_id"/>
+        <result property="ticketId" column="ticket_id"/>
+        <result property="eventType" column="event_type"/>
+        <result property="eventStatus" column="event_status"/>
+        <result property="retryCount" column="retry_count"/>
+        <result property="nextRetryAt" column="next_retry_at"/>
+        <result property="claimedAt" column="claimed_at"/>
+        <result property="processedAt" column="processed_at"/>
+        <result property="errorMessage" column="error_message"/>
+        <result property="createTime" column="create_time"/>
+        <result property="updateTime" column="update_time"/>
+    </resultMap>
+
+    <insert id="insertSearchEvent" useGeneratedKeys="true" keyProperty="eventId">
+        INSERT INTO ticket_search_event
+            (ticket_id, event_type, event_status, retry_count, next_retry_at, create_time, update_time)
+        VALUES
+            (#{ticketId}, #{eventType}, #{eventStatus}, #{retryCount}, #{nextRetryAt},
+             #{createTime}, #{updateTime})
+    </insert>
+
+    <select id="selectDispatchableEvents" resultMap="TicketSearchEventResult">
+        SELECT event_id, ticket_id, event_type, event_status, retry_count, next_retry_at,
+               claimed_at, processed_at, error_message, create_time, update_time
+        FROM ticket_search_event
+        WHERE event_status = #{eventStatus}
+          AND (next_retry_at IS NULL OR next_retry_at &lt;= NOW())
+        ORDER BY event_id
+        LIMIT #{limit}
+    </select>
+
+    <update id="claimEvent">
+        UPDATE ticket_search_event
+        SET event_status = #{targetStatus}, claimed_at = NOW(), update_time = NOW()
+        WHERE event_id = #{eventId} AND event_status = #{expectedStatus}
+    </update>
+
+    <update id="markSucceeded">
+        UPDATE ticket_search_event
+        SET event_status = 'SUCCEEDED', processed_at = NOW(), error_message = NULL, update_time = NOW()
+        WHERE event_id = #{eventId} AND event_status = #{expectedStatus}
+    </update>
+
+    <update id="markFailed">
+        UPDATE ticket_search_event
+        SET event_status = #{targetStatus}, retry_count = #{retryCount}, next_retry_at = #{nextRetryAt},
+            claimed_at = NULL, error_message = #{errorMessage}, update_time = NOW()
+        WHERE event_id = #{eventId} AND event_status = #{expectedStatus}
+    </update>
+
+    <update id="recoverStaleEvents">
+        UPDATE ticket_search_event
+        SET event_status = #{pendingStatus}, claimed_at = NULL, next_retry_at = NOW(), update_time = NOW()
+        WHERE event_status = #{processingStatus} AND claimed_at &lt; #{claimedBefore}
+    </update>
+
+    <select id="selectMaxEventId" resultType="long">
+        SELECT COALESCE(MAX(event_id), 0) FROM ticket_search_event
+    </select>
+
+    <update id="retryFailedEvents">
+        UPDATE ticket_search_event
+        SET event_status = 'PENDING', retry_count = 0, next_retry_at = NOW(), claimed_at = NULL,
+            error_message = NULL, update_time = NOW()
+        WHERE event_status = 'FAILED'
+    </update>
+
+    <update id="requeueEventsAfter">
+        UPDATE ticket_search_event
+        SET event_status = 'PENDING', retry_count = 0, next_retry_at = NOW(), claimed_at = NULL,
+            processed_at = NULL, error_message = NULL, update_time = NOW()
+        WHERE event_id &gt; #{eventId}
+    </update>
+</mapper>

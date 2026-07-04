@@ -32,6 +32,7 @@ import com.ruoyi.ticket.mapper.TicketOperationLogMapper;
 import com.ruoyi.ticket.service.ITicketWorkflowEngine;
 import com.ruoyi.ticket.service.ITicketAccessPolicy;
 import com.ruoyi.ticket.service.ITicketNotificationService;
+import com.ruoyi.ticket.service.ITicketSearchEventService;
 import com.ruoyi.ticket.domain.TicketOperationLog;
 import com.ruoyi.ticket.domain.TicketCustomFieldValue;
 import com.ruoyi.ticket.enums.TicketCustomFieldType;
@@ -73,6 +74,7 @@ public class TicketWorkflowEngineImpl implements ITicketWorkflowEngine {
     @Autowired private ITicketAccessPolicy accessPolicy;
     @Autowired private TicketCustomFieldValueMapper customFieldValueMapper;
     @Autowired private ObjectMapper objectMapper;
+    @Autowired private ITicketSearchEventService ticketSearchEventService;
 
     @Override
     @Transactional(rollbackFor = Exception.class)
@@ -258,6 +260,7 @@ public class TicketWorkflowEngineImpl implements ITicketWorkflowEngine {
         advanceInstance(context, currentNode, now);
         saveActionLog(context.ticket(), currentNode, TicketOperationType.valueOf(currentNode.getNodeType()), dto.getComment());
         notifyCompletion(context.ticket(), currentNode);
+        ticketSearchEventService.publishUpsert(context.ticket().getTicketId());
     }
 
     @Override
@@ -295,6 +298,7 @@ public class TicketWorkflowEngineImpl implements ITicketWorkflowEngine {
         ticketMapper.updateTicket(context.ticket());
         saveActionLog(context.ticket(), requireNode(context.instance().getDefinitionId(), previous.getNodeKey()),
                 TicketOperationType.RETURN, dto.getComment());
+        ticketSearchEventService.publishUpsert(context.ticket().getTicketId());
     }
 
     @Override
@@ -447,6 +451,7 @@ public class TicketWorkflowEngineImpl implements ITicketWorkflowEngine {
         notificationService.createNotification(context.ticket().getTicketId(), recipient,
                 SecurityUtils.getUserId(), TicketNotificationType.CANCELLED,
                 operationType.name() + ":" + context.ticket().getTicketId(), "工单流程已结束", comment);
+        ticketSearchEventService.publishUpsert(context.ticket().getTicketId());
     }
 
     private void saveActionLog(Ticket ticket, TicketWorkflowNode node,

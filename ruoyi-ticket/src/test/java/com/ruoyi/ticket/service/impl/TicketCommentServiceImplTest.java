@@ -9,6 +9,7 @@ import com.ruoyi.ticket.mapper.TicketMapper;
 import com.ruoyi.ticket.service.ITicketNotificationService;
 import com.ruoyi.ticket.service.ITicketAccessPolicy;
 import com.ruoyi.ticket.service.ITicketAttachmentService;
+import com.ruoyi.ticket.service.ITicketSearchEventService;
 import com.ruoyi.ticket.enums.TicketAttachmentBusinessType;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -37,6 +38,7 @@ class TicketCommentServiceImplTest {
     @Mock private ITicketNotificationService ticketNotificationService;
     @Mock private ITicketAccessPolicy ticketAccessPolicy;
     @Mock private ITicketAttachmentService ticketAttachmentService;
+    @Mock private ITicketSearchEventService ticketSearchEventService;
     @InjectMocks private TicketCommentServiceImpl ticketCommentService;
     private MockedStatic<SecurityUtils> securityUtilsMock;
 
@@ -105,5 +107,6 @@ class TicketCommentServiceImplTest {
 
         verify(ticketAttachmentService).bindAttachments(1L, TicketAttachmentBusinessType.COMMENT,
                 11L, dto.getAttachmentIds());
+        verify(ticketSearchEventService).publishUpsert(1L);
     }
 }

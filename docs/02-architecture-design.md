@@ -1,6 +1,6 @@
 # 02 — 架构与设计规范
 
-> v2.1 | 2026-07-03
+> v2.3 | 2026-07-04
 
 ## 模块架构
 
@@ -409,3 +409,44 @@ TicketService / TicketWorkflowEngine
 ### 流程条件扩展
 
 `ticket_workflow_transition` 新增 `condition_key`。`condition_field = CUSTOM_FIELD` 时，key 必填且符合字段 key 格式；值仍通过参数化 SQL 保存。引擎通过 `ITicketCustomFieldService` 读取规范化值，缺失或类型不兼容返回“不命中”。
+
+## v2.3 Elasticsearch 检索设计
+
+### 边界与核心 seam
+
+检索能力归属 `ruoyi-ticket`。`ITicketSearchService` 负责查询和权限安全，`ITicketSearchIndexer` 负责单工单投影与全量重建；Controller 不组装 Elasticsearch DSL，业务 Service 不直接调用 ES。
+
+```text
+Ticket / Comment transaction              SearchController
+          |                                      |
+          v                                      v
+ ticket_search_event                    ITicketSearchService
+          |                              | ES candidate query
+ scheduled dispatcher                    | batch access recheck
+          |                              v
+          v                         Elasticsearch alias
+ ITicketSearchIndexer <--- MySQL ticket projection
+```
+
+### 一致性与失败隔离
+
+- 创建、修改、流转、附件元数据展示变化和评论变更在原业务事务中追加事件；事务回滚时事件一并回滚。
+- 调度器以条件更新抢占待处理事件，按事件 ID 幂等消费；成功标记完成，失败记录次数、下次执行时间和脱敏错误摘要。
+- 索引文档携带 `source_event_id`。脚本化更新仅在新事件 ID 更大时覆盖，防止乱序回写旧快照。
+- ES 故障不回滚工单业务事务。超过重试上限的事件进入 `FAILED`，管理员可重置后补偿。
+- 全量重建按数据库主键游标分批读取，写入版本化物理索引；文档数与抽样结果通过后原子切换 `ticket-search` 别名。
+
+### 查询与权限
+
+- ES 查询字段、排序字段、过滤字段和高亮字段全部使用服务端白名单，不透传客户端 DSL。
+- 数据范围先转换为 ES `filter` 缩小候选集：管理员全部、部门树范围、本人创建或本人指派。
+- `ITicketAccessPolicy` 对候选 ID 批量复核后才返回安全结果；不足一页时继续拉取候选，直至填满或游标耗尽。接口只返回 `hasMore`，不暴露 ES 原始总命中数。
+- API 返回 opaque `nextCursor`，内部编码稳定排序值和查询摘要；篡改或跨查询复用游标时拒绝请求。
+- 高亮仅允许标题、描述和评论纯文本，返回前执行长度限制和 HTML 转义，仅保留服务端插入的高亮标记。
+
+### 索引映射
+
+- 固定别名 `ticket-search` 指向 `ticket-search-v{timestamp}` 物理索引。
+- `ticket_no` 使用 `keyword`；标题、描述、评论使用中文 analyzer 的 `text` 子字段并保留 keyword/标准分词能力。
+- 状态、优先级、分类、用户和部门使用 `keyword` 或 `long`；时间使用 `date`。
+- 自定义字段 v2.3 不进入全文索引，避免动态 mapping 膨胀；仍可通过详情读取。

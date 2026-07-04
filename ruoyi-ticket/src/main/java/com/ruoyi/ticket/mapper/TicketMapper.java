@@ -61,6 +61,17 @@ public interface TicketMapper {
     int countAccessibleTicket(@Param("ticketId") Long ticketId,
                               @Param("scope") TicketAccessScope scope);
 
+    List<Long> selectAccessibleTicketIds(@Param("ticketIds") List<Long> ticketIds,
+                                         @Param("scope") TicketAccessScope scope);
+
+    Long selectMaxSearchableTicketId();
+
+    long countSearchableTicketsUpTo(@Param("maxTicketId") Long maxTicketId);
+
+    List<Long> selectSearchableTicketIdsAfter(@Param("lastTicketId") Long lastTicketId,
+                                              @Param("maxTicketId") Long maxTicketId,
+                                              @Param("limit") int limit);
+
     /** 查询响应超时候选工单。 */
     List<Ticket> selectResponseOverdueCandidates(@Param("detectedAt") java.util.Date detectedAt,
                                                   @Param("limit") int limit);

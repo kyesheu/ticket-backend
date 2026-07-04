@@ -19,6 +19,7 @@ import com.ruoyi.ticket.mapper.TicketWorkflowTaskMapper;
 import com.ruoyi.ticket.mapper.TicketWorkflowTransitionMapper;
 import com.ruoyi.ticket.service.ITicketAccessPolicy;
 import com.ruoyi.ticket.service.ITicketNotificationService;
+import com.ruoyi.ticket.service.ITicketSearchEventService;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -55,6 +56,7 @@ class TicketWorkflowEngineActionTest {
     @Mock private TicketWorkflowAssigneeMapper assigneeMapper;
     @Mock private TicketOperationLogMapper operationLogMapper;
     @Mock private ITicketNotificationService notificationService;
+    @Mock private ITicketSearchEventService ticketSearchEventService;
     @Mock private ITicketAccessPolicy accessPolicy;
     @InjectMocks private TicketWorkflowEngineImpl engine;
 

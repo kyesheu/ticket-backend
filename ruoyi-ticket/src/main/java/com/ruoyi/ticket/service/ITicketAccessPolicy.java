@@ -1,6 +1,7 @@
 package com.ruoyi.ticket.service;
 
 import com.ruoyi.ticket.model.TicketAccessScope;
+import java.util.List;
 
 /**
  * 工单访问策略接口。
@@ -24,4 +25,7 @@ public interface ITicketAccessPolicy {
      * @param permission 权限字符
      */
     void assertCanAccess(Long ticketId, String permission);
+
+    /** 批量筛选当前用户可访问的工单 ID。 */
+    List<Long> filterAccessibleTicketIds(List<Long> ticketIds, String permission);
 }

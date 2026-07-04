@@ -154,6 +154,49 @@
         ORDER BY t.create_time DESC
     </select>
 
+    <select id="selectAccessibleTicketIds" resultType="long">
+        SELECT t.ticket_id
+        FROM ticket t
+        WHERE t.ticket_id IN
+        <foreach collection="ticketIds" item="ticketId" open="(" separator="," close=")">
+            #{ticketId}
+        </foreach>
+          AND t.del_flag = '0'
+        <if test="!scope.fullAccess">
+          AND (
+              t.creator_id = #{scope.userId} OR t.assignee_id = #{scope.userId}
+              <if test="scope.includeDept"> OR t.dept_id = #{scope.deptId} </if>
+              <if test="scope.includeDeptChildren">
+                  OR t.dept_id IN (SELECT d.dept_id FROM sys_dept d
+                      WHERE d.dept_id = #{scope.deptId} OR FIND_IN_SET(#{scope.deptId}, d.ancestors))
+              </if>
+              <if test="scope.customRoleIds != null and scope.customRoleIds.size() > 0">
+                  OR t.dept_id IN (SELECT rd.dept_id FROM sys_role_dept rd WHERE rd.role_id IN
+                      <foreach collection="scope.customRoleIds" item="roleId" open="(" separator="," close=")">
+                          #{roleId}
+                      </foreach>)
+              </if>
+          )
+        </if>
+        ORDER BY FIELD(t.ticket_id,
+        <foreach collection="ticketIds" item="ticketId" separator=",">#{ticketId}</foreach>)
+    </select>
+
+    <select id="selectMaxSearchableTicketId" resultType="long">
+        SELECT COALESCE(MAX(ticket_id), 0) FROM ticket WHERE del_flag = '0'
+    </select>
+
+    <select id="countSearchableTicketsUpTo" resultType="long">
+        SELECT COUNT(*) FROM ticket WHERE del_flag = '0' AND ticket_id &lt;= #{maxTicketId}
+    </select>
+
+    <select id="selectSearchableTicketIdsAfter" resultType="long">
+        SELECT ticket_id FROM ticket
+        WHERE del_flag = '0' AND ticket_id &gt; #{lastTicketId} AND ticket_id &lt;= #{maxTicketId}
+        ORDER BY ticket_id
+        LIMIT #{limit}
+    </select>
+
     <!-- 详情查询 -->
     <select id="selectTicketById" parameterType="Long" resultMap="TicketVOResult">
         SELECT t.ticket_id, t.ticket_no, t.title, t.content, t.category_id,

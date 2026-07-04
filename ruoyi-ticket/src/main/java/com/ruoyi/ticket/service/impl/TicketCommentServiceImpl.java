@@ -19,6 +19,7 @@ import com.ruoyi.ticket.service.ITicketAccessPolicy;
 import com.ruoyi.ticket.enums.TicketNotificationType;
 import com.ruoyi.ticket.enums.TicketAttachmentBusinessType;
 import com.ruoyi.ticket.service.ITicketAttachmentService;
+import com.ruoyi.ticket.service.ITicketSearchEventService;
 
 /**
  * 工单评论 Service 实现
@@ -47,6 +48,9 @@ public class TicketCommentServiceImpl implements ITicketCommentService {
 
     @Autowired
     private ITicketAttachmentService ticketAttachmentService;
+
+    @Autowired
+    private ITicketSearchEventService ticketSearchEventService;
 
     @Override
     public List<TicketComment> selectCommentsByTicketId(Long ticketId) {
@@ -87,6 +91,7 @@ public class TicketCommentServiceImpl implements ITicketCommentService {
                 TicketNotificationType.COMMENTED, eventKey, "工单有新评论", dto.getContent());
         ticketNotificationService.createNotification(ticketId, ticket.getAssigneeId(), operatorId,
                 TicketNotificationType.COMMENTED, eventKey, "工单有新评论", dto.getContent());
+        ticketSearchEventService.publishUpsert(ticketId);
         return rows;
     }
 }

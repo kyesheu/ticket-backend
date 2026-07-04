@@ -369,6 +369,21 @@ try {
         Assert-Equal "$($Case.Name) list scope" $Case.Expected $Page.total
     }
 
+    $Run = Invoke-RestMethod -Uri "$BaseUrl/monitor/job/run" -Method Put -Headers $Headers `
+        -Body (@{ jobId = 101; jobGroup = "TICKET" } | ConvertTo-Json) -ContentType "application/json"
+    Assert-Success "dispatch search events for data scope" $Run
+    foreach ($Attempt in 1..20) {
+        Start-Sleep -Milliseconds 500
+        $AllSearch = Invoke-RestMethod `
+            -Uri "$BaseUrl/ticket/search?keyword=$ScopeSuffix&pageSize=10" `
+            -Headers @{ Authorization = "Bearer $(Invoke-TicketLogin "v13all_$UserSuffix" $ScopePassword)" }
+        if ($AllSearch.data.items.Count -eq 1) { break }
+    }
+    Assert-Equal "ALL search scope" 1 $AllSearch.data.items.Count
+    $SelfSearch = Invoke-RestMethod -Uri "$BaseUrl/ticket/search?keyword=$ScopeSuffix&pageSize=10" `
+        -Headers @{ Authorization = "Bearer $(Invoke-TicketLogin "v13self_$UserSuffix" $ScopePassword)" }
+    Assert-Equal "SELF search scope" 0 $SelfSearch.data.items.Count
+
     $SelfToken = Invoke-TicketLogin "v13self_$UserSuffix" $ScopePassword
     $SelfHeaders = @{ Authorization = "Bearer $SelfToken" }
     $InjectedPage = Invoke-RestMethod `
@@ -462,6 +477,25 @@ try {
 catch {
     Write-Host "  [FAIL] attachment-smoke.ps1 - $($_.Exception.Message)" -ForegroundColor Red
     $Fail++
+}
+
+# ============ v2.3 Elasticsearch 检索 ============
+Write-Host ""
+Write-Host "[12] v2.3 Elasticsearch Search" -ForegroundColor Cyan
+$SearchSmokeScripts = @(
+    "search-smoke.ps1",
+    "search-rebuild-smoke.ps1"
+)
+foreach ($ScriptName in $SearchSmokeScripts) {
+    try {
+        & (Join-Path $PSScriptRoot $ScriptName) | ForEach-Object { Write-Host "  $_" }
+        Write-Host "  [PASS] $ScriptName" -ForegroundColor Green
+        $Pass++
+    }
+    catch {
+        Write-Host "  [FAIL] $ScriptName - $($_.Exception.Message)" -ForegroundColor Red
+        $Fail++
+    }
 }
 
 # ============ 结果 ============

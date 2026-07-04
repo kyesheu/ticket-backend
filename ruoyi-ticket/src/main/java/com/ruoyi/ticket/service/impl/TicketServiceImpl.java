@@ -34,6 +34,7 @@ import com.ruoyi.ticket.service.ITicketAccessPolicy;
 import com.ruoyi.ticket.service.ITicketWorkflowEngine;
 import com.ruoyi.ticket.service.ITicketCustomFieldService;
 import com.ruoyi.ticket.service.ITicketAttachmentService;
+import com.ruoyi.ticket.service.ITicketSearchEventService;
 import com.ruoyi.ticket.enums.TicketAttachmentBusinessType;
 import com.ruoyi.ticket.vo.TicketListVO;
 import com.ruoyi.ticket.vo.TicketVO;
@@ -93,6 +94,9 @@ public class TicketServiceImpl implements ITicketService {
 
     @Autowired
     private ITicketAttachmentService ticketAttachmentService;
+
+    @Autowired
+    private ITicketSearchEventService ticketSearchEventService;
 
     @Override
     public List<TicketListVO> selectTicketList(TicketQueryDTO query) {
@@ -159,6 +163,8 @@ public class TicketServiceImpl implements ITicketService {
 
         ticketWorkflowEngine.startInstance(ticket);
 
+        ticketSearchEventService.publishUpsert(ticket.getTicketId());
+
         return ticket.getTicketId();
     }
 
@@ -198,6 +204,7 @@ public class TicketServiceImpl implements ITicketService {
                 TicketStatus.PROCESSING, dto.getComment());
         notifyTicket(ticket, dto.getAssigneeId(), TicketNotificationType.ASSIGNED,
                 "ASSIGNED:" + ticketId, "工单已分派", "您收到一条新工单");
+        ticketSearchEventService.publishUpsert(ticketId);
     }
 
     @Override
@@ -236,6 +243,7 @@ public class TicketServiceImpl implements ITicketService {
                 TicketStatus.WAIT_CONFIRM, dto.getComment());
         notifyTicket(ticket, ticket.getCreatorId(), TicketNotificationType.PROCESSED,
                 "PROCESSED:" + ticketId, "工单处理完成", "工单等待您的确认");
+        ticketSearchEventService.publishUpsert(ticketId);
     }
 
     @Override
@@ -270,6 +278,7 @@ public class TicketServiceImpl implements ITicketService {
                 TicketStatus.CLOSED, dto.getComment());
         notifyTicket(ticket, ticket.getAssigneeId(), TicketNotificationType.CLOSED,
                 "CLOSED:" + ticketId, "工单已关闭", "工单已由创建人确认关闭");
+        ticketSearchEventService.publishUpsert(ticketId);
     }
 
     @Override
@@ -307,6 +316,7 @@ public class TicketServiceImpl implements ITicketService {
         Long recipientId = ticket.getAssigneeId() != null ? ticket.getAssigneeId() : ticket.getCreatorId();
         notifyTicket(ticket, recipientId, TicketNotificationType.CANCELLED,
                 "CANCELLED:" + ticketId, "工单已取消", "工单已被取消");
+        ticketSearchEventService.publishUpsert(ticketId);
     }
 
     /**

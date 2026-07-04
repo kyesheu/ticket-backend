@@ -72,6 +72,14 @@ public class TicketAccessPolicyImpl implements ITicketAccessPolicy {
         }
     }
 
+    @Override
+    public List<Long> filterAccessibleTicketIds(List<Long> ticketIds, String permission) {
+        if (ticketIds == null || ticketIds.isEmpty()) {
+            return Collections.emptyList();
+        }
+        return ticketMapper.selectAccessibleTicketIds(ticketIds, resolveScope(permission));
+    }
+
     private boolean isEffectiveRole(SysRole role, String permission) {
         if (role == null || !UserConstants.ROLE_NORMAL.equals(role.getStatus())) {
             return false;

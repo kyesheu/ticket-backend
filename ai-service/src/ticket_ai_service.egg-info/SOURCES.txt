@@ -1,0 +1,14 @@
+README.md
+pyproject.toml
+src/ticket_ai/__init__.py
+src/ticket_ai/api.py
+src/ticket_ai/config.py
+src/ticket_ai/main.py
+src/ticket_ai/models.py
+src/ticket_ai/security.py
+src/ticket_ai_service.egg-info/PKG-INFO
+src/ticket_ai_service.egg-info/SOURCES.txt
+src/ticket_ai_service.egg-info/dependency_links.txt
+src/ticket_ai_service.egg-info/requires.txt
+src/ticket_ai_service.egg-info/top_level.txt
+tests/test_contract.py

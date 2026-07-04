@@ -78,17 +78,16 @@ powershell scripts/ticket/smoke-test.ps1    # 接口冒烟测试
 
 工单创建、分派、处理、确认、取消、分类树、评论、操作日志、权限控制。
 
-详见 [docs/01-project-spec.md](docs/01-project-spec.md)。
+详见 [docs/1.x/01-project-spec.md](docs/1.x/01-project-spec.md)。
 
 ## 设计文档
 
 | 文档 | 内容 |
 |---|---|
-| [01-project-spec.md](docs/01-project-spec.md) | 项目边界、功能范围、验收标准 |
-| [02-architecture-design.md](docs/02-architecture-design.md) | 架构、分层规范、枚举设计 |
-| [03-database-design.md](docs/03-database-design.md) | 4 张表 DDL、索引 |
-| [04-implementation-plan.md](docs/04-implementation-plan.md) | 8 阶段实施计划 |
-| [05-test-release.md](docs/05-test-release.md) | 测试清单、Bug 修复记录 |
+| [文档索引](docs/README.md) | 1.x、2.x、3.x 文档入口 |
+| [1.x 文档](docs/1.x/) | 工单主流程及 v1.x 增量能力 |
+| [2.x 文档](docs/2.x/) | 动态流程、自定义字段、附件和检索 |
+| [3.x 文档](docs/3.x/) | Python LangChain RAG 与工单辅助规划 |
 
 ## 致谢
 

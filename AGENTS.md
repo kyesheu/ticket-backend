@@ -6,15 +6,16 @@
 
 ## 文档
 
-改代码前按任务读对应文档，按 `docs/04-implementation-plan.md` 分阶段推进，不跳阶段。
+改代码前先从 `docs/README.md` 定位版本，读取对应版本目录文档，并按该目录的 `04-implementation-plan.md` 分阶段推进，不跳阶段。当前开发版本为 `docs/3.x/`。
 
 | 文档 | 内容 |
 |---|---|
-| `docs/01-project-spec.md` | 项目边界、验收标准 |
-| `docs/02-architecture-design.md` | 分层规范、命名约定 |
-| `docs/03-database-design.md` | 表结构、索引 |
-| `docs/04-implementation-plan.md` | 8 阶段实施计划 |
-| `docs/05-test-release.md` | 测试清单 |
+| `docs/README.md` | 版本文档索引 |
+| `docs/{version}/01-project-spec.md` | 项目边界、验收标准 |
+| `docs/{version}/02-architecture-design.md` | 分层规范、命名约定 |
+| `docs/{version}/03-database-design.md` | 表结构、索引与数据归属 |
+| `docs/{version}/04-implementation-plan.md` | 当前版本实施计划 |
+| `docs/{version}/05-test-release.md` | 测试清单与发布记录 |
 
 ## 代码规范
 

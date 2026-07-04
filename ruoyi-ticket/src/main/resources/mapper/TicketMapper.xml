@@ -83,6 +83,43 @@
         FROM ticket t
     </sql>
 
+    <resultMap id="TicketAiSyncCandidateResult" type="com.ruoyi.ticket.model.TicketAiSyncCandidate">
+        <id property="ticketId" column="ticket_id" />
+        <result property="title" column="title" />
+        <result property="category" column="category" />
+        <result property="description" column="description" />
+        <result property="solution" column="solution" />
+        <result property="status" column="status" />
+        <result property="priority" column="priority" />
+        <result property="createdTime" column="created_time" />
+        <result property="closedTime" column="closed_time" />
+        <result property="sourceGeneration" column="source_generation" />
+    </resultMap>
+
+    <select id="selectAiSyncCandidatesAfter" resultMap="TicketAiSyncCandidateResult">
+        SELECT t.ticket_id, t.title, c.category_name AS category,
+               t.content AS description, process_log.comment AS solution,
+               t.status, t.priority, t.create_time AS created_time,
+               t.closed_at AS closed_time, process_log.log_id AS source_generation
+        FROM ticket t
+        INNER JOIN ticket_category c ON c.category_id = t.category_id
+        INNER JOIN ticket_operation_log process_log
+                ON process_log.log_id = (
+                    SELECT MAX(candidate_log.log_id)
+                    FROM ticket_operation_log candidate_log
+                    WHERE candidate_log.ticket_id = t.ticket_id
+                      AND candidate_log.operation_type = 'PROCESS'
+                      AND candidate_log.comment IS NOT NULL
+                      AND TRIM(candidate_log.comment) != ''
+                )
+        WHERE t.del_flag = '0'
+          AND t.status = 'CLOSED'
+          AND t.closed_at IS NOT NULL
+          AND t.ticket_id &gt; #{lastTicketId}
+        ORDER BY t.ticket_id
+        LIMIT #{limit}
+    </select>
+
     <!-- 列表查询 -->
     <select id="selectTicketList" parameterType="com.ruoyi.ticket.dto.TicketQueryDTO" resultMap="TicketListVOResult">
         SELECT t.ticket_id, t.ticket_no, t.title, t.priority, t.status,

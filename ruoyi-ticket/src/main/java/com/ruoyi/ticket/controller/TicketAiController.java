@@ -57,4 +57,12 @@ public class TicketAiController extends BaseController {
     public AjaxResult searchSimilar(@RequestParam Long ticketId) {
         return success(ticketAiKnowledgeService.searchSimilarKnowledge(ticketId));
     }
+
+    @Operation(summary = "生成工单处理建议与回复草稿")
+    @PreAuthorize("@ss.hasPermi('ticket:ticket:query')")
+    @PostMapping("/ticket/assist")
+    public AjaxResult assist(@RequestParam Long ticketId,
+                             @RequestParam(defaultValue = "5") Integer topK) {
+        return success(ticketAiKnowledgeService.assist(ticketId, topK));
+    }
 }

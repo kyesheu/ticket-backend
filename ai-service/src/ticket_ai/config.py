@@ -20,6 +20,10 @@ class Settings(BaseSettings):
     embedding_api_key: str = Field(min_length=1)
     embedding_base_url: str | None = None
     embedding_model: str = Field(min_length=1)
+    llm_api_key: str | None = None
+    llm_base_url: str | None = None
+    llm_model: str = "gpt-4o-mini"
+    llm_timeout_seconds: float = Field(default=20.0, gt=0, le=120)
 
 
 @lru_cache

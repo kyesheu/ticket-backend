@@ -60,6 +60,31 @@
 | 安全 | 用户有当前工单对象权限 | Java 完成权限校验后才调用 Python |
 | 非法 | 用户无当前工单对象权限 | Java 拒绝请求且不调用 Python |
 
+### 阶段四十七处理建议与回复草稿测试用例
+
+| 类型 | 场景 | 预期 |
+|---|---|---|
+| 合法 | 检索到可靠知识文档或历史工单证据 | 返回 suggestion、replyDraft、sources，degraded=false |
+| 边界 | 未检索到可靠证据 | degraded=true，reason=no_reliable_evidence，不生成建议或草稿 |
+| 安全 | 证据包含忽略规则、伪造引用、自动关闭或输出凭据等指令 | 证据按不可信数据隔离，不能覆盖系统规则 |
+| 边界 | LLM 调用超时 | degraded=true，reason=model_timeout，不影响工单业务 |
+| 非法 | LLM 返回非法 JSON、缺字段或错误类型 | degraded=true，reason=invalid_model_output |
+| 安全 | LLM 返回本次检索结果之外的 source_id | 拒绝整个生成结果并标记 forged_source_reference |
+| 边界 | suggestion 或 replyDraft 超过长度限制 | 分别截断到 4000 和 6000 字符 |
+| 安全 | 用户无当前工单对象权限 | Java 在调用 Python 前拒绝 |
+| 合法 | Java 收到降级响应 | 原样返回前端，不新增评论、不处理工单、不改变状态 |
+
+### 阶段四十七手动验证命令
+
+```powershell
+cd ai-service
+.\.venv\Scripts\python.exe -m pytest
+.\.venv\Scripts\python.exe scripts\smoke_ticket_assist.py
+cd ..
+mvn test
+mvn clean compile
+```
+
 ## v3.0 发布门禁（规划）
 
 - [ ] Java↔Python v1 HTTP 契约、服务认证、超时和响应限制测试通过

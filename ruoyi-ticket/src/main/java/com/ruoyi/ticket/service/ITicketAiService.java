@@ -1,6 +1,7 @@
 package com.ruoyi.ticket.service;
 
 import com.ruoyi.ticket.dto.TicketAiClosedTicketSyncDTO;
+import com.ruoyi.ticket.dto.TicketAiAssistRequestDTO;
 import com.ruoyi.ticket.dto.TicketAiContextDTO;
 import com.ruoyi.ticket.dto.TicketAiDocumentImportDTO;
 import com.ruoyi.ticket.dto.TicketAiSimilarSearchDTO;
@@ -32,5 +33,5 @@ public interface ITicketAiService {
     TicketAiSimilarSearchResultVO searchSimilarTickets(TicketAiSimilarSearchDTO dto);
 
     /** 生成处理建议与回复草稿。 */
-    TicketAiAssistVO assist(TicketAiContextDTO dto);
+    TicketAiAssistVO assist(TicketAiAssistRequestDTO dto);
 }

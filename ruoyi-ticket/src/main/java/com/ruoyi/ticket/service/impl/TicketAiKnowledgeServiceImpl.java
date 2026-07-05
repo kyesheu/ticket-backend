@@ -2,6 +2,7 @@ package com.ruoyi.ticket.service.impl;
 
 import com.ruoyi.common.exception.ServiceException;
 import com.ruoyi.ticket.dto.TicketAiClosedTicketSyncDTO;
+import com.ruoyi.ticket.dto.TicketAiAssistRequestDTO;
 import com.ruoyi.ticket.dto.TicketAiContextDTO;
 import com.ruoyi.ticket.mapper.TicketMapper;
 import com.ruoyi.ticket.service.ITicketAccessPolicy;
@@ -9,6 +10,7 @@ import com.ruoyi.ticket.service.ITicketAiKnowledgeService;
 import com.ruoyi.ticket.service.ITicketAiService;
 import com.ruoyi.ticket.service.ITicketAiSyncCandidateService;
 import com.ruoyi.ticket.vo.TicketAiSearchResultVO;
+import com.ruoyi.ticket.vo.TicketAiAssistVO;
 import com.ruoyi.ticket.vo.TicketVO;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Service;
@@ -61,5 +63,21 @@ public class TicketAiKnowledgeServiceImpl implements ITicketAiKnowledgeService {
         context.setCategoryName(ticket.getCategoryName());
         context.setPriority(ticket.getPriority());
         return ticketAiService.search(context);
+    }
+
+    @Override
+    public TicketAiAssistVO assist(Long ticketId, Integer topK) {
+        accessPolicy.assertCanAccess(ticketId, TICKET_QUERY_PERMISSION);
+        TicketVO ticket = ticketMapper.selectTicketById(ticketId);
+        if (ticket == null) {
+            throw new ServiceException("工单不存在");
+        }
+        TicketAiAssistRequestDTO request = new TicketAiAssistRequestDTO();
+        request.setTicketId(ticketId);
+        request.setTitle(ticket.getTitle());
+        request.setDescription(ticket.getContent());
+        request.setCategory(ticket.getCategoryName());
+        request.setTopK(topK);
+        return ticketAiService.assist(request);
     }
 }

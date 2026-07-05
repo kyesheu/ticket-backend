@@ -3,9 +3,11 @@ package com.ruoyi.ticket.service.impl;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.ruoyi.ticket.config.TicketAiProperties;
 import com.ruoyi.ticket.dto.TicketAiContextDTO;
+import com.ruoyi.ticket.dto.TicketAiAssistRequestDTO;
 import com.ruoyi.ticket.dto.TicketAiSimilarSearchDTO;
 import com.ruoyi.ticket.exception.TicketAiServiceException;
 import com.ruoyi.ticket.vo.TicketAiHealthVO;
+import com.ruoyi.ticket.vo.TicketAiAssistVO;
 import com.ruoyi.ticket.vo.TicketAiSimilarSearchResultVO;
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpServer;
@@ -115,6 +117,39 @@ class HttpTicketAiServiceImplTest {
         assertThat(result.getResults().get(0).getSolution()).isEqualTo("空值缓存和布隆过滤器");
         assertThat(result.getResults().get(0).getScore()).isEqualTo(1.82D);
         assertThat(result.getResults().get(0).getSourceGeneration()).isEqualTo(3L);
+    }
+
+    @Test
+    @DisplayName("工单辅助请求序列化并解析建议草稿和降级字段")
+    void shouldSendAndReadAssistContract() {
+        AtomicReference<String> body = new AtomicReference<>();
+        server.createContext("/api/v1/tickets/assist", exchange -> {
+            body.set(new String(exchange.getRequestBody().readAllBytes(), StandardCharsets.UTF_8));
+            respond(exchange, 200, "{\"suggestion\":\"增加空值缓存\",\"reply_draft\":\"您好，问题处理中\","
+                    + "\"sources\":[{\"source_type\":\"knowledge_document\",\"source_id\":\"doc-1\","
+                    + "\"title\":\"Redis 指南\",\"snippet\":\"使用布隆过滤器\",\"score\":1.8,"
+                    + "\"metadata\":{\"chunk_index\":0}}],\"degraded\":true,\"reason\":\"model_timeout\"}");
+        });
+        TicketAiAssistRequestDTO dto = new TicketAiAssistRequestDTO();
+        dto.setTicketId(42L);
+        dto.setTitle("Redis 缓存穿透");
+        dto.setDescription("不存在的 key 被反复查询");
+        dto.setCategory("中间件");
+        dto.setTopK(5);
+
+        TicketAiAssistVO result = createService().assist(dto);
+
+        assertThat(body.get()).contains("\"ticket_id\":42")
+                .contains("\"top_k\":5")
+                .contains("\"category\":\"中间件\"");
+        assertThat(result.getSuggestion()).isEqualTo("增加空值缓存");
+        assertThat(result.getReplyDraft()).isEqualTo("您好，问题处理中");
+        assertThat(result.getSources()).singleElement().satisfies(source -> {
+            assertThat(source.getSourceId()).isEqualTo("doc-1");
+            assertThat(source.getSnippet()).isEqualTo("使用布隆过滤器");
+        });
+        assertThat(result.getDegraded()).isTrue();
+        assertThat(result.getReason()).isEqualTo("model_timeout");
     }
 
     @Test

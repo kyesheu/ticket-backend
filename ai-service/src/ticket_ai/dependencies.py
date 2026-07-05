@@ -3,8 +3,9 @@
 from functools import lru_cache
 
 from elasticsearch import Elasticsearch
-from langchain_openai import OpenAIEmbeddings
+from langchain_openai import ChatOpenAI, OpenAIEmbeddings
 
+from ticket_ai.assist import TicketAssistService
 from ticket_ai.config import get_settings
 from ticket_ai.knowledge import DocumentImporter, ElasticsearchKnowledgeWriter
 from ticket_ai.history_sync import (
@@ -74,3 +75,18 @@ def get_similar_knowledge_search_service() -> SimilarKnowledgeSearchService:
     return SimilarKnowledgeSearchService(
         embeddings, client, settings.knowledge_index, settings.ticket_history_index
     )
+
+
+@lru_cache
+def get_ticket_assist_service() -> TicketAssistService:
+    """创建工单 RAG 辅助服务。"""
+
+    settings = get_settings()
+    llm = ChatOpenAI(
+        api_key=settings.llm_api_key or settings.embedding_api_key,
+        base_url=settings.llm_base_url or settings.embedding_base_url,
+        model=settings.llm_model,
+        timeout=settings.llm_timeout_seconds,
+        temperature=0,
+    )
+    return TicketAssistService(get_similar_knowledge_search_service(), llm)

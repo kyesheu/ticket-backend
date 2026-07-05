@@ -7,6 +7,7 @@ import com.ruoyi.ticket.service.ITicketAccessPolicy;
 import com.ruoyi.ticket.service.ITicketAiService;
 import com.ruoyi.ticket.service.ITicketAiSyncCandidateService;
 import com.ruoyi.ticket.vo.TicketAiSearchResultVO;
+import com.ruoyi.ticket.vo.TicketAiAssistVO;
 import com.ruoyi.ticket.vo.TicketVO;
 import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
@@ -85,5 +86,39 @@ class TicketAiKnowledgeServiceImplTest {
         verify(ticketAiService).search(org.mockito.ArgumentMatchers.argThat(context ->
                 "Redis 缓存穿透".equals(context.getTitle())
                         && "不存在的 key 被反复查询".equals(context.getDescription())));
+    }
+
+    @Test
+    @DisplayName("有对象权限时组装当前工单上下文并返回可编辑草稿")
+    void shouldAssistAfterAccessCheckWithoutPersistingDraft() {
+        TicketVO ticket = new TicketVO();
+        ticket.setTitle("Redis 缓存穿透");
+        ticket.setContent("不存在的 key 被反复查询");
+        ticket.setCategoryName("中间件");
+        TicketAiAssistVO expected = new TicketAiAssistVO();
+        expected.setDegraded(true);
+        expected.setReason("model_timeout");
+        when(ticketMapper.selectTicketById(42L)).thenReturn(ticket);
+        when(ticketAiService.assist(org.mockito.ArgumentMatchers.any())).thenReturn(expected);
+
+        assertThat(service.assist(42L, 5)).isSameAs(expected);
+
+        verify(accessPolicy).assertCanAccess(42L, "ticket:ticket:query");
+        verify(ticketAiService).assist(org.mockito.ArgumentMatchers.argThat(request ->
+                request.getTicketId().equals(42L)
+                        && request.getTopK().equals(5)
+                        && "Redis 缓存穿透".equals(request.getTitle())));
+    }
+
+    @Test
+    @DisplayName("工单辅助无对象权限时不查询工单且不调用 Python")
+    void shouldNotAssistWithoutAccess() {
+        doThrow(new ServiceException("工单不存在"))
+                .when(accessPolicy).assertCanAccess(42L, "ticket:ticket:query");
+
+        assertThatThrownBy(() -> service.assist(42L, 5)).isInstanceOf(ServiceException.class);
+
+        verify(ticketMapper, never()).selectTicketById(42L);
+        verify(ticketAiService, never()).assist(org.mockito.ArgumentMatchers.any());
     }
 }

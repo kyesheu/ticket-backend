@@ -11,6 +11,7 @@ from ticket_ai.dependencies import (
     get_closed_ticket_sync_service,
     get_document_importer,
     get_similar_knowledge_search_service,
+    get_ticket_assist_service,
 )
 from ticket_ai.main import app
 
@@ -23,6 +24,18 @@ def override_settings() -> Settings:
 
 app.dependency_overrides[get_settings] = override_settings
 app.dependency_overrides[get_similar_knowledge_search_service] = Mock
+
+
+class DefaultFakeAssistService:
+    def assist(self, request):
+        assert request.ticket_id > 0
+        return {
+            "suggestion": "", "reply_draft": "", "sources": [],
+            "degraded": True, "reason": "no_reliable_evidence",
+        }
+
+
+app.dependency_overrides[get_ticket_assist_service] = DefaultFakeAssistService
 
 
 @pytest.fixture
@@ -81,22 +94,25 @@ async def test_unknown_contract_version_is_rejected(client: AsyncClient) -> None
 
 
 @pytest.mark.anyio
-async def test_valid_business_request_reaches_stage_skeleton(client: AsyncClient) -> None:
+async def test_valid_assist_request_returns_structured_degraded_response(client: AsyncClient) -> None:
     response = await client.post(
         "/api/v1/tickets/assist",
         headers={"X-Service-Token": TEST_TOKEN},
         json={
             "contract_version": "v1",
-            "ticket_no": "TK202607040001",
+            "ticket_id": 42,
             "title": "Redis cache penetration",
             "description": "How should it be handled?",
-            "category_name": "Middleware",
-            "priority": "HIGH",
+            "category": "Middleware",
+            "top_k": 5,
         },
     )
 
-    assert response.status_code == 501
-    assert response.json()["detail"] == "stage 47 not implemented"
+    assert response.status_code == 200
+    assert response.json() == {
+        "suggestion": "", "reply_draft": "", "sources": [],
+        "degraded": True, "reason": "no_reliable_evidence",
+    }
 
 
 @pytest.mark.anyio

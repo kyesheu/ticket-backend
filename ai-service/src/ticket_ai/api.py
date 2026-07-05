@@ -4,6 +4,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 
 from ticket_ai.models import (
     AcceptedResponse,
+    AssistRequest,
     AssistResponse,
     ClosedTicketSyncRequest,
     ClosedTicketSyncResponse,
@@ -18,7 +19,9 @@ from ticket_ai.dependencies import (
     get_closed_ticket_sync_service,
     get_document_importer,
     get_similar_knowledge_search_service,
+    get_ticket_assist_service,
 )
+from ticket_ai.assist import TicketAssistService
 from ticket_ai.history_sync import ClosedTicketSyncService
 from ticket_ai.knowledge import DocumentImporter, DocumentImportError
 from ticket_ai.similar_search import SimilarKnowledgeSearchService
@@ -84,8 +87,8 @@ def search(request: TicketContextRequest,
 
 
 @router.post("/tickets/assist", response_model=AssistResponse, dependencies=[Depends(verify_service_token)])
-def assist(request: TicketContextRequest) -> AssistResponse:
-    """生成处理建议和回复草稿；阶段四十七实现。"""
+def assist(request: AssistRequest,
+           service: TicketAssistService = Depends(get_ticket_assist_service)) -> AssistResponse:
+    """生成仅供展示和编辑的处理建议与回复草稿。"""
 
-    del request
-    raise HTTPException(status_code=status.HTTP_501_NOT_IMPLEMENTED, detail="stage 47 not implemented")
+    return service.assist(request)

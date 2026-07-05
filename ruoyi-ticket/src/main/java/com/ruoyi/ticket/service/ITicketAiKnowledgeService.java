@@ -1,6 +1,7 @@
 package com.ruoyi.ticket.service;
 
 import com.ruoyi.ticket.vo.TicketAiSearchResultVO;
+import com.ruoyi.ticket.vo.TicketAiAssistVO;
 
 /**
  * 历史工单同步与相似知识检索业务入口。
@@ -12,4 +13,7 @@ public interface ITicketAiKnowledgeService {
 
     /** 在对象权限校验后检索当前工单的相似知识。 */
     TicketAiSearchResultVO searchSimilarKnowledge(Long ticketId);
+
+    /** 在对象权限校验后生成处理建议与可编辑回复草稿。 */
+    TicketAiAssistVO assist(Long ticketId, Integer topK);
 }

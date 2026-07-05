@@ -79,10 +79,21 @@ class SearchResponse(StrictModel):
     sources: list[SourceItem]
 
 
+class AssistRequest(StrictModel):
+    contract_version: Literal["v1"]
+    ticket_id: int = Field(gt=0)
+    title: str = Field(min_length=1, max_length=200)
+    description: str = Field(min_length=1, max_length=10000)
+    category: str | None = Field(default=None, max_length=100)
+    top_k: int = Field(default=5, ge=1, le=20)
+
+
 class AssistResponse(StrictModel):
     suggestion: str
     reply_draft: str
     sources: list[SourceItem]
+    degraded: bool
+    reason: str | None = None
 
 
 class AcceptedResponse(StrictModel):

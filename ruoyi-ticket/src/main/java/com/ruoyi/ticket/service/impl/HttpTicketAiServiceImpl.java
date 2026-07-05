@@ -6,6 +6,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.PropertyNamingStrategies;
 import com.ruoyi.ticket.config.TicketAiProperties;
 import com.ruoyi.ticket.dto.TicketAiClosedTicketSyncDTO;
+import com.ruoyi.ticket.dto.TicketAiAssistRequestDTO;
 import com.ruoyi.ticket.dto.TicketAiContextDTO;
 import com.ruoyi.ticket.dto.TicketAiDocumentImportDTO;
 import com.ruoyi.ticket.dto.TicketAiSimilarSearchDTO;
@@ -77,7 +78,7 @@ public class HttpTicketAiServiceImpl implements ITicketAiService {
     }
 
     @Override
-    public TicketAiAssistVO assist(TicketAiContextDTO dto) {
+    public TicketAiAssistVO assist(TicketAiAssistRequestDTO dto) {
         return post("/api/v1/tickets/assist", dto, TicketAiAssistVO.class);
     }
 

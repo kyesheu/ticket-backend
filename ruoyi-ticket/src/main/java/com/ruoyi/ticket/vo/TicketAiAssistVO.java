@@ -15,6 +15,8 @@ public class TicketAiAssistVO implements Serializable {
     private String suggestion;
     private String replyDraft;
     private List<TicketAiSourceVO> sources;
+    private Boolean degraded;
+    private String reason;
 
     public String getSuggestion() { return suggestion; }
     public void setSuggestion(String suggestion) { this.suggestion = suggestion; }
@@ -22,4 +24,8 @@ public class TicketAiAssistVO implements Serializable {
     public void setReplyDraft(String replyDraft) { this.replyDraft = replyDraft; }
     public List<TicketAiSourceVO> getSources() { return sources; }
     public void setSources(List<TicketAiSourceVO> sources) { this.sources = sources; }
+    public Boolean getDegraded() { return degraded; }
+    public void setDegraded(Boolean degraded) { this.degraded = degraded; }
+    public String getReason() { return reason; }
+    public void setReason(String reason) { this.reason = reason; }
 }

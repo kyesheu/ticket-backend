@@ -6,13 +6,15 @@ import com.ruoyi.ticket.enums.TicketStatus;
 import com.ruoyi.ticket.mapper.TicketMapper;
 import com.ruoyi.ticket.model.TicketAiSyncCandidate;
 import com.ruoyi.ticket.service.ITicketAiSyncCandidateService;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+import org.springframework.util.StringUtils;
+
 import java.time.Instant;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.LinkedHashSet;
 import java.util.List;
-import org.springframework.stereotype.Service;
-import org.springframework.util.StringUtils;
 
 /**
  * 历史工单同步候选查询 Service 实现。
@@ -27,6 +29,7 @@ public class TicketAiSyncCandidateServiceImpl implements ITicketAiSyncCandidateS
     private final TicketMapper ticketMapper;
     private final ZoneId zoneId;
 
+    @Autowired
     public TicketAiSyncCandidateServiceImpl(TicketMapper ticketMapper) {
         this(ticketMapper, ZoneId.systemDefault());
     }

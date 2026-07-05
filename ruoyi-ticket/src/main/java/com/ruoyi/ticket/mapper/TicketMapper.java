@@ -1,19 +1,22 @@
 package com.ruoyi.ticket.mapper;
 
-import java.util.List;
-import org.apache.ibatis.annotations.Param;
 import com.ruoyi.ticket.domain.Ticket;
 import com.ruoyi.ticket.dto.TicketQueryDTO;
 import com.ruoyi.ticket.model.TicketAccessScope;
 import com.ruoyi.ticket.model.TicketAiSyncCandidate;
 import com.ruoyi.ticket.vo.TicketListVO;
 import com.ruoyi.ticket.vo.TicketVO;
+import org.apache.ibatis.annotations.Mapper;
+import org.apache.ibatis.annotations.Param;
+
+import java.util.List;
 
 /**
  * 工单 Mapper 接口
  *
  * @author ticket
  */
+@Mapper
 public interface TicketMapper {
 
     /**

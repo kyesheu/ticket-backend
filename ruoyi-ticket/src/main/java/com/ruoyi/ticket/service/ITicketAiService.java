@@ -3,11 +3,13 @@ package com.ruoyi.ticket.service;
 import com.ruoyi.ticket.dto.TicketAiClosedTicketSyncDTO;
 import com.ruoyi.ticket.dto.TicketAiContextDTO;
 import com.ruoyi.ticket.dto.TicketAiDocumentImportDTO;
+import com.ruoyi.ticket.dto.TicketAiSimilarSearchDTO;
 import com.ruoyi.ticket.vo.TicketAiAcceptedVO;
 import com.ruoyi.ticket.vo.TicketAiAssistVO;
 import com.ruoyi.ticket.vo.TicketAiClosedTicketSyncVO;
 import com.ruoyi.ticket.vo.TicketAiHealthVO;
 import com.ruoyi.ticket.vo.TicketAiSearchResultVO;
+import com.ruoyi.ticket.vo.TicketAiSimilarSearchResultVO;
 
 /**
  * 工单 AI HTTP interface。
@@ -25,6 +27,9 @@ public interface ITicketAiService {
 
     /** 检索相似知识。 */
     TicketAiSearchResultVO search(TicketAiContextDTO dto);
+
+    /** 检索相似历史工单。 */
+    TicketAiSimilarSearchResultVO searchSimilarTickets(TicketAiSimilarSearchDTO dto);
 
     /** 生成处理建议与回复草稿。 */
     TicketAiAssistVO assist(TicketAiContextDTO dto);

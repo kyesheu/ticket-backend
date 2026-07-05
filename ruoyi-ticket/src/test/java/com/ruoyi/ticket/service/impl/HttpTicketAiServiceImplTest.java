@@ -3,8 +3,10 @@ package com.ruoyi.ticket.service.impl;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.ruoyi.ticket.config.TicketAiProperties;
 import com.ruoyi.ticket.dto.TicketAiContextDTO;
+import com.ruoyi.ticket.dto.TicketAiSimilarSearchDTO;
 import com.ruoyi.ticket.exception.TicketAiServiceException;
 import com.ruoyi.ticket.vo.TicketAiHealthVO;
+import com.ruoyi.ticket.vo.TicketAiSimilarSearchResultVO;
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpServer;
 import java.io.IOException;
@@ -82,6 +84,37 @@ class HttpTicketAiServiceImplTest {
         assertThat(token.get()).isEqualTo(SERVICE_TOKEN);
         assertThat(body.get()).contains("\"contract_version\":\"v1\"")
                 .contains("\"ticket_no\":\"TK202607040001\"");
+    }
+
+    @Test
+    @DisplayName("相似工单检索发送请求并解析结果")
+    void shouldSearchSimilarTickets() {
+        AtomicReference<String> token = new AtomicReference<>();
+        AtomicReference<String> body = new AtomicReference<>();
+        server.createContext("/api/v1/tickets/similar-search", exchange -> {
+            token.set(exchange.getRequestHeaders().getFirst("X-Service-Token"));
+            body.set(new String(exchange.getRequestBody().readAllBytes(), StandardCharsets.UTF_8));
+            respond(exchange, 200, "{\"results\":[{\"ticket_id\":42,\"title\":\"Redis 缓存穿透\","
+                    + "\"category\":\"中间件\",\"solution\":\"空值缓存和布隆过滤器\",\"score\":1.82,"
+                    + "\"source_generation\":3}]}");
+        });
+        TicketAiSimilarSearchDTO dto = new TicketAiSimilarSearchDTO();
+        dto.setQuery("Redis 缓存穿透怎么处理？");
+        dto.setTopK(3);
+
+        TicketAiSimilarSearchResultVO result = createService().searchSimilarTickets(dto);
+
+        assertThat(token.get()).isEqualTo(SERVICE_TOKEN);
+        assertThat(body.get()).contains("\"contract_version\":\"v1\"")
+                .contains("\"query\":\"Redis 缓存穿透怎么处理？\"")
+                .contains("\"top_k\":3");
+        assertThat(result.getResults()).hasSize(1);
+        assertThat(result.getResults().get(0).getTicketId()).isEqualTo(42L);
+        assertThat(result.getResults().get(0).getTitle()).isEqualTo("Redis 缓存穿透");
+        assertThat(result.getResults().get(0).getCategory()).isEqualTo("中间件");
+        assertThat(result.getResults().get(0).getSolution()).isEqualTo("空值缓存和布隆过滤器");
+        assertThat(result.getResults().get(0).getScore()).isEqualTo(1.82D);
+        assertThat(result.getResults().get(0).getSourceGeneration()).isEqualTo(3L);
     }
 
     @Test

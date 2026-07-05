@@ -14,7 +14,8 @@ from ticket_ai.models import (
     TicketContextRequest,
 )
 from ticket_ai.security import verify_service_token
-from ticket_ai.dependencies import get_document_importer
+from ticket_ai.dependencies import get_closed_ticket_sync_service, get_document_importer
+from ticket_ai.history_sync import ClosedTicketSyncService
 from ticket_ai.knowledge import DocumentImporter, DocumentImportError
 
 router = APIRouter(prefix="/api/v1")
@@ -47,11 +48,19 @@ def import_document(request: DocumentImportRequest,
 
 @router.post("/tickets/sync", response_model=ClosedTicketSyncResponse,
              dependencies=[Depends(verify_service_token)])
-def sync_ticket(request: ClosedTicketSyncRequest) -> ClosedTicketSyncResponse:
-    """接收关闭工单快照；阶段四十六实现实际同步。"""
+def sync_ticket(request: ClosedTicketSyncRequest,
+                service: ClosedTicketSyncService = Depends(get_closed_ticket_sync_service)) -> ClosedTicketSyncResponse:
+    """向量化并幂等写入历史已关闭工单。"""
 
-    del request
-    raise HTTPException(status_code=status.HTTP_501_NOT_IMPLEMENTED, detail="stage 46 not implemented")
+    try:
+        document = service.sync(request)
+        return ClosedTicketSyncResponse(
+            ticket_id=request.ticket_id,
+            source_generation=document.source_generation,
+        )
+    except Exception as exception:
+        raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                            detail="closed ticket sync unavailable") from exception
 
 
 @router.post("/knowledge/search", response_model=SearchResponse, dependencies=[Depends(verify_service_token)])

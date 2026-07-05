@@ -1,7 +1,7 @@
 """Java 与 Python 之间的 v1 HTTP 契约模型。"""
 
 from datetime import datetime
-from typing import Annotated, Literal
+from typing import Annotated, Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
@@ -67,11 +67,12 @@ class TicketContextRequest(StrictModel):
 
 
 class SourceItem(StrictModel):
-    source_type: Literal["DOCUMENT", "CLOSED_TICKET"]
+    source_type: Literal["knowledge_document", "history_ticket"]
     source_id: str
     title: str
     snippet: str
-    score: float = Field(ge=0, le=1)
+    score: float = Field(ge=0)
+    metadata: dict[str, Any]
 
 
 class SearchResponse(StrictModel):

@@ -5,6 +5,7 @@ import com.ruoyi.common.core.controller.BaseController;
 import com.ruoyi.common.core.domain.AjaxResult;
 import com.ruoyi.common.enums.BusinessType;
 import com.ruoyi.ticket.service.ITicketAiDocumentService;
+import com.ruoyi.ticket.service.ITicketAiKnowledgeService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -25,9 +26,12 @@ import org.springframework.web.multipart.MultipartFile;
 public class TicketAiController extends BaseController {
 
     private final ITicketAiDocumentService ticketAiDocumentService;
+    private final ITicketAiKnowledgeService ticketAiKnowledgeService;
 
-    public TicketAiController(ITicketAiDocumentService ticketAiDocumentService) {
+    public TicketAiController(ITicketAiDocumentService ticketAiDocumentService,
+                              ITicketAiKnowledgeService ticketAiKnowledgeService) {
         this.ticketAiDocumentService = ticketAiDocumentService;
+        this.ticketAiKnowledgeService = ticketAiKnowledgeService;
     }
 
     @Operation(summary = "导入知识文档")
@@ -36,5 +40,21 @@ public class TicketAiController extends BaseController {
     @PostMapping("/document/import")
     public AjaxResult importDocument(@RequestParam String sourceId, @RequestParam("file") MultipartFile file) {
         return success(ticketAiDocumentService.importDocument(sourceId, file));
+    }
+
+    @Operation(summary = "同步历史已关闭工单")
+    @Log(title = "AI 历史工单同步", businessType = BusinessType.INSERT)
+    @PreAuthorize("@ss.hasPermi('ticket:ai:history:sync')")
+    @PostMapping("/history/sync")
+    public AjaxResult syncHistory(@RequestParam(defaultValue = "0") Long lastTicketId,
+                                  @RequestParam(defaultValue = "100") Integer limit) {
+        return success(ticketAiKnowledgeService.syncClosedTickets(lastTicketId, limit));
+    }
+
+    @Operation(summary = "检索工单相似知识")
+    @PreAuthorize("@ss.hasPermi('ticket:ticket:query')")
+    @PostMapping("/ticket/similar")
+    public AjaxResult searchSimilar(@RequestParam Long ticketId) {
+        return success(ticketAiKnowledgeService.searchSimilarKnowledge(ticketId));
     }
 }

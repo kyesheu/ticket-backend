@@ -12,7 +12,7 @@ from ticket_ai.history_sync import (
     ClosedTicketSyncService,
     ElasticsearchClosedTicketWriter,
 )
-from ticket_ai.similar_search import SimilarTicketSearchService
+from ticket_ai.similar_search import SimilarKnowledgeSearchService, SimilarTicketSearchService
 
 
 @lru_cache
@@ -58,3 +58,19 @@ def get_similar_ticket_search_service() -> SimilarTicketSearchService:
     )
     client = Elasticsearch(settings.elasticsearch_url)
     return SimilarTicketSearchService(embeddings, client, settings.ticket_history_index)
+
+
+@lru_cache
+def get_similar_knowledge_search_service() -> SimilarKnowledgeSearchService:
+    """创建知识文档与历史工单统一检索服务。"""
+
+    settings = get_settings()
+    embeddings = OpenAIEmbeddings(
+        api_key=settings.embedding_api_key,
+        base_url=settings.embedding_base_url,
+        model=settings.embedding_model,
+    )
+    client = Elasticsearch(settings.elasticsearch_url)
+    return SimilarKnowledgeSearchService(
+        embeddings, client, settings.knowledge_index, settings.ticket_history_index
+    )

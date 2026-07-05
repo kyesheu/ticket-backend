@@ -7,7 +7,11 @@ import pytest
 from httpx import ASGITransport, AsyncClient
 
 from ticket_ai.config import Settings, get_settings
-from ticket_ai.dependencies import get_closed_ticket_sync_service, get_document_importer
+from ticket_ai.dependencies import (
+    get_closed_ticket_sync_service,
+    get_document_importer,
+    get_similar_knowledge_search_service,
+)
 from ticket_ai.main import app
 
 TEST_TOKEN = "test-service-token-12345"
@@ -18,6 +22,7 @@ def override_settings() -> Settings:
 
 
 app.dependency_overrides[get_settings] = override_settings
+app.dependency_overrides[get_similar_knowledge_search_service] = Mock
 
 
 @pytest.fixture
@@ -156,3 +161,33 @@ async def test_closed_ticket_sync_rejects_invalid_status(client: AsyncClient) ->
         app.dependency_overrides.pop(get_closed_ticket_sync_service, None)
 
     assert response.status_code == 422
+
+
+@pytest.mark.anyio
+async def test_knowledge_search_combines_ticket_title_and_description(client: AsyncClient) -> None:
+    result = SimpleNamespace(
+        source_type="knowledge_document", source_id="doc-1", title="Redis 指南",
+        snippet="使用布隆过滤器", score=1.7, metadata={"chunk_index": 0},
+    )
+    service = Mock()
+    service.search.return_value = [result]
+    app.dependency_overrides[get_similar_knowledge_search_service] = lambda: service
+    try:
+        response = await client.post(
+            "/api/v1/knowledge/search",
+            headers={"X-Service-Token": TEST_TOKEN},
+            json={
+                "contract_version": "v1", "ticket_no": "TK202607050001",
+                "title": "Redis 缓存穿透", "description": "不存在的 key 被反复查询",
+                "category_name": "中间件", "priority": "HIGH",
+            },
+        )
+    finally:
+        app.dependency_overrides[get_similar_knowledge_search_service] = Mock
+
+    assert response.status_code == 200
+    service.search.assert_called_once_with("Redis 缓存穿透\n不存在的 key 被反复查询")
+    assert response.json()["sources"][0] == {
+        "source_type": "knowledge_document", "source_id": "doc-1", "title": "Redis 指南",
+        "snippet": "使用布隆过滤器", "score": 1.7, "metadata": {"chunk_index": 0},
+    }

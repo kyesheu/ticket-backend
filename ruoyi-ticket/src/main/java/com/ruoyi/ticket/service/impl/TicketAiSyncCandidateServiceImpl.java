@@ -6,6 +6,7 @@ import com.ruoyi.ticket.enums.TicketStatus;
 import com.ruoyi.ticket.mapper.TicketMapper;
 import com.ruoyi.ticket.model.TicketAiSyncCandidate;
 import com.ruoyi.ticket.service.ITicketAiSyncCandidateService;
+import com.ruoyi.ticket.util.TicketAiSensitiveDataMasker;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
@@ -64,10 +65,10 @@ public class TicketAiSyncCandidateServiceImpl implements ITicketAiSyncCandidateS
     private TicketAiClosedTicketSyncDTO toDto(TicketAiSyncCandidate candidate) {
         TicketAiClosedTicketSyncDTO dto = new TicketAiClosedTicketSyncDTO();
         dto.setTicketId(candidate.getTicketId());
-        dto.setTitle(candidate.getTitle());
-        dto.setCategory(candidate.getCategory());
-        dto.setDescription(candidate.getDescription());
-        dto.setSolution(candidate.getSolution().trim());
+        dto.setTitle(TicketAiSensitiveDataMasker.mask(candidate.getTitle()));
+        dto.setCategory(TicketAiSensitiveDataMasker.mask(candidate.getCategory()));
+        dto.setDescription(TicketAiSensitiveDataMasker.mask(candidate.getDescription()));
+        dto.setSolution(TicketAiSensitiveDataMasker.mask(candidate.getSolution().trim()));
         dto.setStatus(TicketStatus.CLOSED.name());
         dto.setTags(buildTags(candidate));
         dto.setCreatedTime(formatTime(candidate.getCreatedTime().toInstant()));
@@ -79,10 +80,10 @@ public class TicketAiSyncCandidateServiceImpl implements ITicketAiSyncCandidateS
     private List<String> buildTags(TicketAiSyncCandidate candidate) {
         LinkedHashSet<String> tags = new LinkedHashSet<>();
         if (StringUtils.hasText(candidate.getCategory())) {
-            tags.add(candidate.getCategory());
+            tags.add(TicketAiSensitiveDataMasker.mask(candidate.getCategory()));
         }
         if (StringUtils.hasText(candidate.getPriority())) {
-            tags.add(candidate.getPriority());
+            tags.add(TicketAiSensitiveDataMasker.mask(candidate.getPriority()));
         }
         return List.copyOf(tags);
     }

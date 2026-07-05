@@ -14,9 +14,14 @@ from ticket_ai.models import (
     TicketContextRequest,
 )
 from ticket_ai.security import verify_service_token
-from ticket_ai.dependencies import get_closed_ticket_sync_service, get_document_importer
+from ticket_ai.dependencies import (
+    get_closed_ticket_sync_service,
+    get_document_importer,
+    get_similar_knowledge_search_service,
+)
 from ticket_ai.history_sync import ClosedTicketSyncService
 from ticket_ai.knowledge import DocumentImporter, DocumentImportError
+from ticket_ai.similar_search import SimilarKnowledgeSearchService
 
 router = APIRouter(prefix="/api/v1")
 
@@ -64,11 +69,18 @@ def sync_ticket(request: ClosedTicketSyncRequest,
 
 
 @router.post("/knowledge/search", response_model=SearchResponse, dependencies=[Depends(verify_service_token)])
-def search(request: TicketContextRequest) -> SearchResponse:
-    """检索相似知识；阶段四十六实现实际检索。"""
+def search(request: TicketContextRequest,
+           service: SimilarKnowledgeSearchService = Depends(get_similar_knowledge_search_service)) -> SearchResponse:
+    """根据当前工单标题和描述检索知识文档与历史工单。"""
 
-    del request
-    raise HTTPException(status_code=status.HTTP_501_NOT_IMPLEMENTED, detail="stage 46 not implemented")
+    try:
+        query = f"{request.title}\n{request.description}"
+        return SearchResponse(sources=[item.__dict__ for item in service.search(query)])
+    except ValueError as exception:
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail=str(exception)) from exception
+    except Exception as exception:
+        raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                            detail="similar knowledge search unavailable") from exception
 
 
 @router.post("/tickets/assist", response_model=AssistResponse, dependencies=[Depends(verify_service_token)])

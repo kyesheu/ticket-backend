@@ -67,6 +67,22 @@ class TicketAiSyncCandidateServiceImplTest {
     }
 
     @Test
+    @DisplayName("同步快照排除手机号邮箱身份证和凭据")
+    void shouldMaskSensitiveDataInSnapshot() {
+        TicketAiSyncCandidate candidate = candidate("CLOSED",
+                "联系 13812345678，邮箱 admin@example.com，password=secret", 3L);
+        candidate.setDescription("身份证 11010519491231002X token:abc123");
+        when(ticketMapper.selectAiSyncCandidatesAfter(0L, 10)).thenReturn(List.of(candidate));
+
+        TicketAiClosedTicketSyncDTO dto = service.selectCandidatesAfter(0L, 10).get(0);
+
+        assertThat(dto.getDescription()).doesNotContain("11010519491231002X", "abc123")
+                .contains("[REDACTED]");
+        assertThat(dto.getSolution()).doesNotContain("13812345678", "admin@example.com", "secret")
+                .contains("[REDACTED]");
+    }
+
+    @Test
     @DisplayName("非法游标和批量大小在查询前被拒绝")
     void shouldRejectInvalidPagingArguments() {
         assertThatThrownBy(() -> service.selectCandidatesAfter(-1L, 10))

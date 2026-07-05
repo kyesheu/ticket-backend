@@ -127,6 +127,24 @@ def test_same_ticket_and_new_generation_use_same_elasticsearch_id() -> None:
     assert [call.kwargs["document"]["source_generation"] for call in client.index.call_args_list] == [3, 4]
 
 
+def test_repeated_same_generation_uses_external_gte_idempotency() -> None:
+    embeddings = Mock(spec=Embeddings)
+    embeddings.embed_documents.return_value = [[0.1]]
+    preparation = ClosedTicketSyncPreparationService(embeddings, "test-model")
+    client = Mock()
+    client.indices.exists.return_value = True
+    writer = ElasticsearchClosedTicketWriter(client, "ticket-history-test")
+    document = preparation.prepare(request())
+
+    writer.write(document)
+    writer.write(document)
+
+    assert client.index.call_count == 2
+    assert all(call.kwargs["id"] == "closed-ticket:42" for call in client.index.call_args_list)
+    assert all(call.kwargs["version"] == 3 for call in client.index.call_args_list)
+    assert all(call.kwargs["version_type"] == "external_gte" for call in client.index.call_args_list)
+
+
 def test_sync_service_prepares_then_writes_without_real_clients() -> None:
     preparation = Mock()
     writer = Mock()

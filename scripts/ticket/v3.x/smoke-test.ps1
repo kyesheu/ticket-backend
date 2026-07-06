@@ -661,6 +661,68 @@ if (-not $AiSmokeEnabled) {
         $After = Invoke-RestMethod -Uri "$BaseUrl/ticket/$T1" -Headers $Headers -Method Get
         Assert-Equal "AI does not change ticket status" $BeforeStatus $After.data.status
         Assert-Equal "AI does not add ticket comments" $BeforeComments @($After.data.comments).Count
+
+        $TriageBody = @{
+            title = "PS-Smoke-Triage Apply $([DateTimeOffset]::Now.ToUnixTimeSeconds())"
+            content = "Office WiFi is unstable for multiple users and needs network support"
+            categoryId = 6
+            priority = "MEDIUM"
+            customFields = @(Get-RequiredCustomFieldInputs 6)
+        } | ConvertTo-Json -Depth 10
+        $TriageTicketId = (Invoke-RestMethod -Uri "$BaseUrl/ticket" -Method Post -Headers $Headers `
+            -Body $TriageBody -ContentType "application/json").data
+
+        $Triage = Invoke-RestMethod -Uri "$BaseUrl/ticket/ai/ticket/triage?ticketId=$TriageTicketId" `
+            -Method Post -Headers $Headers
+        Assert-Success "v3.1 triage suggestion" $Triage
+        if ($Triage.data.degraded) {
+            Assert-Contains "v3.1 degraded triage has reason" "reason" $Triage
+            Write-Skip "v3.1 apply triage suggestion" "triage degraded: $($Triage.data.reason)"
+        } else {
+            Assert-Contains "v3.1 triage has suggestion id" "suggestionId" $Triage
+            Assert-Contains "v3.1 triage has suggested assignee" "suggestedAssigneeId" $Triage
+            $SuggestionId = $Triage.data.suggestionId
+            if ($SuggestionId) {
+                $ApplyBody = @{ comment = "v3.1 smoke apply" } | ConvertTo-Json
+                $Apply = Invoke-RestMethod -Uri "$BaseUrl/ticket/ai/triage/$SuggestionId/apply" `
+                    -Method Post -Body $ApplyBody -ContentType "application/json" -Headers $Headers
+                Assert-Success "v3.1 apply triage suggestion" $Apply
+                try {
+                    $RepeatApply = Invoke-RestMethod -Uri "$BaseUrl/ticket/ai/triage/$SuggestionId/apply" `
+                        -Method Post -Body $ApplyBody -ContentType "application/json" -Headers $Headers
+                } catch { $RepeatApply = $_.Exception.Message }
+                Assert-Error "v3.1 repeated triage apply should fail" $RepeatApply
+            }
+        }
+
+        $RejectBody = @{
+            title = "PS-Smoke-Triage Reject $([DateTimeOffset]::Now.ToUnixTimeSeconds())"
+            content = "Printer access request should be reviewed by service desk"
+            categoryId = 6
+            priority = "LOW"
+            customFields = @(Get-RequiredCustomFieldInputs 6)
+        } | ConvertTo-Json -Depth 10
+        $RejectTicketId = (Invoke-RestMethod -Uri "$BaseUrl/ticket" -Method Post -Headers $Headers `
+            -Body $RejectBody -ContentType "application/json").data
+        $RejectTriage = Invoke-RestMethod -Uri "$BaseUrl/ticket/ai/ticket/triage?ticketId=$RejectTicketId" `
+            -Method Post -Headers $Headers
+        Assert-Success "v3.1 triage suggestion for reject" $RejectTriage
+        if ($RejectTriage.data.degraded) {
+            Write-Skip "v3.1 reject triage suggestion" "triage degraded: $($RejectTriage.data.reason)"
+        } else {
+            $RejectSuggestionId = $RejectTriage.data.suggestionId
+            Assert-Contains "v3.1 reject path has suggestion id" "suggestionId" $RejectTriage
+            if ($RejectSuggestionId) {
+                $Reject = Invoke-RestMethod -Uri "$BaseUrl/ticket/ai/triage/$RejectSuggestionId/reject" `
+                    -Method Post -Headers $Headers
+                Assert-Success "v3.1 reject triage suggestion" $Reject
+                try {
+                    $RepeatReject = Invoke-RestMethod -Uri "$BaseUrl/ticket/ai/triage/$RejectSuggestionId/reject" `
+                        -Method Post -Headers $Headers
+                } catch { $RepeatReject = $_.Exception.Message }
+                Assert-Error "v3.1 repeated triage reject should fail" $RepeatReject
+            }
+        }
     } catch {
         Write-Host "  [FAIL] v3 AI dependencies unavailable: $($_.Exception.Message)" -ForegroundColor Red
         $Fail++

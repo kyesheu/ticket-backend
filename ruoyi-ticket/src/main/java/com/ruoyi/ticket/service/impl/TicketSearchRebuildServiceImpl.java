@@ -22,6 +22,7 @@ import java.util.Date;
 @ConditionalOnProperty(prefix = "ticket.search", name = "enabled", havingValue = "true")
 public class TicketSearchRebuildServiceImpl implements ITicketSearchRebuildService {
     private static final DateTimeFormatter INDEX_TIME_FORMAT = DateTimeFormatter.ofPattern("yyyyMMddHHmmssSSS");
+    private static final long STALE_REBUILD_MILLIS = 10L * 60L * 1000L;
 
     @Autowired private TicketSearchRebuildMapper rebuildMapper;
     @Autowired private TicketSearchEventMapper eventMapper;
@@ -32,6 +33,7 @@ public class TicketSearchRebuildServiceImpl implements ITicketSearchRebuildServi
     @Override
     public void startRebuild() {
         Date now = new Date();
+        rebuildMapper.recoverStaleRunning(new Date(now.getTime() - STALE_REBUILD_MILLIS));
         TicketSearchRebuild rebuild = new TicketSearchRebuild();
         rebuild.setRebuildId(1L);
         rebuild.setRebuildStatus(TicketSearchRebuildStatus.RUNNING.name());

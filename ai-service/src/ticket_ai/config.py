@@ -2,7 +2,7 @@
 
 from functools import lru_cache
 
-from pydantic import Field
+from pydantic import Field, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -24,6 +24,19 @@ class Settings(BaseSettings):
     llm_base_url: str | None = None
     llm_model: str = "gpt-4o-mini"
     llm_timeout_seconds: float = Field(default=20.0, gt=0, le=120)
+    external_timeout_seconds: float = Field(default=10.0, gt=0, le=60)
+    assist_rate_limit: int = Field(default=30, ge=1, le=1000)
+    assist_rate_window_seconds: int = Field(default=60, ge=1, le=3600)
+    smoke_mode: bool = False
+
+    @model_validator(mode="after")
+    def validate_smoke_mode(self) -> "Settings":
+        """本地替身只能写入名称明确标识为 smoke/test 的索引。"""
+
+        names = (self.knowledge_index.lower(), self.ticket_history_index.lower())
+        if self.smoke_mode and not all("smoke" in name or "test" in name for name in names):
+            raise ValueError("smoke mode requires smoke/test indexes")
+        return self
 
 
 @lru_cache

@@ -34,6 +34,7 @@ public class TicketAiConfiguration {
     public HttpClient ticketAiHttpClient(TicketAiProperties properties) {
         validate(properties);
         return HttpClient.newBuilder()
+                .version(HttpClient.Version.HTTP_1_1)
                 .connectTimeout(properties.getConnectTimeout())
                 .build();
     }

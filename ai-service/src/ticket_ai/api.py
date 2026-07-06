@@ -20,7 +20,10 @@ from ticket_ai.dependencies import (
     get_document_importer,
     get_similar_knowledge_search_service,
     get_ticket_assist_service,
+    get_health_service,
 )
+from ticket_ai.health import HealthService
+from ticket_ai.resilience import RetrievalUnavailable, verify_ai_rate_limit
 from ticket_ai.assist import TicketAssistService
 from ticket_ai.history_sync import ClosedTicketSyncService
 from ticket_ai.knowledge import DocumentImporter, DocumentImportError
@@ -30,10 +33,10 @@ router = APIRouter(prefix="/api/v1")
 
 
 @router.get("/health", response_model=HealthResponse)
-def health() -> HealthResponse:
+def health(service: HealthService = Depends(get_health_service)) -> HealthResponse:
     """返回服务和契约版本状态。"""
 
-    return HealthResponse()
+    return service.check()
 
 
 @router.post("/documents/import", response_model=DocumentImportResponse,
@@ -71,7 +74,8 @@ def sync_ticket(request: ClosedTicketSyncRequest,
                             detail="closed ticket sync unavailable") from exception
 
 
-@router.post("/knowledge/search", response_model=SearchResponse, dependencies=[Depends(verify_service_token)])
+@router.post("/knowledge/search", response_model=SearchResponse,
+             dependencies=[Depends(verify_service_token), Depends(verify_ai_rate_limit)])
 def search(request: TicketContextRequest,
            service: SimilarKnowledgeSearchService = Depends(get_similar_knowledge_search_service)) -> SearchResponse:
     """根据当前工单标题和描述检索知识文档与历史工单。"""
@@ -79,14 +83,16 @@ def search(request: TicketContextRequest,
     try:
         query = f"{request.title}\n{request.description}"
         return SearchResponse(sources=[item.__dict__ for item in service.search(query)])
+    except RetrievalUnavailable as exception:
+        return SearchResponse(sources=[], degraded=True, reason=str(exception))
     except ValueError as exception:
         raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail=str(exception)) from exception
-    except Exception as exception:
-        raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-                            detail="similar knowledge search unavailable") from exception
+    except Exception:
+        return SearchResponse(sources=[], degraded=True, reason="retrieval_unavailable")
 
 
-@router.post("/tickets/assist", response_model=AssistResponse, dependencies=[Depends(verify_service_token)])
+@router.post("/tickets/assist", response_model=AssistResponse,
+             dependencies=[Depends(verify_service_token), Depends(verify_ai_rate_limit)])
 def assist(request: AssistRequest,
            service: TicketAssistService = Depends(get_ticket_assist_service)) -> AssistResponse:
     """生成仅供展示和编辑的处理建议与回复草稿。"""

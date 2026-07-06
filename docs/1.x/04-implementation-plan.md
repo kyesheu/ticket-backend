@@ -97,7 +97,7 @@
 
 - 实现告警分页、详情和管理员手工补扫接口
 - 补齐菜单权限和普通用户数据边界
-- 扩展 `scripts/ticket/smoke-test.ps1` 覆盖 v1.0 回归与 v1.1 主流程
+- 扩展 `scripts/ticket/v3.x/smoke-test.ps1` 覆盖 v1.0 回归与 v1.1 主流程
 - 执行 `mvn test` → `mvn clean compile` → 启动后端 → smoke
 - 更新 Swagger 和当前目录 `05-test-release.md` 的实测结果
 - 未获得全部测试结果前不得将 v1.1 标记完成
@@ -151,7 +151,7 @@
 
 ## v1.3 阶段二十二：联调收尾 ✅
 
-- 扩展 `scripts/ticket/smoke-test.ps1`，覆盖五种角色范围、多角色和对象级越权
+- 扩展 `scripts/ticket/v3.x/smoke-test.ps1`，覆盖五种角色范围、多角色和对象级越权
 - 回归 v1.0/v1.1/v1.2 主流程，重点验证跨部门分派、通知、SLA 和评价
 - 执行 `mvn test` → `mvn clean compile` → 启动后端 → smoke
 - 更新 Swagger 和当前目录 `05-test-release.md` 实测结果

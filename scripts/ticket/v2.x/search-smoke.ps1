@@ -33,6 +33,15 @@ function Get-RequiredFields([long]$CategoryId, $Headers) {
     return $inputs
 }
 
+function Invoke-SearchDispatch($Headers) {
+    $jobs = Invoke-RestMethod -Uri "$BaseUrl/monitor/job/list?jobGroup=TICKET&pageNum=1&pageSize=100" `
+        -Headers $Headers
+    $job = @($jobs.rows | Where-Object { $_.invokeTarget -eq "ticketSearchTask.dispatch" }) | Select-Object -First 1
+    if (-not $job) { throw "Search dispatcher job ticketSearchTask.dispatch was not found" }
+    return Invoke-RestMethod -Uri "$BaseUrl/monitor/job/run" -Method Put -Headers $Headers `
+        -Body (@{ jobId = $job.jobId; jobGroup = $job.jobGroup } | ConvertTo-Json) -ContentType "application/json"
+}
+
 $token = Login-Admin
 if (-not $token) { throw "Admin login failed" }
 $headers = @{ Authorization = "Bearer $token" }
@@ -53,8 +62,7 @@ foreach ($number in 1..2) {
     if ($created.code -ne 200) { throw "Ticket creation failed" }
 }
 
-$run = Invoke-RestMethod -Uri "$BaseUrl/monitor/job/run" -Method Put -Headers $headers `
-    -Body (@{ jobId = 101; jobGroup = "TICKET" } | ConvertTo-Json) -ContentType "application/json"
+$run = Invoke-SearchDispatch $headers
 if ($run.code -ne 200) { throw "Search dispatcher job failed to start" }
 
 $page = $null

@@ -6,6 +6,7 @@ from typing import Any
 
 from elasticsearch import Elasticsearch
 from langchain_core.embeddings import Embeddings
+from ticket_ai.resilience import RetrievalUnavailable
 
 
 @dataclass(frozen=True)
@@ -38,7 +39,10 @@ class SimilarTicketSearchService:
             raise ValueError("query must not be blank")
         if limit <= 0 or limit > self.MAX_LIMIT:
             raise ValueError("limit must be between 1 and 20")
-        vector = self._embeddings.embed_query(normalized_query)
+        try:
+            vector = self._embeddings.embed_query(normalized_query)
+        except Exception as exception:
+            raise RetrievalUnavailable("embedding_unavailable") from exception
         if not vector or not all(math.isfinite(value) for value in vector):
             raise ValueError("embedding response must be a finite non-empty vector")
         response = self._client.search(
@@ -98,10 +102,16 @@ class SimilarKnowledgeSearchService:
             raise ValueError("query must not be blank")
         if limit <= 0 or limit > SimilarTicketSearchService.MAX_LIMIT:
             raise ValueError("limit must be between 1 and 20")
-        vector = self._embeddings.embed_query(normalized_query)
+        try:
+            vector = self._embeddings.embed_query(normalized_query)
+        except Exception as exception:
+            raise RetrievalUnavailable("embedding_unavailable") from exception
         if not vector or not all(math.isfinite(value) for value in vector):
             raise ValueError("embedding response must be a finite non-empty vector")
-        results = self._search_documents(vector, limit) + self._search_history(vector, limit)
+        try:
+            results = self._search_documents(vector, limit) + self._search_history(vector, limit)
+        except Exception as exception:
+            raise RetrievalUnavailable("vector_store_unavailable") from exception
         return sorted(results, key=lambda item: item.score, reverse=True)[:limit]
 
     def _search_documents(self, vector: list[float], limit: int) -> list[SimilarKnowledgeResult]:

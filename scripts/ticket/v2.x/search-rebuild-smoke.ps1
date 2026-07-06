@@ -16,7 +16,7 @@ function Login-Admin {
 
 function Invoke-ProjectSql([string]$Sql) {
     $variables = @{}
-    Get-Content (Join-Path $PSScriptRoot "..\..\.env") | ForEach-Object {
+    Get-Content (Join-Path $PSScriptRoot "..\..\..\.env") | ForEach-Object {
         if ($_ -match '^([^#=]+)=(.*)$') { $variables[$matches[1]] = $matches[2] }
     }
     return docker exec mysql mysql "-u$($variables['DB_USERNAME'])" `

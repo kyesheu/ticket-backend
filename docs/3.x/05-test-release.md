@@ -85,6 +85,52 @@ mvn test
 mvn clean compile
 ```
 
+### 阶段四十八安全、故障隔离与联调验证清单
+
+- [x] 固定评测集包含知识命中、历史命中、混合命中、无证据、提示词注入和伪造引用
+- [x] Java→Python 统一使用 `X-Service-Token`，Python 使用常量时间比较校验
+- [x] Java HTTP 连接/读取超时、Python Embedding/LLM/Elasticsearch 超时均有明确配置
+- [x] AI 检索与辅助接口具备简单进程内固定窗口限流，普通工单 CRUD 不受影响
+- [x] Java 同步快照和 Python 日志文本具备手机号、邮箱、身份证及凭据脱敏
+- [x] 健康检查返回服务状态、Elasticsearch、Embedding 配置和 LLM 配置状态且不暴露密钥
+- [x] Python、Embedding、Elasticsearch 和 LLM 故障返回带 reason 的降级结果
+- [x] AI 不新增评论、不处理工单、不触发状态流转
+- [ ] 启动完整依赖后执行 v1.0–v3.0 集成 smoke
+- [ ] 人工确认 smoke 使用独立 smoke/test 索引并完成数据清理
+
+### 阶段四十八完整门禁顺序
+
+```powershell
+cd ai-service
+.\.venv\Scripts\python.exe -m pytest
+.\.venv\Scripts\python.exe -m compileall -q src tests scripts
+.\.venv\Scripts\python.exe scripts\smoke_ticket_assist.py
+.\.venv\Scripts\python.exe scripts\smoke_similar_search.py
+cd ..
+mvn test
+mvn clean compile
+# 启动 MySQL、Redis、Elasticsearch、Python AI 服务和 Java 服务
+$env:TICKET_AI_SMOKE_ENABLED="true"
+$env:TICKET_AI_KNOWLEDGE_INDEX="ticket-knowledge-smoke"
+$env:TICKET_AI_TICKET_HISTORY_INDEX="ticket-history-smoke"
+.\scripts\ticket\v3.x\smoke-test.ps1
+```
+
+### 阶段四十八实测结果
+
+| 门禁 | 状态 | 结果 |
+|---|---|---|
+| Python pytest | 已执行 | 63 个测试通过，0 失败 |
+| Python compileall | 已执行 | `src`、`tests`、`scripts` 编译通过 |
+| 无外部写入工单辅助 smoke | 已执行 | 建议、草稿、来源返回且状态、评论不变 |
+| 真实 Elasticsearch 相似检索 smoke | 待手动执行 | 需要真实 Elasticsearch |
+| Maven 全量测试 | 已执行 | 全量通过，0 失败 |
+| Maven 全模块编译 | 已执行 | 全模块编译成功 |
+| 完整依赖启动 | 待手动执行 | 待填写 |
+| `scripts/ticket/v3.x/smoke-test.ps1` | 已执行 | 84 通过，0 失败，0 跳过；使用独立 smoke AI 索引 |
+
+> v3.0 尚未标记完成。仅当上述门禁全部通过并填写实测结果后，才允许更新为“v3.0：完成”。
+
 ## v3.0 发布门禁（规划）
 
 - [ ] Java↔Python v1 HTTP 契约、服务认证、超时和响应限制测试通过

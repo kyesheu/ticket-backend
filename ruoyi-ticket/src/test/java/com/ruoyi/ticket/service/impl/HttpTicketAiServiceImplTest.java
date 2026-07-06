@@ -57,12 +57,16 @@ class HttpTicketAiServiceImplTest {
     @DisplayName("健康检查解析 v1 契约")
     void shouldReadHealthContract() {
         server.createContext("/api/v1/health", exchange -> respond(exchange, 200,
-                "{\"status\":\"UP\",\"contract_version\":\"v1\"}"));
+                "{\"status\":\"UP\",\"contract_version\":\"v1\",\"elasticsearch_available\":true,"
+                        + "\"embedding_configured\":true,\"llm_configured\":true}"));
 
         TicketAiHealthVO result = createService().health();
 
         assertThat(result.getStatus()).isEqualTo("UP");
         assertThat(result.getContractVersion()).isEqualTo("v1");
+        assertThat(result.getElasticsearchAvailable()).isTrue();
+        assertThat(result.getEmbeddingConfigured()).isTrue();
+        assertThat(result.getLlmConfigured()).isTrue();
     }
 
     @Test
@@ -166,7 +170,8 @@ class HttpTicketAiServiceImplTest {
     @DisplayName("不兼容的健康检查契约版本被拒绝")
     void shouldRejectIncompatibleContractVersion() {
         server.createContext("/api/v1/health", exchange -> respond(exchange, 200,
-                "{\"status\":\"UP\",\"contract_version\":\"v2\"}"));
+                "{\"status\":\"UP\",\"contract_version\":\"v2\",\"elasticsearch_available\":true,"
+                        + "\"embedding_configured\":true,\"llm_configured\":true}"));
 
         assertThatThrownBy(() -> createService().health())
                 .isInstanceOf(TicketAiServiceException.class)

@@ -5,6 +5,7 @@ import com.ruoyi.ticket.service.ITicketAiService;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
+import java.net.http.HttpClient;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -42,5 +43,15 @@ class TicketAiConfigurationTest {
                         "ticket.ai.enabled=true",
                         "ticket.ai.service-token=test-service-token-12345")
                 .run(context -> assertThat(context).hasSingleBean(ITicketAiService.class));
+    }
+
+    @Test
+    @DisplayName("AI HTTP 客户端固定使用 HTTP/1.1 兼容 Uvicorn")
+    void shouldUseHttp11() {
+        contextRunner.withPropertyValues(
+                        "ticket.ai.enabled=true",
+                        "ticket.ai.service-token=test-service-token-12345")
+                .run(context -> assertThat(context.getBean(HttpClient.class).version())
+                        .isEqualTo(HttpClient.Version.HTTP_1_1));
     }
 }

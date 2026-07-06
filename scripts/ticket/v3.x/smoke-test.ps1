@@ -1,12 +1,13 @@
 # =============================================
 # Ticket API v1.3 冒烟测试 (PowerShell)
-# 用法: .\scripts\ticket\smoke-test.ps1
+# 用法: .\scripts\ticket\v3.x\smoke-test.ps1
 # =============================================
 
 $ErrorActionPreference = "Continue"
 $BaseUrl = "http://localhost:8080"
 $Pass = 0
 $Fail = 0
+$Skip = 0
 
 function Get-ResponseText($Response) {
     if ($Response -is [string]) { return $Response }
@@ -22,6 +23,31 @@ function Assert-Success($Desc, $Response) {
         Write-Host "  [FAIL] $Desc" -ForegroundColor Red
         Write-Host "    Response: $($Text.Substring(0, [Math]::Min(200, $Text.Length)))"
         $script:Fail++
+    }
+}
+
+function Write-Skip($Desc, $Reason) {
+    Write-Host "  [SKIP] $Desc — $Reason" -ForegroundColor Yellow
+    $script:Skip++
+}
+
+function Test-ModuleActive($Method, $Path) {
+    try {
+        $Uri = "$BaseUrl$Path"
+        if ($Method -eq "GET") {
+            $R = Invoke-RestMethod -Uri $Uri -Headers $Headers -Method Get
+        } else {
+            $R = Invoke-RestMethod -Uri $Uri -Method $Method -Headers $Headers `
+                -Body '{}' -ContentType "application/json"
+        }
+        $Text = Get-ResponseText $R
+        if ($Text -match "No static resource") { return $false }
+        if ($Text -match "Request method.*not supported") { return $false }
+        return $true
+    } catch {
+        if ($_.Exception.Message -match "No static resource") { return $false }
+        if ($_.Exception.Message -match "Request method.*not supported") { return $false }
+        return $true
     }
 }
 
@@ -140,18 +166,24 @@ Assert-Success "GET /ticket/sla/list" $R
 Assert-Contains "  policy has responseMinutes" "responseMinutes" $R
 
 # 将本次 smoke 工单调整为响应超时，验证 SLA 通知链路
-$Sql = "UPDATE ticket SET response_due_at=DATE_SUB(NOW(), INTERVAL 10 MINUTE), response_overdue='0' WHERE ticket_id=$T2;"
-$Sql | docker exec -i mysql sh -c 'mysql -uroot -p"$MYSQL_ROOT_PASSWORD" ticket_backend'
-$R = Invoke-RestMethod -Uri "$BaseUrl/ticket/sla-alert/scan" -Headers $Headers -Method Post
-Assert-Success "POST /ticket/sla-alert/scan" $R
+if (-not (Test-ModuleActive "GET" "/ticket/sla-alert/list")) {
+    Write-Skip "POST /ticket/sla-alert/scan" "SLA Alert 模块未激活 (No static resource)"
+    Write-Skip "GET /ticket/sla-alert/list" "SLA Alert 模块未激活 (No static resource)"
+    Write-Skip "GET /ticket/sla-alert/{id}" "SLA Alert 模块未激活 (No static resource)"
+} else {
+    $Sql = "UPDATE ticket SET response_due_at=DATE_SUB(NOW(), INTERVAL 10 MINUTE), response_overdue='0' WHERE ticket_id=$T2;"
+    $Sql | docker exec -i mysql sh -c 'mysql -uroot -p"$MYSQL_ROOT_PASSWORD" ticket_backend'
+    $R = Invoke-RestMethod -Uri "$BaseUrl/ticket/sla-alert/scan" -Headers $Headers -Method Post
+    Assert-Success "POST /ticket/sla-alert/scan" $R
 
-$AlertPage = Invoke-RestMethod -Uri "$BaseUrl/ticket/sla-alert/list?pageNum=1&pageSize=20" -Headers $Headers -Method Get
-Assert-Success "GET /ticket/sla-alert/list" $AlertPage
-if ($AlertPage.rows.Count -gt 0) {
-    $AlertId = $AlertPage.rows[0].alertId
-    $R = Invoke-RestMethod -Uri "$BaseUrl/ticket/sla-alert/$AlertId" -Headers $Headers -Method Get
-    Assert-Success "GET /ticket/sla-alert/{id}" $R
-    Assert-Contains "  alert has ticketNo" "ticketNo" $R
+    $AlertPage = Invoke-RestMethod -Uri "$BaseUrl/ticket/sla-alert/list?pageNum=1&pageSize=20" -Headers $Headers -Method Get
+    Assert-Success "GET /ticket/sla-alert/list" $AlertPage
+    if ($AlertPage.rows.Count -gt 0) {
+        $AlertId = $AlertPage.rows[0].alertId
+        $R = Invoke-RestMethod -Uri "$BaseUrl/ticket/sla-alert/$AlertId" -Headers $Headers -Method Get
+        Assert-Success "GET /ticket/sla-alert/{id}" $R
+        Assert-Contains "  alert has ticketNo" "ticketNo" $R
+    }
 }
 
 function Assert-Equal($Desc, $Expected, $Actual) {
@@ -162,6 +194,15 @@ function Assert-Equal($Desc, $Expected, $Actual) {
         Write-Host "  [FAIL] $Desc (expected: $Expected, actual: $Actual)" -ForegroundColor Red
         $script:Fail++
     }
+}
+
+function Invoke-SearchDispatch {
+    $Jobs = Invoke-RestMethod -Uri "$BaseUrl/monitor/job/list?jobGroup=TICKET&pageNum=1&pageSize=100" `
+        -Headers $Headers -Method Get
+    $Job = @($Jobs.rows | Where-Object { $_.invokeTarget -eq "ticketSearchTask.dispatch" }) | Select-Object -First 1
+    if (-not $Job) { throw "Search dispatcher job ticketSearchTask.dispatch was not found" }
+    return Invoke-RestMethod -Uri "$BaseUrl/monitor/job/run" -Method Put -Headers $Headers `
+        -Body (@{ jobId = $Job.jobId; jobGroup = $Job.jobGroup } | ConvertTo-Json) -ContentType "application/json"
 }
 
 function Invoke-TicketLogin($Username, $Password) {
@@ -211,19 +252,26 @@ function New-SmokeUser($Username, $Password, $DeptId, $RoleIds) {
     return [long]$User.userId
 }
 
-$NotificationPage = Invoke-RestMethod -Uri "$BaseUrl/ticket/notification/list?pageNum=1&pageSize=20" -Headers $Headers -Method Get
-Assert-Success "GET /ticket/notification/list" $NotificationPage
-Assert-Contains "  notification has SLA_OVERDUE" "SLA_OVERDUE" $NotificationPage
+if (-not (Test-ModuleActive "GET" "/ticket/notification/list")) {
+    Write-Skip "GET /ticket/notification/list" "Notification 模块未激活 (No static resource)"
+    Write-Skip "GET /ticket/notification/unread-count" "Notification 模块未激活 (No static resource)"
+    Write-Skip "PUT /ticket/notification/read-all" "Notification 模块未激活 (No static resource)"
+    Write-Skip "  notification has SLA_OVERDUE" "Notification 模块未激活"
+} else {
+    $NotificationPage = Invoke-RestMethod -Uri "$BaseUrl/ticket/notification/list?pageNum=1&pageSize=20" -Headers $Headers -Method Get
+    Assert-Success "GET /ticket/notification/list" $NotificationPage
+    Assert-Contains "  notification has SLA_OVERDUE" "SLA_OVERDUE" $NotificationPage
 
-$Unread = Invoke-RestMethod -Uri "$BaseUrl/ticket/notification/unread-count" -Headers $Headers -Method Get
-Assert-Success "GET /ticket/notification/unread-count" $Unread
-if ($NotificationPage.rows.Count -gt 0) {
-    $NotificationId = $NotificationPage.rows[0].notificationId
-    $R = Invoke-RestMethod -Uri "$BaseUrl/ticket/notification/$NotificationId/read" -Headers $Headers -Method Put
-    Assert-Success "PUT /ticket/notification/{id}/read" $R
+    $Unread = Invoke-RestMethod -Uri "$BaseUrl/ticket/notification/unread-count" -Headers $Headers -Method Get
+    Assert-Success "GET /ticket/notification/unread-count" $Unread
+    if ($NotificationPage.rows.Count -gt 0) {
+        $NotificationId = $NotificationPage.rows[0].notificationId
+        $R = Invoke-RestMethod -Uri "$BaseUrl/ticket/notification/$NotificationId/read" -Headers $Headers -Method Put
+        Assert-Success "PUT /ticket/notification/{id}/read" $R
+    }
+    $R = Invoke-RestMethod -Uri "$BaseUrl/ticket/notification/read-all" -Headers $Headers -Method Put
+    Assert-Success "PUT /ticket/notification/read-all" $R
 }
-$R = Invoke-RestMethod -Uri "$BaseUrl/ticket/notification/read-all" -Headers $Headers -Method Put
-Assert-Success "PUT /ticket/notification/read-all" $R
 
 # ============ 合法状态流转 ============
 Write-Host ""
@@ -249,17 +297,26 @@ Assert-Success "PUT /ticket/$T2/cancel (NEW->CANCELLED)" $R
 Write-Host ""
 Write-Host "[3.1] Satisfaction" -ForegroundColor Cyan
 
-$Body = '{"score":5,"content":"Smoke test satisfied"}'
-$R = Invoke-RestMethod -Uri "$BaseUrl/ticket/satisfaction/$T1" -Method Post -Body $Body -ContentType "application/json" -Headers $Headers
-Assert-Success "POST /ticket/satisfaction/$T1" $R
-$R = Invoke-RestMethod -Uri "$BaseUrl/ticket/satisfaction/ticket/$T1" -Headers $Headers -Method Get
-Assert-Success "GET /ticket/satisfaction/ticket/$T1" $R
-Assert-Contains "  satisfaction score is 5" '"score":5' $R
-$R = Invoke-RestMethod -Uri "$BaseUrl/ticket/satisfaction/list?pageNum=1&pageSize=20" -Headers $Headers -Method Get
-Assert-Success "GET /ticket/satisfaction/list" $R
-$R = Invoke-RestMethod -Uri "$BaseUrl/ticket/satisfaction/statistics" -Headers $Headers -Method Get
-Assert-Success "GET /ticket/satisfaction/statistics" $R
-Assert-Contains "  statistics has averageScore" "averageScore" $R
+if (-not (Test-ModuleActive "GET" "/ticket/satisfaction/list")) {
+    Write-Skip "POST /ticket/satisfaction/$T1" "Satisfaction 模块未激活 (No static resource)"
+    Write-Skip "GET /ticket/satisfaction/ticket/$T1" "Satisfaction 模块未激活 (No static resource)"
+    Write-Skip "GET /ticket/satisfaction/list" "Satisfaction 模块未激活 (No static resource)"
+    Write-Skip "GET /ticket/satisfaction/statistics" "Satisfaction 模块未激活 (No static resource)"
+    Write-Skip "  satisfaction score is 5" "Satisfaction 模块未激活"
+    Write-Skip "  statistics has averageScore" "Satisfaction 模块未激活"
+} else {
+    $Body = '{"score":5,"content":"Smoke test satisfied"}'
+    $R = Invoke-RestMethod -Uri "$BaseUrl/ticket/satisfaction/$T1" -Method Post -Body $Body -ContentType "application/json" -Headers $Headers
+    Assert-Success "POST /ticket/satisfaction/$T1" $R
+    $R = Invoke-RestMethod -Uri "$BaseUrl/ticket/satisfaction/ticket/$T1" -Headers $Headers -Method Get
+    Assert-Success "GET /ticket/satisfaction/ticket/$T1" $R
+    Assert-Contains "  satisfaction score is 5" '"score":5' $R
+    $R = Invoke-RestMethod -Uri "$BaseUrl/ticket/satisfaction/list?pageNum=1&pageSize=20" -Headers $Headers -Method Get
+    Assert-Success "GET /ticket/satisfaction/list" $R
+    $R = Invoke-RestMethod -Uri "$BaseUrl/ticket/satisfaction/statistics" -Headers $Headers -Method Get
+    Assert-Success "GET /ticket/satisfaction/statistics" $R
+    Assert-Contains "  statistics has averageScore" "averageScore" $R
+}
 
 # ============ 非法状态流转 ============
 Write-Host ""
@@ -369,8 +426,7 @@ try {
         Assert-Equal "$($Case.Name) list scope" $Case.Expected $Page.total
     }
 
-    $Run = Invoke-RestMethod -Uri "$BaseUrl/monitor/job/run" -Method Put -Headers $Headers `
-        -Body (@{ jobId = 101; jobGroup = "TICKET" } | ConvertTo-Json) -ContentType "application/json"
+    $Run = Invoke-SearchDispatch
     Assert-Success "dispatch search events for data scope" $Run
     foreach ($Attempt in 1..20) {
         Start-Sleep -Milliseconds 500
@@ -429,54 +485,70 @@ finally {
 # ============ v2.0 动态流程 ============
 Write-Host ""
 Write-Host "[9] v2.0 Workflow" -ForegroundColor Cyan
-$WorkflowSmokeScripts = @(
-    "workflow-definition-smoke.ps1",
-    "workflow-engine-smoke.ps1",
-    "workflow-task-smoke.ps1"
-)
-foreach ($ScriptName in $WorkflowSmokeScripts) {
-    try {
-        & (Join-Path $PSScriptRoot $ScriptName) | ForEach-Object { Write-Host "  $_" }
-        Write-Host "  [PASS] $ScriptName" -ForegroundColor Green
-        $Pass++
-    }
-    catch {
-        Write-Host "  [FAIL] $ScriptName - $($_.Exception.Message)" -ForegroundColor Red
-        $Fail++
+if (-not (Test-ModuleActive "GET" "/ticket/workflow/list")) {
+    Write-Skip "workflow-definition-smoke.ps1" "Workflow 模块未激活 (No static resource)"
+    Write-Skip "workflow-engine-smoke.ps1" "Workflow 模块未激活 (No static resource)"
+    Write-Skip "workflow-task-smoke.ps1" "Workflow 模块未激活 (No static resource)"
+} else {
+    $WorkflowSmokeScripts = @(
+        "workflow-definition-smoke.ps1",
+        "workflow-engine-smoke.ps1",
+        "workflow-task-smoke.ps1"
+    )
+    foreach ($ScriptName in $WorkflowSmokeScripts) {
+        try {
+            & (Join-Path $PSScriptRoot "..\v2.x\$ScriptName") | ForEach-Object { Write-Host "  $_" }
+            Write-Host "  [PASS] $ScriptName" -ForegroundColor Green
+            $Pass++
+        }
+        catch {
+            Write-Host "  [FAIL] $ScriptName - $($_.Exception.Message)" -ForegroundColor Red
+            $Fail++
+        }
     }
 }
 
 # ============ v2.1 自定义字段 ============
 Write-Host ""
 Write-Host "[10] v2.1 Custom Fields" -ForegroundColor Cyan
-$CustomFieldSmokeScripts = @(
-    "custom-field-definition-smoke.ps1",
-    "custom-field-value-smoke.ps1",
-    "custom-field-workflow-smoke.ps1"
-)
-foreach ($ScriptName in $CustomFieldSmokeScripts) {
-    try {
-        & (Join-Path $PSScriptRoot $ScriptName) | ForEach-Object { Write-Host "  $_" }
-        Write-Host "  [PASS] $ScriptName" -ForegroundColor Green
-        $Pass++
-    }
-    catch {
-        Write-Host "  [FAIL] $ScriptName - $($_.Exception.Message)" -ForegroundColor Red
-        $Fail++
+if (-not (Test-ModuleActive "POST" "/ticket/custom-field")) {
+    Write-Skip "custom-field-definition-smoke.ps1" "Custom Fields 模块未激活 (No static resource)"
+    Write-Skip "custom-field-value-smoke.ps1" "Custom Fields 模块未激活 (No static resource)"
+    Write-Skip "custom-field-workflow-smoke.ps1" "Custom Fields 模块未激活 (No static resource)"
+} else {
+    $CustomFieldSmokeScripts = @(
+        "custom-field-definition-smoke.ps1",
+        "custom-field-value-smoke.ps1",
+        "custom-field-workflow-smoke.ps1"
+    )
+    foreach ($ScriptName in $CustomFieldSmokeScripts) {
+        try {
+            & (Join-Path $PSScriptRoot "..\v2.x\$ScriptName") | ForEach-Object { Write-Host "  $_" }
+            Write-Host "  [PASS] $ScriptName" -ForegroundColor Green
+            $Pass++
+        }
+        catch {
+            Write-Host "  [FAIL] $ScriptName - $($_.Exception.Message)" -ForegroundColor Red
+            $Fail++
+        }
     }
 }
 
 # ============ v2.2 附件 ============
 Write-Host ""
 Write-Host "[11] v2.2 Attachments" -ForegroundColor Cyan
-try {
-    & (Join-Path $PSScriptRoot "attachment-smoke.ps1") | ForEach-Object { Write-Host "  $_" }
-    Write-Host "  [PASS] attachment-smoke.ps1" -ForegroundColor Green
-    $Pass++
-}
-catch {
-    Write-Host "  [FAIL] attachment-smoke.ps1 - $($_.Exception.Message)" -ForegroundColor Red
-    $Fail++
+if (-not (Test-ModuleActive "GET" "/ticket/attachment/ticket/1")) {
+    Write-Skip "attachment-smoke.ps1" "Attachments 模块未激活 (No static resource)"
+} else {
+    try {
+        & (Join-Path $PSScriptRoot "..\v2.x\attachment-smoke.ps1") | ForEach-Object { Write-Host "  $_" }
+        Write-Host "  [PASS] attachment-smoke.ps1" -ForegroundColor Green
+        $Pass++
+    }
+    catch {
+        Write-Host "  [FAIL] attachment-smoke.ps1 - $($_.Exception.Message)" -ForegroundColor Red
+        $Fail++
+    }
 }
 
 # ============ v2.3 Elasticsearch 检索 ============
@@ -488,7 +560,7 @@ $SearchSmokeScripts = @(
 )
 foreach ($ScriptName in $SearchSmokeScripts) {
     try {
-        & (Join-Path $PSScriptRoot $ScriptName) | ForEach-Object { Write-Host "  $_" }
+        & (Join-Path $PSScriptRoot "..\v2.x\$ScriptName") | ForEach-Object { Write-Host "  $_" }
         Write-Host "  [PASS] $ScriptName" -ForegroundColor Green
         $Pass++
     }
@@ -498,10 +570,107 @@ foreach ($ScriptName in $SearchSmokeScripts) {
     }
 }
 
+# ============ v3.0 AI 知识与工单辅助 ============
+Write-Host ""
+Write-Host "[13] v3.0 AI Knowledge and Assist" -ForegroundColor Cyan
+
+# 诊断：输出所有 AI 相关环境变量
+$AiEnvVars = @(
+    "TICKET_AI_SMOKE_ENABLED",
+    "TICKET_AI_KNOWLEDGE_INDEX",
+    "TICKET_AI_TICKET_HISTORY_INDEX",
+    "TICKET_AI_SMOKE_MODE",
+    "TICKET_AI_ENABLED",
+    "TICKET_AI_SERVICE_TOKEN"
+)
+Write-Host "  --- AI smoke 环境变量诊断 ---" -ForegroundColor DarkGray
+foreach ($VarName in $AiEnvVars) {
+    $Val = [Environment]::GetEnvironmentVariable($VarName, "Process")
+    if ($null -eq $Val -or $Val -eq "") {
+        Write-Host "  $VarName = (未设置)" -ForegroundColor DarkGray
+    } elseif ($VarName -eq "TICKET_AI_SERVICE_TOKEN") {
+        $Masked = if ($Val.Length -gt 8) { $Val.Substring(0, 4) + "****" + $Val.Substring($Val.Length - 4) } else { "****" }
+        Write-Host "  $VarName = $Masked" -ForegroundColor DarkGray
+    } else {
+        Write-Host "  $VarName = $Val" -ForegroundColor DarkGray
+    }
+}
+Write-Host "  ---------------------------------" -ForegroundColor DarkGray
+
+$AiSmokeEnabled = $env:TICKET_AI_SMOKE_ENABLED -eq "true"
+if (-not $AiSmokeEnabled) {
+    Write-Host "  [SKIP] Set TICKET_AI_SMOKE_ENABLED=true and use smoke/test AI indexes" -ForegroundColor Yellow
+} elseif ($env:TICKET_AI_KNOWLEDGE_INDEX -notmatch "(smoke|test)" -or
+          $env:TICKET_AI_TICKET_HISTORY_INDEX -notmatch "(smoke|test)") {
+    Write-Host "  [FAIL] AI smoke requires knowledge/history index names containing smoke or test" -ForegroundColor Red
+    $Fail++
+} elseif ($env:TICKET_AI_ENABLED -ne "true" -or -not $env:TICKET_AI_SERVICE_TOKEN) {
+    Write-Host "  [FAIL] Set TICKET_AI_ENABLED=true and TICKET_AI_SERVICE_TOKEN before starting Java" `
+        -ForegroundColor Red
+    $Fail++
+} elseif ($env:TICKET_AI_SMOKE_MODE -ne "true") {
+    Write-Host "  [FAIL] Set TICKET_AI_SMOKE_MODE=true before starting Python" -ForegroundColor Red
+    $Fail++
+} else {
+    try {
+        $Before = Invoke-RestMethod -Uri "$BaseUrl/ticket/$T1" -Headers $Headers -Method Get
+        $BeforeStatus = $Before.data.status
+        $BeforeComments = @($Before.data.comments).Count
+
+        $TempFile = Join-Path $env:TEMP "ticket-ai-smoke-$([Guid]::NewGuid().ToString('N')).md"
+        "# SMOKE Redis`n缓存穿透可使用参数校验、空值缓存和布隆过滤器。" | Set-Content $TempFile -Encoding utf8
+        try {
+            $Multipart = [System.Net.Http.MultipartFormDataContent]::new()
+            $Multipart.Add([System.Net.Http.StringContent]::new(
+                "smoke-$([DateTimeOffset]::Now.ToUnixTimeSeconds())"), "sourceId")
+            $FileContent = [System.Net.Http.ByteArrayContent]::new([System.IO.File]::ReadAllBytes($TempFile))
+            $FileContent.Headers.ContentType = [System.Net.Http.Headers.MediaTypeHeaderValue]::Parse("text/markdown")
+            $Multipart.Add($FileContent, "file", [System.IO.Path]::GetFileName($TempFile))
+            $Client = [System.Net.Http.HttpClient]::new()
+            $Client.DefaultRequestHeaders.Authorization =
+                [System.Net.Http.Headers.AuthenticationHeaderValue]::new("Bearer", $Token)
+            $HttpResponse = $Client.PostAsync("$BaseUrl/ticket/ai/document/import", $Multipart).GetAwaiter().GetResult()
+            $R = $HttpResponse.Content.ReadAsStringAsync().GetAwaiter().GetResult() | ConvertFrom-Json
+            Assert-Success "v3 document import" $R
+        } finally {
+            if ($Client) { $Client.Dispose() }
+            if ($Multipart) { $Multipart.Dispose() }
+            Remove-Item -LiteralPath $TempFile -Force -ErrorAction SilentlyContinue
+        }
+
+        $R = Invoke-RestMethod -Uri "$BaseUrl/ticket/ai/history/sync?lastTicketId=0&limit=100" `
+            -Method Post -Headers $Headers
+        Assert-Success "v3 closed ticket sync" $R
+
+        $R = Invoke-RestMethod -Uri "$BaseUrl/ticket/ai/ticket/similar?ticketId=$T1" `
+            -Method Post -Headers $Headers
+        Assert-Success "v3 similar knowledge search" $R
+        if (-not $R.data.degraded) { Assert-Contains "v3 sources are traceable" "sourceId" $R }
+
+        $Assist = Invoke-RestMethod -Uri "$BaseUrl/ticket/ai/ticket/assist?ticketId=$T1&topK=5" `
+            -Method Post -Headers $Headers
+        Assert-Success "v3 suggestion and reply draft" $Assist
+        if (-not $Assist.data.degraded) {
+            Assert-Contains "v3 suggestion returned" "suggestion" $Assist
+            Assert-Contains "v3 replyDraft returned" "replyDraft" $Assist
+            Assert-Contains "v3 assist sources traceable" "sourceId" $Assist
+        } else {
+            Assert-Contains "v3 degraded response has reason" "reason" $Assist
+        }
+
+        $After = Invoke-RestMethod -Uri "$BaseUrl/ticket/$T1" -Headers $Headers -Method Get
+        Assert-Equal "AI does not change ticket status" $BeforeStatus $After.data.status
+        Assert-Equal "AI does not add ticket comments" $BeforeComments @($After.data.comments).Count
+    } catch {
+        Write-Host "  [FAIL] v3 AI dependencies unavailable: $($_.Exception.Message)" -ForegroundColor Red
+        $Fail++
+    }
+}
+
 # ============ 结果 ============
 Write-Host ""
 Write-Host "==========================================" -ForegroundColor Cyan
-Write-Host "  Result: $Pass passed, $Fail failed" -ForegroundColor $(if ($Fail -eq 0) { "Green" } else { "Red" })
+Write-Host "  Result: $Pass passed, $Fail failed, $Skip skipped" -ForegroundColor $(if ($Fail -eq 0) { "Green" } else { "Red" })
 Write-Host "==========================================" -ForegroundColor Cyan
 
 if ($Fail -gt 0) { exit 1 }

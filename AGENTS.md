@@ -56,6 +56,6 @@
 
 ### 6. 启动后端 + 接口 smoke
 
-启动 Spring Boot，执行 `scripts/ticket/smoke-test.ps1`，覆盖：分类 CRUD、工单主流程、合法/非法流转、评论、日志、权限。
+启动 Spring Boot，执行 `scripts/ticket/v3.x/smoke-test.ps1`，覆盖：分类 CRUD、工单主流程、合法/非法流转、评论、日志、权限。
 
 **没有测试结果，不声称功能完成。**

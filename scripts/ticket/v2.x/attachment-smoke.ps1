@@ -23,9 +23,9 @@ function Assert-Code($Description, $Expected, $Response) {
 }
 
 $Headers = Login-Admin
-$TextFile = Get-Item (Join-Path $PSScriptRoot "../../ruoyi-admin/src/main/resources/banner.txt")
-$ImageFile = Get-Item (Join-Path $PSScriptRoot "../../ruoyi-ui/src/assets/logo/logo.png")
-$InvalidFile = Get-Item (Join-Path $PSScriptRoot "../../pom.xml")
+$TextFile = Get-Item (Join-Path $PSScriptRoot "../../../ruoyi-admin/src/main/resources/banner.txt")
+$ImageFile = Get-Item (Join-Path $PSScriptRoot "../../../ruoyi-ui/src/assets/logo/logo.png")
+$InvalidFile = Get-Item (Join-Path $PSScriptRoot "../../../pom.xml")
 
 $Upload = Invoke-RestMethod -Uri "$BaseUrl/ticket/attachment/upload" -Method Post `
     -Headers $Headers -Form @{ file = $TextFile }

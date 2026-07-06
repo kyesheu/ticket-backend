@@ -45,7 +45,7 @@
 
 ## v2.0 阶段二十八：联调收尾 ✅
 
-- 扩展 `scripts/ticket/smoke-test.ps1`，覆盖定义发布、版本锁定、条件路由、五种处理人、退回和并发幂等
+- 扩展 `scripts/ticket/v3.x/smoke-test.ps1`，覆盖定义发布、版本锁定、条件路由、五种处理人、退回和并发幂等
 - 执行 `mvn test` → `mvn clean compile` → 启动后端 → 完整 smoke
 - 检查 Swagger、增量 SQL 可重复部署失败保护、权限和敏感错误信息
 - 更新当前目录 `05-test-release.md` 实测结果

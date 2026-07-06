@@ -3,6 +3,7 @@ package com.ruoyi.ticket.service.impl;
 import com.ruoyi.common.exception.ServiceException;
 import com.ruoyi.ticket.dto.TicketAiClosedTicketSyncDTO;
 import com.ruoyi.ticket.mapper.TicketMapper;
+import com.ruoyi.ticket.exception.TicketAiServiceException;
 import com.ruoyi.ticket.service.ITicketAccessPolicy;
 import com.ruoyi.ticket.service.ITicketAiService;
 import com.ruoyi.ticket.service.ITicketAiSyncCandidateService;
@@ -120,5 +121,24 @@ class TicketAiKnowledgeServiceImplTest {
 
         verify(ticketMapper, never()).selectTicketById(42L);
         verify(ticketAiService, never()).assist(org.mockito.ArgumentMatchers.any());
+    }
+
+    @Test
+    @DisplayName("Python 不可用时返回降级结果且不影响工单主流程")
+    void shouldDegradeWhenPythonIsUnavailable() {
+        TicketVO ticket = new TicketVO();
+        ticket.setTitle("Redis 缓存穿透");
+        ticket.setContent("问题描述");
+        when(ticketMapper.selectTicketById(42L)).thenReturn(ticket);
+        when(ticketAiService.assist(org.mockito.ArgumentMatchers.any()))
+                .thenThrow(new TicketAiServiceException("AI 服务调用失败"));
+
+        TicketAiAssistVO result = service.assist(42L, 5);
+
+        assertThat(result.getDegraded()).isTrue();
+        assertThat(result.getReason()).isEqualTo("python_service_unavailable");
+        assertThat(result.getSuggestion()).isEmpty();
+        assertThat(result.getReplyDraft()).isEmpty();
+        verify(accessPolicy).assertCanAccess(42L, "ticket:ticket:query");
     }
 }

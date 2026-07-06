@@ -39,6 +39,6 @@
 
 - 建立小型固定评测集，覆盖知识命中、相似工单、建议可用性、引用、拒答和提示词注入
 - 补齐服务间认证、超时、限流、日志脱敏、健康检查和 Python/向量库/模型故障降级
-- 扩展 `scripts/ticket/smoke-test.ps1` 覆盖四项功能以及 v1.0–v2.3 完整回归
+- 扩展 `scripts/ticket/v3.x/smoke-test.ps1` 覆盖四项功能以及 v1.0–v2.3 完整回归
 - 执行 Python 测试 → `mvn test` → `mvn clean compile` → 启动完整依赖 → 端到端 smoke
 - 更新当前目录 `05-test-release.md` 实测结果；全部门禁通过后才将 v3.0 标记完成

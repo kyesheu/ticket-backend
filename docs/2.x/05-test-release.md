@@ -51,7 +51,7 @@
 - [x] v1.0–v1.3 单元测试和 smoke 全部回归通过
 - [x] `mvn test` 与 `mvn clean compile` 通过
 - [x] 后端启动无 ERROR，Swagger 中 v2.0 接口完整
-- [x] `scripts/ticket/smoke-test.ps1` 完整通过；开发库测试记录已记录，未自动删除
+- [x] `scripts/ticket/v3.x/smoke-test.ps1` 完整通过；开发库测试记录已记录，未自动删除
 
 ### 阶段二十三~二十八实测结果（2026-07-02 ~ 2026-07-03）
 

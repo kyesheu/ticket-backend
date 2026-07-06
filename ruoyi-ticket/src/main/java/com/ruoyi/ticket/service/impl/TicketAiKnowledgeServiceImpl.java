@@ -5,6 +5,7 @@ import com.ruoyi.ticket.dto.TicketAiClosedTicketSyncDTO;
 import com.ruoyi.ticket.dto.TicketAiAssistRequestDTO;
 import com.ruoyi.ticket.dto.TicketAiContextDTO;
 import com.ruoyi.ticket.mapper.TicketMapper;
+import com.ruoyi.ticket.exception.TicketAiServiceException;
 import com.ruoyi.ticket.service.ITicketAccessPolicy;
 import com.ruoyi.ticket.service.ITicketAiKnowledgeService;
 import com.ruoyi.ticket.service.ITicketAiService;
@@ -14,6 +15,7 @@ import com.ruoyi.ticket.vo.TicketAiAssistVO;
 import com.ruoyi.ticket.vo.TicketVO;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Service;
+import java.util.Collections;
 
 /**
  * 历史工单同步与相似知识检索 Service 实现。
@@ -62,7 +64,15 @@ public class TicketAiKnowledgeServiceImpl implements ITicketAiKnowledgeService {
         context.setDescription(ticket.getContent());
         context.setCategoryName(ticket.getCategoryName());
         context.setPriority(ticket.getPriority());
-        return ticketAiService.search(context);
+        try {
+            return ticketAiService.search(context);
+        } catch (TicketAiServiceException exception) {
+            TicketAiSearchResultVO degraded = new TicketAiSearchResultVO();
+            degraded.setSources(Collections.emptyList());
+            degraded.setDegraded(true);
+            degraded.setReason("python_service_unavailable");
+            return degraded;
+        }
     }
 
     @Override
@@ -78,6 +88,16 @@ public class TicketAiKnowledgeServiceImpl implements ITicketAiKnowledgeService {
         request.setDescription(ticket.getContent());
         request.setCategory(ticket.getCategoryName());
         request.setTopK(topK);
-        return ticketAiService.assist(request);
+        try {
+            return ticketAiService.assist(request);
+        } catch (TicketAiServiceException exception) {
+            TicketAiAssistVO degraded = new TicketAiAssistVO();
+            degraded.setSuggestion("");
+            degraded.setReplyDraft("");
+            degraded.setSources(Collections.emptyList());
+            degraded.setDegraded(true);
+            degraded.setReason("python_service_unavailable");
+            return degraded;
+        }
     }
 }

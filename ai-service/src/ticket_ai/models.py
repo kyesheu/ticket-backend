@@ -13,8 +13,11 @@ class StrictModel(BaseModel):
 
 
 class HealthResponse(StrictModel):
-    status: Literal["UP"] = "UP"
+    status: Literal["UP", "DEGRADED"] = "UP"
     contract_version: Literal["v1"] = "v1"
+    elasticsearch_available: bool
+    embedding_configured: bool
+    llm_configured: bool
 
 
 class DocumentImportRequest(StrictModel):
@@ -77,6 +80,8 @@ class SourceItem(StrictModel):
 
 class SearchResponse(StrictModel):
     sources: list[SourceItem]
+    degraded: bool = False
+    reason: str | None = None
 
 
 class AssistRequest(StrictModel):

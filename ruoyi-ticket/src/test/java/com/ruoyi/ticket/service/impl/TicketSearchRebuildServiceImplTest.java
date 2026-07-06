@@ -36,6 +36,7 @@ class TicketSearchRebuildServiceImplTest {
 
         rebuildService.startRebuild();
 
+        verify(rebuildMapper).recoverStaleRunning(any(java.util.Date.class));
         verify(ticketSearchTaskExecutor).execute(any(Runnable.class));
     }
 

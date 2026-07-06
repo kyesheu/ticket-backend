@@ -12,6 +12,7 @@ from ticket_ai.dependencies import (
     get_document_importer,
     get_similar_knowledge_search_service,
     get_ticket_assist_service,
+    get_health_service,
 )
 from ticket_ai.main import app
 
@@ -24,6 +25,17 @@ def override_settings() -> Settings:
 
 app.dependency_overrides[get_settings] = override_settings
 app.dependency_overrides[get_similar_knowledge_search_service] = Mock
+
+
+class DefaultFakeHealthService:
+    def check(self):
+        return {
+            "status": "UP", "contract_version": "v1", "elasticsearch_available": True,
+            "embedding_configured": True, "llm_configured": True,
+        }
+
+
+app.dependency_overrides[get_health_service] = DefaultFakeHealthService
 
 
 class DefaultFakeAssistService:
@@ -54,7 +66,10 @@ async def test_health_exposes_v1_contract(client: AsyncClient) -> None:
     response = await client.get("/api/v1/health")
 
     assert response.status_code == 200
-    assert response.json() == {"status": "UP", "contract_version": "v1"}
+    assert response.json() == {
+        "status": "UP", "contract_version": "v1", "elasticsearch_available": True,
+        "embedding_configured": True, "llm_configured": True,
+    }
 
 
 @pytest.mark.anyio

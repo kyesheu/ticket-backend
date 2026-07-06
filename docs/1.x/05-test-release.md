@@ -42,7 +42,7 @@
 
 ## 接口测试
 
-> 所有测试可通过 `scripts/ticket/smoke-test.ps1` 自动执行。
+> 所有测试可通过 `scripts/ticket/v3.x/smoke-test.ps1` 自动执行。
 
 ### 分类
 
@@ -136,7 +136,7 @@
 
 - [x] `mvn clean compile` 通过
 - [x] `mvn test` — 34/34 全部通过
-- [x] `scripts/ticket/smoke-test.ps1` — 全部通过
+- [x] `scripts/ticket/v3.x/smoke-test.ps1` — 全部通过
 - [x] `git diff` 确认基础模块仅修复 URL 废弃 API，无破坏性修改
 - [x] Swagger ticket 接口文档完整
 - [x] CI/CD — GitHub Actions 流水线已配置
@@ -203,7 +203,7 @@
 - [x] `mvn test` — 51/51 全部通过
 - [x] `mvn clean compile` 通过
 - [x] 后端启动无 ERROR
-- [x] `scripts/ticket/smoke-test.ps1` — 35/35 全部通过
+- [x] `scripts/ticket/v3.x/smoke-test.ps1` — 35/35 全部通过
 - [x] Quartz 手工执行、重复扫描幂等和自动任务配置验证通过
 - [x] Swagger SLA 接口文档完整
 

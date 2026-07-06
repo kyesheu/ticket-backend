@@ -13,7 +13,7 @@ public final class TicketAiSensitiveDataMasker {
             "(?i)[a-z0-9._%+-]+@[a-z0-9.-]+\\.[a-z]{2,}");
     private static final Pattern ID_CARD = Pattern.compile("(?<!\\d)\\d{17}[0-9Xx](?!\\d)");
     private static final Pattern SECRET = Pattern.compile(
-            "(?i)\\b(token|password|passwd|pwd)\\s*[:=]\\s*[^\\s,;]+"
+            "(?i)\\b(api_key|token|password|passwd|pwd|authorization)\\s*[:=]\\s*[^\\s,;]+"
     );
 
     private TicketAiSensitiveDataMasker() {

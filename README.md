@@ -31,7 +31,7 @@
 │   └── src/test/         # 单元测试
 ├── ai-service/           # ★ Python FastAPI 智能辅助服务（v3.0）
 ├── docs/                 # 设计文档
-├── scripts/ticket/       # 接口冒烟测试
+├── scripts/ticket/       # 按 v1.x、v2.x、v3.x 分类的接口冒烟测试
 ├── sql/                  # 建表 SQL
 └── .github/workflows/    # CI/CD
 ```
@@ -84,10 +84,10 @@ mvn test
 
 ```bash
 mvn test                                    # 单元测试
-powershell scripts/ticket/smoke-test.ps1    # 接口冒烟测试
+powershell scripts/ticket/v3.x/smoke-test.ps1    # 最新完整接口冒烟测试
 ```
 
-导入 Postman：`scripts/ticket/Ticket-API.postman_collection.json`
+导入 Postman：`scripts/ticket/v1.x/Ticket-API.postman_collection.json`
 
 ## 设计文档
 

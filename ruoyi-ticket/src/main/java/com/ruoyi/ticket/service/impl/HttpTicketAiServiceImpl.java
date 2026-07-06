@@ -51,7 +51,7 @@ public class HttpTicketAiServiceImpl implements ITicketAiService {
     public TicketAiHealthVO health() {
         HttpRequest request = baseRequest("/api/v1/health").GET().build();
         TicketAiHealthVO health = execute(request, TicketAiHealthVO.class);
-        if (!"UP".equals(health.getStatus()) || !"v1".equals(health.getContractVersion())) {
+        if (!"v1".equals(health.getContractVersion())) {
             throw new TicketAiServiceException("AI 服务契约版本不兼容");
         }
         return health;

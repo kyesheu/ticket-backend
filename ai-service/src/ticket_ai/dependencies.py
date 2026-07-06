@@ -61,13 +61,16 @@ def _smoke_llm(prompt):
 def _smoke_triage_llm(prompt):
     category_match = re.search(r"允许分类：([^\n]+)", prompt.to_string())
     priority_match = re.search(r"允许优先级：([^\n]+)", prompt.to_string())
+    assignee_match = re.search(r"允许处理人：([^\n]+)", prompt.to_string())
     source_match = re.search(r"允许来源 ID：([^\n]+)", prompt.to_string())
     category_id = int(category_match.group(1).split(":")[0].strip()) if category_match else None
     priority = priority_match.group(1).split(",")[0].strip() if priority_match else ""
+    assignee_id = int(assignee_match.group(1).split(":")[0].strip()) if assignee_match else None
     source_id = source_match.group(1).split(",")[0].strip() if source_match else ""
     return json.dumps({
         "suggested_category_id": category_id,
         "suggested_priority": priority,
+        "suggested_assignee_id": assignee_id,
         "confidence": 0.7,
         "reason_summary": "根据检索证据和候选集生成分诊建议。",
         "source_ids": [source_id],

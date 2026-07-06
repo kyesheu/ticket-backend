@@ -3,6 +3,7 @@ package com.ruoyi.ticket.controller;
 import com.ruoyi.ticket.service.ITicketAiDocumentService;
 import com.ruoyi.ticket.service.ITicketAiKnowledgeService;
 import com.ruoyi.ticket.service.ITicketAiTriageService;
+import com.ruoyi.ticket.dto.TicketAiTriageDecisionDTO;
 import com.ruoyi.ticket.vo.TicketAiAssistVO;
 import com.ruoyi.ticket.vo.TicketAiTriageVO;
 import org.junit.jupiter.api.DisplayName;
@@ -50,5 +51,32 @@ class TicketAiControllerTest {
         controller.triage(42L);
 
         verify(triageService).triage(42L);
+    }
+
+    @Test
+    @DisplayName("采纳分诊建议应委托 Service")
+    void shouldApplyTriageSuggestion() {
+        ITicketAiDocumentService documentService = mock(ITicketAiDocumentService.class);
+        ITicketAiKnowledgeService knowledgeService = mock(ITicketAiKnowledgeService.class);
+        ITicketAiTriageService triageService = mock(ITicketAiTriageService.class);
+        TicketAiController controller = new TicketAiController(documentService, knowledgeService, triageService);
+        TicketAiTriageDecisionDTO dto = new TicketAiTriageDecisionDTO();
+
+        controller.applyTriage(100L, dto);
+
+        verify(triageService).apply(100L, dto);
+    }
+
+    @Test
+    @DisplayName("拒绝分诊建议应委托 Service")
+    void shouldRejectTriageSuggestion() {
+        ITicketAiDocumentService documentService = mock(ITicketAiDocumentService.class);
+        ITicketAiKnowledgeService knowledgeService = mock(ITicketAiKnowledgeService.class);
+        ITicketAiTriageService triageService = mock(ITicketAiTriageService.class);
+        TicketAiController controller = new TicketAiController(documentService, knowledgeService, triageService);
+
+        controller.rejectTriage(100L);
+
+        verify(triageService).reject(100L);
     }
 }

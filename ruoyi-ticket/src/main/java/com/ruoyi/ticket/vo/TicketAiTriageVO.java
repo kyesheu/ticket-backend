@@ -13,6 +13,7 @@ public class TicketAiTriageVO implements Serializable {
     private static final long serialVersionUID = 1L;
 
     private Long suggestedCategoryId;
+    private Long suggestionId;
     private String suggestedPriority;
     private Long suggestedAssigneeId;
     private Double confidence;
@@ -23,6 +24,8 @@ public class TicketAiTriageVO implements Serializable {
 
     public Long getSuggestedCategoryId() { return suggestedCategoryId; }
     public void setSuggestedCategoryId(Long suggestedCategoryId) { this.suggestedCategoryId = suggestedCategoryId; }
+    public Long getSuggestionId() { return suggestionId; }
+    public void setSuggestionId(Long suggestionId) { this.suggestionId = suggestionId; }
     public String getSuggestedPriority() { return suggestedPriority; }
     public void setSuggestedPriority(String suggestedPriority) { this.suggestedPriority = suggestedPriority; }
     public Long getSuggestedAssigneeId() { return suggestedAssigneeId; }

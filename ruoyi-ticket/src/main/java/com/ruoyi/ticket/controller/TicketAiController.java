@@ -4,6 +4,7 @@ import com.ruoyi.common.annotation.Log;
 import com.ruoyi.common.core.controller.BaseController;
 import com.ruoyi.common.core.domain.AjaxResult;
 import com.ruoyi.common.enums.BusinessType;
+import com.ruoyi.ticket.dto.TicketAiTriageDecisionDTO;
 import com.ruoyi.ticket.service.ITicketAiDocumentService;
 import com.ruoyi.ticket.service.ITicketAiKnowledgeService;
 import com.ruoyi.ticket.service.ITicketAiTriageService;
@@ -12,6 +13,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
@@ -75,5 +77,22 @@ public class TicketAiController extends BaseController {
     @PostMapping("/ticket/triage")
     public AjaxResult triage(@RequestParam Long ticketId) {
         return success(ticketAiTriageService.triage(ticketId));
+    }
+
+    @Operation(summary = "采纳 AI 分诊建议")
+    @PreAuthorize("@ss.hasPermi('ticket:ticket:assign')")
+    @PostMapping("/triage/{suggestionId}/apply")
+    public AjaxResult applyTriage(@org.springframework.web.bind.annotation.PathVariable Long suggestionId,
+                                  @RequestBody TicketAiTriageDecisionDTO dto) {
+        ticketAiTriageService.apply(suggestionId, dto);
+        return success();
+    }
+
+    @Operation(summary = "拒绝 AI 分诊建议")
+    @PreAuthorize("@ss.hasPermi('ticket:ticket:assign')")
+    @PostMapping("/triage/{suggestionId}/reject")
+    public AjaxResult rejectTriage(@org.springframework.web.bind.annotation.PathVariable Long suggestionId) {
+        ticketAiTriageService.reject(suggestionId);
+        return success();
     }
 }

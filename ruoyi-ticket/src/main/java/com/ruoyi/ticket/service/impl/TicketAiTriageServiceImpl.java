@@ -1,14 +1,22 @@
 package com.ruoyi.ticket.service.impl;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.ruoyi.common.constant.UserConstants;
 import com.ruoyi.common.core.domain.entity.SysUser;
 import com.ruoyi.common.exception.ServiceException;
+import com.ruoyi.common.utils.SecurityUtils;
 import com.ruoyi.common.utils.StringUtils;
 import com.ruoyi.system.mapper.SysUserMapper;
+import com.ruoyi.ticket.domain.TicketAiTriageSuggestion;
 import com.ruoyi.ticket.domain.TicketCategory;
 import com.ruoyi.ticket.dto.TicketCategoryQueryDTO;
+import com.ruoyi.ticket.dto.TicketAiTriageDecisionDTO;
 import com.ruoyi.ticket.dto.TicketAiTriageRequestDTO;
+import com.ruoyi.ticket.dto.TicketAssignDTO;
+import com.ruoyi.ticket.enums.TicketAiTriageSuggestionStatus;
 import com.ruoyi.ticket.enums.TicketPriority;
+import com.ruoyi.ticket.mapper.TicketAiTriageSuggestionMapper;
 import com.ruoyi.ticket.service.ITicketAiService;
 import com.ruoyi.ticket.service.ITicketAiTriageService;
 import com.ruoyi.ticket.service.ITicketCategoryService;
@@ -18,13 +26,16 @@ import com.ruoyi.ticket.vo.TicketAiTriageVO;
 import com.ruoyi.ticket.vo.TicketVO;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
+import java.math.BigDecimal;
 import java.util.Collections;
 import java.util.Date;
 import java.util.List;
+import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 /**
  * 工单 AI 分诊编排服务。
@@ -48,6 +59,11 @@ public class TicketAiTriageServiceImpl implements ITicketAiTriageService {
     @Autowired
     private ITicketAiService ticketAiService;
 
+    @Autowired
+    private TicketAiTriageSuggestionMapper suggestionMapper;
+
+    private final ObjectMapper objectMapper = new ObjectMapper();
+
     @Override
     public TicketAiTriageVO triage(Long ticketId) {
         TicketAiTriageRequestDTO request = buildRequest(ticketId);
@@ -55,7 +71,56 @@ public class TicketAiTriageServiceImpl implements ITicketAiTriageService {
             return degraded("empty_assignee_candidates");
         }
         TicketAiTriageVO response = ticketAiService.triage(request);
-        return validateSuggestion(request, response);
+        TicketAiTriageVO result = validateSuggestion(request, response);
+        if (!Boolean.TRUE.equals(result.getDegraded())) {
+            persistSuggestion(request, result);
+        }
+        return result;
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void apply(Long suggestionId, TicketAiTriageDecisionDTO dto) {
+        TicketAiTriageSuggestion suggestion = getPendingSuggestion(suggestionId);
+        TicketVO ticket = ticketService.selectTicketById(suggestion.getTicketId());
+        if (!sameInstant(ticket.getUpdateTime(), suggestion.getTicketUpdatedAt())) {
+            suggestionMapper.expirePending(suggestionId);
+            throw new ServiceException("工单已变化，分诊建议已过期");
+        }
+
+        TicketAiTriageDecisionDTO finalDecision = fillDefaultDecision(suggestion, dto);
+        TicketAiTriageRequestDTO request = buildRequest(suggestion.getTicketId());
+        if (!decisionInCandidates(request, finalDecision)) {
+            suggestionMapper.expirePending(suggestionId);
+            throw new ServiceException("分诊候选已变化，建议已过期");
+        }
+
+        Date now = new Date();
+        TicketAiTriageSuggestion update = new TicketAiTriageSuggestion();
+        update.setSuggestionId(suggestionId);
+        update.setFinalCategoryId(finalDecision.getCategoryId());
+        update.setFinalPriority(finalDecision.getPriority());
+        update.setFinalAssigneeId(finalDecision.getAssigneeId());
+        update.setOperatedBy(SecurityUtils.getUserId());
+        update.setOperatedAt(now);
+        update.setUpdateTime(now);
+        if (suggestionMapper.applyPending(update) == 0) {
+            throw new ServiceException("分诊建议已处理");
+        }
+
+        TicketAssignDTO assignDTO = new TicketAssignDTO();
+        assignDTO.setAssigneeId(finalDecision.getAssigneeId());
+        assignDTO.setComment(StringUtils.isBlank(finalDecision.getComment()) ? "采纳 AI 分诊建议" : finalDecision.getComment());
+        ticketService.assignTicket(suggestion.getTicketId(), assignDTO);
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void reject(Long suggestionId) {
+        TicketAiTriageSuggestion suggestion = getPendingSuggestion(suggestionId);
+        if (suggestionMapper.rejectPending(suggestionId, SecurityUtils.getUserId()) == 0) {
+            throw new ServiceException("分诊建议已处理");
+        }
     }
 
     TicketAiTriageVO validateSuggestion(TicketAiTriageRequestDTO request, TicketAiTriageVO response) {
@@ -172,6 +237,70 @@ public class TicketAiTriageServiceImpl implements ITicketAiTriageService {
             }
         }
         return true;
+    }
+
+    private void persistSuggestion(TicketAiTriageRequestDTO request, TicketAiTriageVO response) {
+        Date now = new Date();
+        TicketAiTriageSuggestion suggestion = new TicketAiTriageSuggestion();
+        suggestion.setTicketId(request.getTicketId());
+        suggestion.setTicketUpdatedAt(Date.from(request.getTicketUpdatedAt().atZone(ZoneId.systemDefault()).toInstant()));
+        suggestion.setSuggestedCategoryId(response.getSuggestedCategoryId());
+        suggestion.setSuggestedPriority(response.getSuggestedPriority());
+        suggestion.setSuggestedAssigneeId(response.getSuggestedAssigneeId());
+        suggestion.setConfidence(BigDecimal.valueOf(response.getConfidence()));
+        suggestion.setReasonSummary(response.getReasonSummary());
+        suggestion.setSourceRefs(toSourceRefs(response));
+        suggestion.setSuggestionStatus(TicketAiTriageSuggestionStatus.PENDING.name());
+        suggestion.setCreateTime(now);
+        suggestion.setUpdateTime(now);
+        suggestionMapper.insertSuggestion(suggestion);
+        response.setSuggestionId(suggestion.getSuggestionId());
+    }
+
+    private String toSourceRefs(TicketAiTriageVO response) {
+        try {
+            return objectMapper.writeValueAsString(response.getSources());
+        } catch (JsonProcessingException exception) {
+            throw new ServiceException("分诊来源序列化失败");
+        }
+    }
+
+    private TicketAiTriageSuggestion getPendingSuggestion(Long suggestionId) {
+        TicketAiTriageSuggestion suggestion = suggestionMapper.selectById(suggestionId);
+        if (suggestion == null) {
+            throw new ServiceException("分诊建议不存在");
+        }
+        if (!TicketAiTriageSuggestionStatus.PENDING.name().equals(suggestion.getSuggestionStatus())) {
+            throw new ServiceException("分诊建议已处理");
+        }
+        return suggestion;
+    }
+
+    private TicketAiTriageDecisionDTO fillDefaultDecision(TicketAiTriageSuggestion suggestion,
+                                                          TicketAiTriageDecisionDTO dto) {
+        TicketAiTriageDecisionDTO source = dto == null ? new TicketAiTriageDecisionDTO() : dto;
+        TicketAiTriageDecisionDTO result = new TicketAiTriageDecisionDTO();
+        result.setCategoryId(source.getCategoryId() == null ? suggestion.getSuggestedCategoryId() : source.getCategoryId());
+        result.setPriority(StringUtils.isBlank(source.getPriority()) ? suggestion.getSuggestedPriority() : source.getPriority());
+        result.setAssigneeId(source.getAssigneeId() == null ? suggestion.getSuggestedAssigneeId() : source.getAssigneeId());
+        result.setComment(source.getComment());
+        return result;
+    }
+
+    private boolean decisionInCandidates(TicketAiTriageRequestDTO request, TicketAiTriageDecisionDTO decision) {
+        boolean categoryAllowed = request.getCategoryCandidates().stream()
+                .anyMatch(item -> Objects.equals(item.getCategoryId(), decision.getCategoryId()));
+        boolean priorityAllowed = request.getPriorityCandidates().contains(decision.getPriority());
+        boolean assigneeAllowed = request.getAssigneeCandidates().stream()
+                .anyMatch(item -> Objects.equals(item.getUserId(), decision.getAssigneeId()));
+        return categoryAllowed && priorityAllowed && assigneeAllowed;
+    }
+
+    private boolean sameInstant(Date current, Date snapshot) {
+        if (current == null || snapshot == null) {
+            return false;
+        }
+        return current.getTime() == snapshot.getTime();
     }
 
     private TicketAiTriageVO degraded(String reason) {

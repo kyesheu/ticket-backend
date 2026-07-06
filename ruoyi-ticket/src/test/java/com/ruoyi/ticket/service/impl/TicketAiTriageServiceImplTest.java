@@ -2,7 +2,12 @@ package com.ruoyi.ticket.service.impl;
 
 import com.ruoyi.ticket.dto.TicketAiTriageRequestDTO;
 import com.ruoyi.ticket.domain.TicketCategory;
+import com.ruoyi.ticket.domain.TicketAiTriageSuggestion;
 import com.ruoyi.ticket.dto.TicketCategoryQueryDTO;
+import com.ruoyi.ticket.dto.TicketAiTriageDecisionDTO;
+import com.ruoyi.ticket.dto.TicketAssignDTO;
+import com.ruoyi.ticket.enums.TicketAiTriageSuggestionStatus;
+import com.ruoyi.ticket.mapper.TicketAiTriageSuggestionMapper;
 import com.ruoyi.ticket.service.ITicketAiService;
 import com.ruoyi.ticket.service.ITicketCategoryService;
 import com.ruoyi.ticket.service.ITicketService;
@@ -12,6 +17,7 @@ import com.ruoyi.ticket.vo.TicketVO;
 import com.ruoyi.common.core.domain.entity.SysDept;
 import com.ruoyi.common.core.domain.entity.SysUser;
 import com.ruoyi.system.mapper.SysUserMapper;
+import com.ruoyi.common.utils.SecurityUtils;
 import java.util.Date;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -20,10 +26,14 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.mockito.MockedStatic;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.mockStatic;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -45,6 +55,9 @@ class TicketAiTriageServiceImplTest {
 
     @Mock
     private ITicketAiService ticketAiService;
+
+    @Mock
+    private TicketAiTriageSuggestionMapper suggestionMapper;
 
     @InjectMocks
     private TicketAiTriageServiceImpl service;
@@ -163,6 +176,114 @@ class TicketAiTriageServiceImplTest {
         assertThat(result.getReason()).isEqualTo("assignee_out_of_candidate_set");
     }
 
+    @Test
+    @DisplayName("生成有效分诊建议后应持久化并返回建议ID")
+    void shouldPersistValidTriageSuggestion() {
+        when(ticketService.selectTicketById(42L)).thenReturn(ticket());
+        when(ticketCategoryService.selectCategoryList(any(TicketCategoryQueryDTO.class)))
+                .thenReturn(List.of(category(6L, "网络故障")));
+        when(sysUserMapper.selectUserList(any(SysUser.class))).thenReturn(List.of(user(1L, "admin", "0")));
+        when(ticketAiService.triage(any(TicketAiTriageRequestDTO.class)))
+                .thenReturn(response(6L, "HIGH", 1L, 0.8D, source("knowledge_document", "doc-1")));
+        when(suggestionMapper.insertSuggestion(any(TicketAiTriageSuggestion.class))).thenAnswer(invocation -> {
+            invocation.<TicketAiTriageSuggestion>getArgument(0).setSuggestionId(100L);
+            return 1;
+        });
+
+        TicketAiTriageVO result = service.triage(42L);
+
+        assertThat(result.getSuggestionId()).isEqualTo(100L);
+        verify(suggestionMapper).insertSuggestion(any(TicketAiTriageSuggestion.class));
+    }
+
+    @Test
+    @DisplayName("采纳建议应保存最终选择并复用工单分派服务")
+    void shouldApplySuggestionAndAssignTicket() {
+        Date updatedAt = new Date();
+        try (MockedStatic<SecurityUtils> securityUtils = mockStatic(SecurityUtils.class)) {
+            securityUtils.when(SecurityUtils::getUserId).thenReturn(9L);
+            when(suggestionMapper.selectById(100L)).thenReturn(suggestion(updatedAt));
+            when(ticketService.selectTicketById(42L)).thenReturn(ticket(updatedAt));
+            when(ticketCategoryService.selectCategoryList(any(TicketCategoryQueryDTO.class)))
+                    .thenReturn(List.of(category(6L, "网络故障")));
+            when(sysUserMapper.selectUserList(any(SysUser.class))).thenReturn(List.of(user(1L, "admin", "0")));
+            when(suggestionMapper.applyPending(any(TicketAiTriageSuggestion.class))).thenReturn(1);
+
+            service.apply(100L, null);
+        }
+
+        verify(suggestionMapper).applyPending(any(TicketAiTriageSuggestion.class));
+        verify(ticketService).assignTicket(eq(42L), any(TicketAssignDTO.class));
+    }
+
+    @Test
+    @DisplayName("修改后采纳应保存用户最终选择")
+    void shouldApplyModifiedDecision() {
+        Date updatedAt = new Date();
+        TicketAiTriageDecisionDTO dto = new TicketAiTriageDecisionDTO();
+        dto.setCategoryId(6L);
+        dto.setPriority("URGENT");
+        dto.setAssigneeId(2L);
+        dto.setComment("人工调整后采纳");
+        try (MockedStatic<SecurityUtils> securityUtils = mockStatic(SecurityUtils.class)) {
+            securityUtils.when(SecurityUtils::getUserId).thenReturn(9L);
+            when(suggestionMapper.selectById(100L)).thenReturn(suggestion(updatedAt));
+            when(ticketService.selectTicketById(42L)).thenReturn(ticket(updatedAt));
+            when(ticketCategoryService.selectCategoryList(any(TicketCategoryQueryDTO.class)))
+                    .thenReturn(List.of(category(6L, "网络故障")));
+            when(sysUserMapper.selectUserList(any(SysUser.class))).thenReturn(List.of(
+                    user(1L, "admin", "0"), user(2L, "operator", "0")));
+            when(suggestionMapper.applyPending(any(TicketAiTriageSuggestion.class))).thenReturn(1);
+
+            service.apply(100L, dto);
+        }
+
+        verify(suggestionMapper).applyPending(org.mockito.ArgumentMatchers.argThat(update ->
+                update.getFinalAssigneeId().equals(2L) && "URGENT".equals(update.getFinalPriority())));
+    }
+
+    @Test
+    @DisplayName("工单更新时间变化时建议应过期且不分派")
+    void shouldExpireWhenTicketChangedBeforeApply() {
+        Date snapshot = new Date(1000L);
+        Date changed = new Date(2000L);
+        when(suggestionMapper.selectById(100L)).thenReturn(suggestion(snapshot));
+        when(ticketService.selectTicketById(42L)).thenReturn(ticket(changed));
+
+        org.assertj.core.api.Assertions.assertThatThrownBy(() -> service.apply(100L, null))
+                .isInstanceOf(com.ruoyi.common.exception.ServiceException.class)
+                .hasMessageContaining("已过期");
+
+        verify(suggestionMapper).expirePending(100L);
+        verify(ticketService, never()).assignTicket(any(), any());
+    }
+
+    @Test
+    @DisplayName("已处理建议不能重复采纳")
+    void shouldRejectRepeatedApply() {
+        TicketAiTriageSuggestion suggestion = suggestion(new Date());
+        suggestion.setSuggestionStatus(TicketAiTriageSuggestionStatus.APPLIED.name());
+        when(suggestionMapper.selectById(100L)).thenReturn(suggestion);
+
+        org.assertj.core.api.Assertions.assertThatThrownBy(() -> service.apply(100L, null))
+                .isInstanceOf(com.ruoyi.common.exception.ServiceException.class)
+                .hasMessageContaining("已处理");
+    }
+
+    @Test
+    @DisplayName("拒绝建议应进入终态")
+    void shouldRejectPendingSuggestion() {
+        try (MockedStatic<SecurityUtils> securityUtils = mockStatic(SecurityUtils.class)) {
+            securityUtils.when(SecurityUtils::getUserId).thenReturn(9L);
+            when(suggestionMapper.selectById(100L)).thenReturn(suggestion(new Date()));
+            when(suggestionMapper.rejectPending(100L, 9L)).thenReturn(1);
+
+            service.reject(100L);
+        }
+
+        verify(suggestionMapper).rejectPending(100L, 9L);
+    }
+
     private TicketAiTriageRequestDTO request() {
         TicketAiTriageRequestDTO.CategoryCandidate category = new TicketAiTriageRequestDTO.CategoryCandidate();
         category.setCategoryId(6L);
@@ -207,6 +328,10 @@ class TicketAiTriageServiceImplTest {
     }
 
     private TicketVO ticket() {
+        return ticket(new Date());
+    }
+
+    private TicketVO ticket(Date updateTime) {
         TicketVO ticket = new TicketVO();
         ticket.setTicketId(42L);
         ticket.setTitle("WiFi 中断");
@@ -215,7 +340,7 @@ class TicketAiTriageServiceImplTest {
         ticket.setCategoryName("网络故障");
         ticket.setPriority("MEDIUM");
         ticket.setDeptId(103L);
-        ticket.setUpdateTime(new Date());
+        ticket.setUpdateTime(updateTime);
         return ticket;
     }
 
@@ -238,5 +363,17 @@ class TicketAiTriageServiceImplTest {
         user.setDeptId(103L);
         user.setDept(dept);
         return user;
+    }
+
+    private TicketAiTriageSuggestion suggestion(Date ticketUpdatedAt) {
+        TicketAiTriageSuggestion suggestion = new TicketAiTriageSuggestion();
+        suggestion.setSuggestionId(100L);
+        suggestion.setTicketId(42L);
+        suggestion.setTicketUpdatedAt(ticketUpdatedAt);
+        suggestion.setSuggestedCategoryId(6L);
+        suggestion.setSuggestedPriority("HIGH");
+        suggestion.setSuggestedAssigneeId(1L);
+        suggestion.setSuggestionStatus(TicketAiTriageSuggestionStatus.PENDING.name());
+        return suggestion;
     }
 }

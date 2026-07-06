@@ -1,0 +1,249 @@
+package com.ruoyi.ticket.service.impl;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.ruoyi.ticket.config.TicketAiProperties;
+import com.ruoyi.ticket.dto.TicketAiContextDTO;
+import com.ruoyi.ticket.dto.TicketAiAssistRequestDTO;
+import com.ruoyi.ticket.dto.TicketAiSimilarSearchDTO;
+import com.ruoyi.ticket.exception.TicketAiServiceException;
+import com.ruoyi.ticket.vo.TicketAiHealthVO;
+import com.ruoyi.ticket.vo.TicketAiAssistVO;
+import com.ruoyi.ticket.vo.TicketAiSimilarSearchResultVO;
+import com.sun.net.httpserver.HttpExchange;
+import com.sun.net.httpserver.HttpServer;
+import java.io.IOException;
+import java.net.InetSocketAddress;
+import java.net.ServerSocket;
+import java.net.http.HttpClient;
+import java.nio.charset.StandardCharsets;
+import java.time.Duration;
+import java.util.concurrent.atomic.AtomicReference;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+
+/**
+ * Python AI 服务 HTTP adapter 测试。
+ */
+@DisplayName("Python AI 服务 HTTP adapter 测试")
+class HttpTicketAiServiceImplTest {
+
+    private static final String SERVICE_TOKEN = "test-service-token-12345";
+
+    private HttpServer server;
+    private TicketAiProperties properties;
+
+    @BeforeEach
+    void setUp() throws IOException {
+        server = HttpServer.create(new InetSocketAddress(0), 0);
+        server.start();
+        properties = new TicketAiProperties();
+        properties.setBaseUrl("http://127.0.0.1:" + server.getAddress().getPort());
+        properties.setServiceToken(SERVICE_TOKEN);
+        properties.setConnectTimeout(Duration.ofSeconds(1L));
+        properties.setReadTimeout(Duration.ofSeconds(1L));
+    }
+
+    @AfterEach
+    void tearDown() {
+        server.stop(0);
+    }
+
+    @Test
+    @DisplayName("健康检查解析 v1 契约")
+    void shouldReadHealthContract() {
+        server.createContext("/api/v1/health", exchange -> respond(exchange, 200,
+                "{\"status\":\"UP\",\"contract_version\":\"v1\",\"elasticsearch_available\":true,"
+                        + "\"embedding_configured\":true,\"llm_configured\":true}"));
+
+        TicketAiHealthVO result = createService().health();
+
+        assertThat(result.getStatus()).isEqualTo("UP");
+        assertThat(result.getContractVersion()).isEqualTo("v1");
+        assertThat(result.getElasticsearchAvailable()).isTrue();
+        assertThat(result.getEmbeddingConfigured()).isTrue();
+        assertThat(result.getLlmConfigured()).isTrue();
+    }
+
+    @Test
+    @DisplayName("业务请求使用服务凭据和 snake_case 契约")
+    void shouldSendCredentialAndSnakeCaseContract() {
+        AtomicReference<String> token = new AtomicReference<>();
+        AtomicReference<String> body = new AtomicReference<>();
+        server.createContext("/api/v1/knowledge/search", exchange -> {
+            token.set(exchange.getRequestHeaders().getFirst("X-Service-Token"));
+            body.set(new String(exchange.getRequestBody().readAllBytes(), StandardCharsets.UTF_8));
+            respond(exchange, 200, "{\"sources\":[]}");
+        });
+        TicketAiContextDTO dto = new TicketAiContextDTO();
+        dto.setTicketNo("TK202607040001");
+        dto.setTitle("Redis 缓存穿透");
+        dto.setDescription("如何处理？");
+        dto.setPriority("HIGH");
+
+        createService().search(dto);
+
+        assertThat(token.get()).isEqualTo(SERVICE_TOKEN);
+        assertThat(body.get()).contains("\"contract_version\":\"v1\"")
+                .contains("\"ticket_no\":\"TK202607040001\"");
+    }
+
+    @Test
+    @DisplayName("相似工单检索发送请求并解析结果")
+    void shouldSearchSimilarTickets() {
+        AtomicReference<String> token = new AtomicReference<>();
+        AtomicReference<String> body = new AtomicReference<>();
+        server.createContext("/api/v1/tickets/similar-search", exchange -> {
+            token.set(exchange.getRequestHeaders().getFirst("X-Service-Token"));
+            body.set(new String(exchange.getRequestBody().readAllBytes(), StandardCharsets.UTF_8));
+            respond(exchange, 200, "{\"results\":[{\"ticket_id\":42,\"title\":\"Redis 缓存穿透\","
+                    + "\"category\":\"中间件\",\"solution\":\"空值缓存和布隆过滤器\",\"score\":1.82,"
+                    + "\"source_generation\":3}]}");
+        });
+        TicketAiSimilarSearchDTO dto = new TicketAiSimilarSearchDTO();
+        dto.setQuery("Redis 缓存穿透怎么处理？");
+        dto.setTopK(3);
+
+        TicketAiSimilarSearchResultVO result = createService().searchSimilarTickets(dto);
+
+        assertThat(token.get()).isEqualTo(SERVICE_TOKEN);
+        assertThat(body.get()).contains("\"contract_version\":\"v1\"")
+                .contains("\"query\":\"Redis 缓存穿透怎么处理？\"")
+                .contains("\"top_k\":3");
+        assertThat(result.getResults()).hasSize(1);
+        assertThat(result.getResults().get(0).getTicketId()).isEqualTo(42L);
+        assertThat(result.getResults().get(0).getTitle()).isEqualTo("Redis 缓存穿透");
+        assertThat(result.getResults().get(0).getCategory()).isEqualTo("中间件");
+        assertThat(result.getResults().get(0).getSolution()).isEqualTo("空值缓存和布隆过滤器");
+        assertThat(result.getResults().get(0).getScore()).isEqualTo(1.82D);
+        assertThat(result.getResults().get(0).getSourceGeneration()).isEqualTo(3L);
+    }
+
+    @Test
+    @DisplayName("工单辅助请求序列化并解析建议草稿和降级字段")
+    void shouldSendAndReadAssistContract() {
+        AtomicReference<String> body = new AtomicReference<>();
+        server.createContext("/api/v1/tickets/assist", exchange -> {
+            body.set(new String(exchange.getRequestBody().readAllBytes(), StandardCharsets.UTF_8));
+            respond(exchange, 200, "{\"suggestion\":\"增加空值缓存\",\"reply_draft\":\"您好，问题处理中\","
+                    + "\"sources\":[{\"source_type\":\"knowledge_document\",\"source_id\":\"doc-1\","
+                    + "\"title\":\"Redis 指南\",\"snippet\":\"使用布隆过滤器\",\"score\":1.8,"
+                    + "\"metadata\":{\"chunk_index\":0}}],\"degraded\":true,\"reason\":\"model_timeout\"}");
+        });
+        TicketAiAssistRequestDTO dto = new TicketAiAssistRequestDTO();
+        dto.setTicketId(42L);
+        dto.setTitle("Redis 缓存穿透");
+        dto.setDescription("不存在的 key 被反复查询");
+        dto.setCategory("中间件");
+        dto.setTopK(5);
+
+        TicketAiAssistVO result = createService().assist(dto);
+
+        assertThat(body.get()).contains("\"ticket_id\":42")
+                .contains("\"top_k\":5")
+                .contains("\"category\":\"中间件\"");
+        assertThat(result.getSuggestion()).isEqualTo("增加空值缓存");
+        assertThat(result.getReplyDraft()).isEqualTo("您好，问题处理中");
+        assertThat(result.getSources()).singleElement().satisfies(source -> {
+            assertThat(source.getSourceId()).isEqualTo("doc-1");
+            assertThat(source.getSnippet()).isEqualTo("使用布隆过滤器");
+        });
+        assertThat(result.getDegraded()).isTrue();
+        assertThat(result.getReason()).isEqualTo("model_timeout");
+    }
+
+    @Test
+    @DisplayName("非法 JSON 响应转换为统一异常")
+    void shouldRejectInvalidJson() {
+        server.createContext("/api/v1/health", exchange -> respond(exchange, 200, "not-json"));
+
+        assertThatThrownBy(() -> createService().health())
+                .isInstanceOf(TicketAiServiceException.class)
+                .hasMessage("AI 服务调用失败");
+    }
+
+    @Test
+    @DisplayName("不兼容的健康检查契约版本被拒绝")
+    void shouldRejectIncompatibleContractVersion() {
+        server.createContext("/api/v1/health", exchange -> respond(exchange, 200,
+                "{\"status\":\"UP\",\"contract_version\":\"v2\",\"elasticsearch_available\":true,"
+                        + "\"embedding_configured\":true,\"llm_configured\":true}"));
+
+        assertThatThrownBy(() -> createService().health())
+                .isInstanceOf(TicketAiServiceException.class)
+                .hasMessage("AI 服务契约版本不兼容");
+    }
+
+    @Test
+    @DisplayName("超大响应在反序列化前被拒绝")
+    void shouldRejectOversizedResponse() {
+        properties.setMaxResponseBytes(16);
+        server.createContext("/api/v1/health", exchange -> respond(exchange, 200,
+                "{\"status\":\"UP\",\"contract_version\":\"v1\"}"));
+
+        assertThatThrownBy(() -> createService().health())
+                .isInstanceOf(TicketAiServiceException.class)
+                .hasMessage("AI 服务响应超过大小限制");
+    }
+
+    @Test
+    @DisplayName("非成功 HTTP 状态不向调用方透传响应正文")
+    void shouldRejectErrorStatusWithoutLeakingBody() {
+        server.createContext("/api/v1/health", exchange -> respond(exchange, 500, "secret upstream error"));
+
+        assertThatThrownBy(() -> createService().health())
+                .isInstanceOf(TicketAiServiceException.class)
+                .hasMessage("AI 服务返回异常状态: 500")
+                .hasMessageNotContaining("secret");
+    }
+
+    @Test
+    @DisplayName("Python 服务不可达时转换为统一异常")
+    void shouldHandleUnavailableService() throws IOException {
+        int unavailablePort;
+        try (ServerSocket socket = new ServerSocket(0)) {
+            unavailablePort = socket.getLocalPort();
+        }
+        properties.setBaseUrl("http://127.0.0.1:" + unavailablePort);
+
+        assertThatThrownBy(() -> createService().health())
+                .isInstanceOf(TicketAiServiceException.class)
+                .hasMessage("AI 服务调用失败");
+    }
+
+    @Test
+    @DisplayName("读取超过配置超时时间时快速失败")
+    void shouldHandleReadTimeout() {
+        properties.setReadTimeout(Duration.ofMillis(50L));
+        server.createContext("/api/v1/health", exchange -> {
+            try {
+                Thread.sleep(200L);
+                respond(exchange, 200, "{\"status\":\"UP\",\"contract_version\":\"v1\"}");
+            } catch (InterruptedException exception) {
+                Thread.currentThread().interrupt();
+            }
+        });
+
+        assertThatThrownBy(() -> createService().health())
+                .isInstanceOf(TicketAiServiceException.class)
+                .hasMessage("AI 服务调用失败");
+    }
+
+    private HttpTicketAiServiceImpl createService() {
+        HttpClient client = HttpClient.newBuilder()
+                .connectTimeout(properties.getConnectTimeout())
+                .build();
+        return new HttpTicketAiServiceImpl(client, new ObjectMapper(), properties);
+    }
+
+    private void respond(HttpExchange exchange, int status, String body) throws IOException {
+        byte[] bytes = body.getBytes(StandardCharsets.UTF_8);
+        exchange.sendResponseHeaders(status, bytes.length);
+        exchange.getResponseBody().write(bytes);
+        exchange.close();
+    }
+}

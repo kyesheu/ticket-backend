@@ -108,7 +108,7 @@ spring:
   data:
     redis:
       host: ${REDIS_HOST:localhost}
-      port: ${REDIS_PORT:6379}
+      port: ${REDIS_PORT:16379}
       database: ${REDIS_DATABASE:0}
       password: ${REDIS_PASSWORD:}
       timeout: ${REDIS_TIMEOUT:10s}
@@ -197,3 +197,16 @@ xss:
   enabled: true
   excludes: ""
   urlPatterns: /system/*,/monitor/*,/ticket/*
+
+# 工单 Elasticsearch 与 AI 功能通过环境变量显式启用。
+ticket:
+  search:
+    enabled: ${TICKET_SEARCH_ENABLED:false}
+    uris: ${TICKET_SEARCH_URIS:http://localhost:9200}
+    cursor-secret: ${TICKET_SEARCH_CURSOR_SECRET:}
+  ai:
+    enabled: ${TICKET_AI_ENABLED:false}
+    base-url: ${TICKET_AI_BASE_URL:http://127.0.0.1:8090}
+    service-token: ${TICKET_AI_SERVICE_TOKEN:}
+    connect-timeout: ${TICKET_AI_CONNECT_TIMEOUT:2s}
+    read-timeout: ${TICKET_AI_READ_TIMEOUT:10s}

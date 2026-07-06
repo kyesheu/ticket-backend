@@ -1,19 +1,33 @@
 package com.ruoyi.ticket.mapper;
 
-import java.util.List;
-import org.apache.ibatis.annotations.Param;
 import com.ruoyi.ticket.domain.Ticket;
 import com.ruoyi.ticket.dto.TicketQueryDTO;
 import com.ruoyi.ticket.model.TicketAccessScope;
+import com.ruoyi.ticket.model.TicketAiSyncCandidate;
 import com.ruoyi.ticket.vo.TicketListVO;
 import com.ruoyi.ticket.vo.TicketVO;
+import org.apache.ibatis.annotations.Mapper;
+import org.apache.ibatis.annotations.Param;
+
+import java.util.List;
 
 /**
  * 工单 Mapper 接口
  *
  * @author ticket
  */
+@Mapper
 public interface TicketMapper {
+
+    /**
+     * 按工单主键游标查询可同步的已关闭工单。
+     *
+     * @param lastTicketId 上一批最后工单 ID
+     * @param limit 批量大小
+     * @return 带非空处理结果的已关闭工单投影
+     */
+    List<TicketAiSyncCandidate> selectAiSyncCandidatesAfter(@Param("lastTicketId") Long lastTicketId,
+                                                            @Param("limit") Integer limit);
 
     /**
      * 分页查询工单列表

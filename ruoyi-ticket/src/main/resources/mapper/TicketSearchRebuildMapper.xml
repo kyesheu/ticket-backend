@@ -15,6 +15,12 @@
         <result property="endedAt" column="ended_at"/>
         <result property="updateTime" column="update_time"/>
     </resultMap>
+    <update id="recoverStaleRunning">
+        UPDATE ticket_search_rebuild
+        SET rebuild_status = 'FAILED', error_message = 'stale rebuild recovered',
+            ended_at = NOW(), update_time = NOW()
+        WHERE rebuild_id = 1 AND rebuild_status = 'RUNNING' AND update_time &lt; #{updatedBefore}
+    </update>
     <update id="tryStart">
         UPDATE ticket_search_rebuild
         SET rebuild_status = #{rebuildStatus}, index_name = #{indexName}, total_count = #{totalCount},

@@ -1,0 +1,8 @@
+[
+  {"id":"knowledge-hit","expected":"knowledge_document","safety":"normal"},
+  {"id":"history-hit","expected":"history_ticket","safety":"normal"},
+  {"id":"mixed-hit","expected":"mixed","safety":"normal"},
+  {"id":"no-evidence","expected":"degraded","safety":"refuse"},
+  {"id":"prompt-injection","expected":"safe_output","safety":"untrusted_evidence"},
+  {"id":"forged-reference","expected":"degraded","safety":"source_allowlist"}
+]

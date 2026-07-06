@@ -2,7 +2,19 @@
 
 企业流程工单管理系统后端，基于 RuoYi-Vue Spring Boot 3 二次开发。
 
-> v1.0 已完成 ✅ | 2026-06-26
+## 版本状态
+
+| 版本 | 功能 | 状态 |
+|---|---|---|
+| v1.0 | 工单主流程、分类、评论、操作日志 | ✅ |
+| v1.1 | SLA 时效管理、超时告警 | ✅ |
+| v1.2 | 站内通知、满意度评价 | ✅ |
+| v1.3 | 部门级数据权限 | ✅ |
+| v2.0 | 自研动态流程引擎 | ✅ |
+| v2.1 | 自定义字段 | ✅ |
+| v2.2 | 附件管理 | ✅ |
+| v2.3 | Elasticsearch 全文检索 | ✅ |
+| v3.0 | Python LangChain 知识库 RAG 与工单辅助 | 🚧 |
 
 ## 模块结构
 
@@ -13,12 +25,13 @@
 ├── ruoyi-common/         # BaseEntity, 工具类
 ├── ruoyi-quartz/         # 定时任务
 ├── ruoyi-generator/      # 代码生成
-├── ruoyi-ticket/         # ★ 工单模块（32 个 Java 文件 + 4 个 Mapper XML）
+├── ruoyi-ticket/         # ★ 工单模块
 │   ├── src/main/java/    # Controller / Service / Mapper / Domain / DTO / VO / Enum
 │   ├── src/main/resources/mapper/  # MyBatis XML
-│   └── src/test/         # 34 个单元测试
+│   └── src/test/         # 单元测试
+├── ai-service/           # ★ Python FastAPI 智能辅助服务（v3.0）
 ├── docs/                 # 设计文档
-├── scripts/ticket/       # 接口冒烟测试（PS / Bash / Postman）
+├── scripts/ticket/       # 按 v1.x、v2.x、v3.x 分类的接口冒烟测试
 ├── sql/                  # 建表 SQL
 └── .github/workflows/    # CI/CD
 ```
@@ -32,6 +45,8 @@
 | MyBatis | 3.0 |
 | MySQL | 8.0 |
 | Redis | 7.x |
+| Elasticsearch | 8.x |
+| Python / FastAPI | 3.x（v3.0 ai-service） |
 
 ## 工单状态流转
 
@@ -68,28 +83,17 @@ mvn test
 ## 测试
 
 ```bash
-mvn test                                    # 34 个单元测试
-powershell scripts/ticket/smoke-test.ps1    # 接口冒烟测试
+mvn test                                    # 单元测试
+powershell scripts/ticket/v3.x/smoke-test.ps1    # 最新完整接口冒烟测试
 ```
 
-导入 Postman：`scripts/ticket/Ticket-API.postman_collection.json`
-
-## v1.0 功能
-
-工单创建、分派、处理、确认、取消、分类树、评论、操作日志、权限控制。
-
-详见 [docs/01-project-spec.md](docs/01-project-spec.md)。
+导入 Postman：`scripts/ticket/v1.x/Ticket-API.postman_collection.json`
 
 ## 设计文档
 
 | 文档 | 内容 |
 |---|---|
-| [01-project-spec.md](docs/01-project-spec.md) | 项目边界、功能范围、验收标准 |
-| [02-architecture-design.md](docs/02-architecture-design.md) | 架构、分层规范、枚举设计 |
-| [03-database-design.md](docs/03-database-design.md) | 4 张表 DDL、索引 |
-| [04-implementation-plan.md](docs/04-implementation-plan.md) | 8 阶段实施计划 |
-| [05-test-release.md](docs/05-test-release.md) | 测试清单、Bug 修复记录 |
-
-## 致谢
-
-基于 [RuoYi-Vue](https://gitee.com/y_project/RuoYi-Vue) Spring Boot 3 分支构建。
+| [文档索引](docs/README.md) | 版本入口 |
+| [1.x 文档](docs/1.x/) | 工单主流程、SLA、通知评价、部门数据权限 |
+| [2.x 文档](docs/2.x/) | 动态流程、自定义字段、附件、ES 检索 |
+| [3.x 文档](docs/3.x/) | Python LangChain RAG 与工单辅助 |

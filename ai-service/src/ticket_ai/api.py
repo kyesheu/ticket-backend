@@ -13,6 +13,8 @@ from ticket_ai.models import (
     HealthResponse,
     SearchResponse,
     TicketContextRequest,
+    TriageRequest,
+    TriageResponse,
 )
 from ticket_ai.security import verify_service_token
 from ticket_ai.dependencies import (
@@ -20,11 +22,13 @@ from ticket_ai.dependencies import (
     get_document_importer,
     get_similar_knowledge_search_service,
     get_ticket_assist_service,
+    get_ticket_triage_service,
     get_health_service,
 )
 from ticket_ai.health import HealthService
 from ticket_ai.resilience import RetrievalUnavailable, verify_ai_rate_limit
 from ticket_ai.assist import TicketAssistService
+from ticket_ai.triage import TicketTriageService
 from ticket_ai.history_sync import ClosedTicketSyncService
 from ticket_ai.knowledge import DocumentImporter, DocumentImportError
 from ticket_ai.similar_search import SimilarKnowledgeSearchService
@@ -98,3 +102,12 @@ def assist(request: AssistRequest,
     """生成仅供展示和编辑的处理建议与回复草稿。"""
 
     return service.assist(request)
+
+
+@router.post("/tickets/triage", response_model=TriageResponse,
+             dependencies=[Depends(verify_service_token), Depends(verify_ai_rate_limit)])
+def triage(request: TriageRequest,
+           service: TicketTriageService = Depends(get_ticket_triage_service)) -> TriageResponse:
+    """生成受控 AI 分诊建议。"""
+
+    return service.triage(request)

@@ -11,6 +11,7 @@ from langchain_core.embeddings import Embeddings
 from langchain_core.runnables import RunnableLambda
 
 from ticket_ai.assist import TicketAssistService
+from ticket_ai.triage import TicketTriageService
 from ticket_ai.config import get_settings
 from ticket_ai.knowledge import DocumentImporter, ElasticsearchKnowledgeWriter
 from ticket_ai.history_sync import (
@@ -115,6 +116,13 @@ def get_ticket_assist_service() -> TicketAssistService:
         temperature=0,
     )
     return TicketAssistService(get_similar_knowledge_search_service(), llm)
+
+
+@lru_cache
+def get_ticket_triage_service() -> TicketTriageService:
+    """创建 AI 分诊服务。"""
+
+    return TicketTriageService()
 
 
 @lru_cache

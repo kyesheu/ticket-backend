@@ -5,10 +5,12 @@ import com.ruoyi.ticket.config.TicketAiProperties;
 import com.ruoyi.ticket.dto.TicketAiContextDTO;
 import com.ruoyi.ticket.dto.TicketAiAssistRequestDTO;
 import com.ruoyi.ticket.dto.TicketAiSimilarSearchDTO;
+import com.ruoyi.ticket.dto.TicketAiTriageRequestDTO;
 import com.ruoyi.ticket.exception.TicketAiServiceException;
 import com.ruoyi.ticket.vo.TicketAiHealthVO;
 import com.ruoyi.ticket.vo.TicketAiAssistVO;
 import com.ruoyi.ticket.vo.TicketAiSimilarSearchResultVO;
+import com.ruoyi.ticket.vo.TicketAiTriageVO;
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpServer;
 import java.io.IOException;
@@ -17,6 +19,8 @@ import java.net.ServerSocket;
 import java.net.http.HttpClient;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
+import java.time.LocalDateTime;
+import java.util.List;
 import java.util.concurrent.atomic.AtomicReference;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -157,6 +161,31 @@ class HttpTicketAiServiceImplTest {
     }
 
     @Test
+    @DisplayName("AI 分诊请求序列化并解析受控候选结果")
+    void shouldSendAndReadTriageContract() {
+        AtomicReference<String> body = new AtomicReference<>();
+        server.createContext("/api/v1/tickets/triage", exchange -> {
+            body.set(new String(exchange.getRequestBody().readAllBytes(), StandardCharsets.UTF_8));
+            respond(exchange, 200, "{\"suggested_category_id\":6,\"suggested_priority\":\"HIGH\","
+                    + "\"suggested_assignee_id\":1,\"confidence\":0.82,\"reason_summary\":\"匹配网络故障证据\","
+                    + "\"sources\":[],\"degraded\":false}");
+        });
+        TicketAiTriageRequestDTO dto = createTriageRequest();
+
+        TicketAiTriageVO result = createService().triage(dto);
+
+        assertThat(body.get()).contains("\"contract_version\":\"v1\"")
+                .contains("\"ticket_id\":42")
+                .contains("\"category_candidates\"")
+                .contains("\"assignee_candidates\"");
+        assertThat(result.getSuggestedCategoryId()).isEqualTo(6L);
+        assertThat(result.getSuggestedPriority()).isEqualTo("HIGH");
+        assertThat(result.getSuggestedAssigneeId()).isEqualTo(1L);
+        assertThat(result.getConfidence()).isEqualTo(0.82D);
+        assertThat(result.getDegraded()).isFalse();
+    }
+
+    @Test
     @DisplayName("非法 JSON 响应转换为统一异常")
     void shouldRejectInvalidJson() {
         server.createContext("/api/v1/health", exchange -> respond(exchange, 200, "not-json"));
@@ -238,6 +267,30 @@ class HttpTicketAiServiceImplTest {
                 .connectTimeout(properties.getConnectTimeout())
                 .build();
         return new HttpTicketAiServiceImpl(client, new ObjectMapper(), properties);
+    }
+
+    private TicketAiTriageRequestDTO createTriageRequest() {
+        TicketAiTriageRequestDTO.CategoryCandidate category = new TicketAiTriageRequestDTO.CategoryCandidate();
+        category.setCategoryId(6L);
+        category.setCategoryName("网络故障");
+        TicketAiTriageRequestDTO.AssigneeCandidate assignee = new TicketAiTriageRequestDTO.AssigneeCandidate();
+        assignee.setUserId(1L);
+        assignee.setUserName("admin");
+        assignee.setNickName("管理员");
+
+        TicketAiTriageRequestDTO dto = new TicketAiTriageRequestDTO();
+        dto.setTicketId(42L);
+        dto.setTitle("WiFi 中断");
+        dto.setDescription("办公室 WiFi 无法连接");
+        dto.setCurrentCategoryId(6L);
+        dto.setCurrentCategoryName("网络故障");
+        dto.setCurrentPriority("MEDIUM");
+        dto.setTicketUpdatedAt(LocalDateTime.of(2026, 7, 6, 12, 0));
+        dto.setCategoryCandidates(List.of(category));
+        dto.setPriorityCandidates(List.of("LOW", "MEDIUM", "HIGH", "URGENT"));
+        dto.setAssigneeCandidates(List.of(assignee));
+        dto.setTopK(5);
+        return dto;
     }
 
     private void respond(HttpExchange exchange, int status, String body) throws IOException {

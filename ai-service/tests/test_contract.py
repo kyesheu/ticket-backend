@@ -12,6 +12,7 @@ from ticket_ai.dependencies import (
     get_document_importer,
     get_similar_knowledge_search_service,
     get_ticket_assist_service,
+    get_ticket_triage_service,
     get_health_service,
 )
 from ticket_ai.main import app
@@ -48,6 +49,19 @@ class DefaultFakeAssistService:
 
 
 app.dependency_overrides[get_ticket_assist_service] = DefaultFakeAssistService
+
+
+class DefaultFakeTriageService:
+    def triage(self, request):
+        assert request.ticket_id > 0
+        return {
+            "suggested_category_id": None, "suggested_priority": None, "suggested_assignee_id": None,
+            "confidence": 0, "reason_summary": "", "sources": [],
+            "degraded": True, "reason": "stage49_contract_only",
+        }
+
+
+app.dependency_overrides[get_ticket_triage_service] = DefaultFakeTriageService
 
 
 @pytest.fixture
@@ -128,6 +142,56 @@ async def test_valid_assist_request_returns_structured_degraded_response(client:
         "suggestion": "", "reply_draft": "", "sources": [],
         "degraded": True, "reason": "no_reliable_evidence",
     }
+
+
+@pytest.mark.anyio
+async def test_valid_triage_request_returns_structured_degraded_response(client: AsyncClient) -> None:
+    response = await client.post(
+        "/api/v1/tickets/triage",
+        headers={"X-Service-Token": TEST_TOKEN},
+        json={
+            "contract_version": "v1",
+            "ticket_id": 42,
+            "title": "WiFi unavailable",
+            "description": "Office WiFi cannot connect",
+            "current_category_id": 6,
+            "current_category_name": "Network",
+            "current_priority": "MEDIUM",
+            "ticket_updated_at": "2026-07-06T12:00:00+08:00",
+            "category_candidates": [{"category_id": 6, "category_name": "Network"}],
+            "priority_candidates": ["LOW", "MEDIUM", "HIGH", "URGENT"],
+            "assignee_candidates": [{"user_id": 1, "user_name": "admin", "nick_name": "Admin"}],
+            "top_k": 5,
+        },
+    )
+
+    assert response.status_code == 200
+    assert response.json() == {
+        "suggested_category_id": None, "suggested_priority": None, "suggested_assignee_id": None,
+        "confidence": 0, "reason_summary": "", "sources": [],
+        "degraded": True, "reason": "stage49_contract_only",
+    }
+
+
+@pytest.mark.anyio
+async def test_triage_request_rejects_empty_candidates(client: AsyncClient) -> None:
+    response = await client.post(
+        "/api/v1/tickets/triage",
+        headers={"X-Service-Token": TEST_TOKEN},
+        json={
+            "contract_version": "v1",
+            "ticket_id": 42,
+            "title": "WiFi unavailable",
+            "description": "Office WiFi cannot connect",
+            "ticket_updated_at": "2026-07-06T12:00:00+08:00",
+            "category_candidates": [],
+            "priority_candidates": ["LOW"],
+            "assignee_candidates": [{"user_id": 1, "user_name": "admin"}],
+            "top_k": 5,
+        },
+    )
+
+    assert response.status_code == 422
 
 
 @pytest.mark.anyio

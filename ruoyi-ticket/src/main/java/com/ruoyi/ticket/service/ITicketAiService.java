@@ -5,12 +5,14 @@ import com.ruoyi.ticket.dto.TicketAiAssistRequestDTO;
 import com.ruoyi.ticket.dto.TicketAiContextDTO;
 import com.ruoyi.ticket.dto.TicketAiDocumentImportDTO;
 import com.ruoyi.ticket.dto.TicketAiSimilarSearchDTO;
+import com.ruoyi.ticket.dto.TicketAiTriageRequestDTO;
 import com.ruoyi.ticket.vo.TicketAiAcceptedVO;
 import com.ruoyi.ticket.vo.TicketAiAssistVO;
 import com.ruoyi.ticket.vo.TicketAiClosedTicketSyncVO;
 import com.ruoyi.ticket.vo.TicketAiHealthVO;
 import com.ruoyi.ticket.vo.TicketAiSearchResultVO;
 import com.ruoyi.ticket.vo.TicketAiSimilarSearchResultVO;
+import com.ruoyi.ticket.vo.TicketAiTriageVO;
 
 /**
  * 工单 AI HTTP interface。
@@ -34,4 +36,7 @@ public interface ITicketAiService {
 
     /** 生成处理建议与回复草稿。 */
     TicketAiAssistVO assist(TicketAiAssistRequestDTO dto);
+
+    /** 生成受控分诊建议。 */
+    TicketAiTriageVO triage(TicketAiTriageRequestDTO dto);
 }

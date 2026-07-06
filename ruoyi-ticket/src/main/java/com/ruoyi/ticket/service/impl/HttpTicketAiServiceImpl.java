@@ -10,6 +10,7 @@ import com.ruoyi.ticket.dto.TicketAiAssistRequestDTO;
 import com.ruoyi.ticket.dto.TicketAiContextDTO;
 import com.ruoyi.ticket.dto.TicketAiDocumentImportDTO;
 import com.ruoyi.ticket.dto.TicketAiSimilarSearchDTO;
+import com.ruoyi.ticket.dto.TicketAiTriageRequestDTO;
 import com.ruoyi.ticket.exception.TicketAiServiceException;
 import com.ruoyi.ticket.service.ITicketAiService;
 import com.ruoyi.ticket.vo.TicketAiAcceptedVO;
@@ -18,6 +19,7 @@ import com.ruoyi.ticket.vo.TicketAiClosedTicketSyncVO;
 import com.ruoyi.ticket.vo.TicketAiHealthVO;
 import com.ruoyi.ticket.vo.TicketAiSearchResultVO;
 import com.ruoyi.ticket.vo.TicketAiSimilarSearchResultVO;
+import com.ruoyi.ticket.vo.TicketAiTriageVO;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URI;
@@ -80,6 +82,11 @@ public class HttpTicketAiServiceImpl implements ITicketAiService {
     @Override
     public TicketAiAssistVO assist(TicketAiAssistRequestDTO dto) {
         return post("/api/v1/tickets/assist", dto, TicketAiAssistVO.class);
+    }
+
+    @Override
+    public TicketAiTriageVO triage(TicketAiTriageRequestDTO dto) {
+        return post("/api/v1/tickets/triage", dto, TicketAiTriageVO.class);
     }
 
     private <T> T post(String path, Object body, Class<T> responseType) {

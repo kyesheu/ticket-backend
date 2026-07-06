@@ -6,6 +6,7 @@ import com.ruoyi.common.core.domain.AjaxResult;
 import com.ruoyi.common.enums.BusinessType;
 import com.ruoyi.ticket.service.ITicketAiDocumentService;
 import com.ruoyi.ticket.service.ITicketAiKnowledgeService;
+import com.ruoyi.ticket.service.ITicketAiTriageService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -27,11 +28,14 @@ public class TicketAiController extends BaseController {
 
     private final ITicketAiDocumentService ticketAiDocumentService;
     private final ITicketAiKnowledgeService ticketAiKnowledgeService;
+    private final ITicketAiTriageService ticketAiTriageService;
 
     public TicketAiController(ITicketAiDocumentService ticketAiDocumentService,
-                              ITicketAiKnowledgeService ticketAiKnowledgeService) {
+                              ITicketAiKnowledgeService ticketAiKnowledgeService,
+                              ITicketAiTriageService ticketAiTriageService) {
         this.ticketAiDocumentService = ticketAiDocumentService;
         this.ticketAiKnowledgeService = ticketAiKnowledgeService;
+        this.ticketAiTriageService = ticketAiTriageService;
     }
 
     @Operation(summary = "导入知识文档")
@@ -64,5 +68,12 @@ public class TicketAiController extends BaseController {
     public AjaxResult assist(@RequestParam Long ticketId,
                              @RequestParam(defaultValue = "5") Integer topK) {
         return success(ticketAiKnowledgeService.assist(ticketId, topK));
+    }
+
+    @Operation(summary = "生成工单 AI 分诊建议")
+    @PreAuthorize("@ss.hasPermi('ticket:ticket:query')")
+    @PostMapping("/ticket/triage")
+    public AjaxResult triage(@RequestParam Long ticketId) {
+        return success(ticketAiTriageService.triage(ticketId));
     }
 }

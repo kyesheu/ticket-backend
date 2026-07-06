@@ -1,3 +1,4 @@
+SET NAMES utf8mb4;
 -- ============================================
 -- Ticket 工单模块建表 SQL
 -- 数据库: ticket_backend

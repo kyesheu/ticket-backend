@@ -1,3 +1,4 @@
+SET NAMES utf8mb4;
 -- 工单系统 v2.1 增量脚本，前置版本：ticket-v2.0.sql
 
 ALTER TABLE ticket_workflow_transition

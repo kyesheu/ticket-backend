@@ -4,6 +4,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.PropertyNamingStrategies;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.ruoyi.ticket.config.TicketAiProperties;
 import com.ruoyi.ticket.dto.TicketAiClosedTicketSyncDTO;
 import com.ruoyi.ticket.dto.TicketAiAssistRequestDTO;
@@ -44,6 +45,7 @@ public class HttpTicketAiServiceImpl implements ITicketAiService {
                                    TicketAiProperties properties) {
         this.httpClient = httpClient;
         this.objectMapper = objectMapper.copy()
+                .registerModule(new JavaTimeModule())
                 .setPropertyNamingStrategy(PropertyNamingStrategies.SNAKE_CASE)
                 .enable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES);
         this.properties = properties;

@@ -16,7 +16,7 @@ import com.ruoyi.ticket.vo.TicketAiTriageVO;
 import com.ruoyi.ticket.vo.TicketVO;
 import com.ruoyi.common.core.domain.entity.SysDept;
 import com.ruoyi.common.core.domain.entity.SysUser;
-import com.ruoyi.system.mapper.SysUserMapper;
+import com.ruoyi.system.service.ISysUserService;
 import com.ruoyi.common.utils.SecurityUtils;
 import java.util.Date;
 import java.time.LocalDateTime;
@@ -28,6 +28,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.MockedStatic;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.test.util.ReflectionTestUtils;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
@@ -51,7 +52,7 @@ class TicketAiTriageServiceImplTest {
     private ITicketCategoryService ticketCategoryService;
 
     @Mock
-    private SysUserMapper sysUserMapper;
+    private ISysUserService sysUserService;
 
     @Mock
     private ITicketAiService ticketAiService;
@@ -132,7 +133,7 @@ class TicketAiTriageServiceImplTest {
         when(ticketService.selectTicketById(42L)).thenReturn(ticket());
         when(ticketCategoryService.selectCategoryList(any(TicketCategoryQueryDTO.class)))
                 .thenReturn(List.of(category(6L, "网络故障")));
-        when(sysUserMapper.selectUserList(any(SysUser.class))).thenReturn(List.of(user(1L, "admin", "0")));
+        when(sysUserService.selectUserList(any(SysUser.class))).thenReturn(List.of(user(1L, "admin", "0")));
 
         TicketAiTriageRequestDTO request = service.buildRequest(42L);
 
@@ -152,7 +153,7 @@ class TicketAiTriageServiceImplTest {
         when(ticketService.selectTicketById(42L)).thenReturn(ticket());
         when(ticketCategoryService.selectCategoryList(any(TicketCategoryQueryDTO.class)))
                 .thenReturn(List.of(category(6L, "网络故障")));
-        when(sysUserMapper.selectUserList(any(SysUser.class))).thenReturn(List.of());
+        when(sysUserService.selectUserList(any(SysUser.class))).thenReturn(List.of());
 
         TicketAiTriageVO result = service.triage(42L);
 
@@ -161,12 +162,28 @@ class TicketAiTriageServiceImplTest {
     }
 
     @Test
+    @DisplayName("AI 服务未注册时分诊降级且不影响启动")
+    void shouldDegradeWhenAiServiceUnavailable() {
+        ReflectionTestUtils.setField(service, "ticketAiService", null);
+        when(ticketService.selectTicketById(42L)).thenReturn(ticket());
+        when(ticketCategoryService.selectCategoryList(any(TicketCategoryQueryDTO.class)))
+                .thenReturn(List.of(category(6L, "网络故障")));
+        when(sysUserService.selectUserList(any(SysUser.class))).thenReturn(List.of(user(1L, "admin", "0")));
+
+        TicketAiTriageVO result = service.triage(42L);
+
+        assertThat(result.getDegraded()).isTrue();
+        assertThat(result.getReason()).isEqualTo("ai_service_unavailable");
+        verify(suggestionMapper, never()).insertSuggestion(any(TicketAiTriageSuggestion.class));
+    }
+
+    @Test
     @DisplayName("AI 返回结果必须经过 Java 候选白名单校验")
     void shouldValidateAiResponseAfterCallingService() {
         when(ticketService.selectTicketById(42L)).thenReturn(ticket());
         when(ticketCategoryService.selectCategoryList(any(TicketCategoryQueryDTO.class)))
                 .thenReturn(List.of(category(6L, "网络故障")));
-        when(sysUserMapper.selectUserList(any(SysUser.class))).thenReturn(List.of(user(1L, "admin", "0")));
+        when(sysUserService.selectUserList(any(SysUser.class))).thenReturn(List.of(user(1L, "admin", "0")));
         when(ticketAiService.triage(any(TicketAiTriageRequestDTO.class)))
                 .thenReturn(response(6L, "HIGH", 999L, 0.8D, source("knowledge_document", "doc-1")));
 
@@ -182,7 +199,7 @@ class TicketAiTriageServiceImplTest {
         when(ticketService.selectTicketById(42L)).thenReturn(ticket());
         when(ticketCategoryService.selectCategoryList(any(TicketCategoryQueryDTO.class)))
                 .thenReturn(List.of(category(6L, "网络故障")));
-        when(sysUserMapper.selectUserList(any(SysUser.class))).thenReturn(List.of(user(1L, "admin", "0")));
+        when(sysUserService.selectUserList(any(SysUser.class))).thenReturn(List.of(user(1L, "admin", "0")));
         when(ticketAiService.triage(any(TicketAiTriageRequestDTO.class)))
                 .thenReturn(response(6L, "HIGH", 1L, 0.8D, source("knowledge_document", "doc-1")));
         when(suggestionMapper.insertSuggestion(any(TicketAiTriageSuggestion.class))).thenAnswer(invocation -> {
@@ -206,7 +223,7 @@ class TicketAiTriageServiceImplTest {
             when(ticketService.selectTicketById(42L)).thenReturn(ticket(updatedAt));
             when(ticketCategoryService.selectCategoryList(any(TicketCategoryQueryDTO.class)))
                     .thenReturn(List.of(category(6L, "网络故障")));
-            when(sysUserMapper.selectUserList(any(SysUser.class))).thenReturn(List.of(user(1L, "admin", "0")));
+            when(sysUserService.selectUserList(any(SysUser.class))).thenReturn(List.of(user(1L, "admin", "0")));
             when(suggestionMapper.applyPending(any(TicketAiTriageSuggestion.class))).thenReturn(1);
 
             service.apply(100L, null);
@@ -231,7 +248,7 @@ class TicketAiTriageServiceImplTest {
             when(ticketService.selectTicketById(42L)).thenReturn(ticket(updatedAt));
             when(ticketCategoryService.selectCategoryList(any(TicketCategoryQueryDTO.class)))
                     .thenReturn(List.of(category(6L, "网络故障")));
-            when(sysUserMapper.selectUserList(any(SysUser.class))).thenReturn(List.of(
+            when(sysUserService.selectUserList(any(SysUser.class))).thenReturn(List.of(
                     user(1L, "admin", "0"), user(2L, "operator", "0")));
             when(suggestionMapper.applyPending(any(TicketAiTriageSuggestion.class))).thenReturn(1);
 

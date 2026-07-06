@@ -1,3 +1,4 @@
+SET NAMES utf8mb4;
 -- 工单系统 v3.1 增量脚本，前置版本：ticket-v2.3.sql + v3.0 AI 服务
 
 CREATE TABLE ticket_ai_triage_suggestion (

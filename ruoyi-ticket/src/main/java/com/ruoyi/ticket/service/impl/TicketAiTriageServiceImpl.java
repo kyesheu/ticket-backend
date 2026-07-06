@@ -7,7 +7,7 @@ import com.ruoyi.common.core.domain.entity.SysUser;
 import com.ruoyi.common.exception.ServiceException;
 import com.ruoyi.common.utils.SecurityUtils;
 import com.ruoyi.common.utils.StringUtils;
-import com.ruoyi.system.mapper.SysUserMapper;
+import com.ruoyi.system.service.ISysUserService;
 import com.ruoyi.ticket.domain.TicketAiTriageSuggestion;
 import com.ruoyi.ticket.domain.TicketCategory;
 import com.ruoyi.ticket.dto.TicketCategoryQueryDTO;
@@ -54,9 +54,9 @@ public class TicketAiTriageServiceImpl implements ITicketAiTriageService {
     private ITicketCategoryService ticketCategoryService;
 
     @Autowired
-    private SysUserMapper sysUserMapper;
+    private ISysUserService sysUserService;
 
-    @Autowired
+    @Autowired(required = false)
     private ITicketAiService ticketAiService;
 
     @Autowired
@@ -69,6 +69,9 @@ public class TicketAiTriageServiceImpl implements ITicketAiTriageService {
         TicketAiTriageRequestDTO request = buildRequest(ticketId);
         if (request.getAssigneeCandidates().isEmpty()) {
             return degraded("empty_assignee_candidates");
+        }
+        if (ticketAiService == null) {
+            return degraded("ai_service_unavailable");
         }
         TicketAiTriageVO response = ticketAiService.triage(request);
         TicketAiTriageVO result = validateSuggestion(request, response);
@@ -195,7 +198,7 @@ public class TicketAiTriageServiceImpl implements ITicketAiTriageService {
         SysUser query = new SysUser();
         query.setStatus(UserConstants.NORMAL);
         query.setDeptId(ticket.getDeptId());
-        List<SysUser> users = sysUserMapper.selectUserList(query);
+        List<SysUser> users = sysUserService.selectUserList(query);
         if (users == null) {
             return Collections.emptyList();
         }

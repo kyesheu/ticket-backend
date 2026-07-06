@@ -1,3 +1,4 @@
+SET NAMES utf8mb4;
 -- 工单系统 v2.3 增量脚本，前置版本：ticket-v2.2.sql
 
 CREATE TABLE ticket_search_event (

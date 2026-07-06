@@ -1,3 +1,4 @@
+SET NAMES utf8mb4;
 -- 工单系统 v2.2 增量脚本，前置版本：ticket-v2.1.sql
 
 CREATE TABLE ticket_attachment (

@@ -1,3 +1,4 @@
+SET NAMES utf8mb4;
 -- 工单系统 v1.1 增量脚本
 -- 前置版本：ticket-v1.0.sql
 -- MySQL 8.0+

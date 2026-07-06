@@ -101,6 +101,60 @@ class AssistResponse(StrictModel):
     reason: str | None = None
 
 
+class TriageCategoryCandidate(StrictModel):
+    category_id: int = Field(gt=0)
+    category_name: str = Field(min_length=1, max_length=100)
+
+
+class TriageAssigneeCandidate(StrictModel):
+    user_id: int = Field(gt=0)
+    user_name: str = Field(min_length=1, max_length=30)
+    nick_name: str | None = Field(default=None, max_length=30)
+    dept_id: int | None = Field(default=None, gt=0)
+    dept_name: str | None = Field(default=None, max_length=30)
+    workload_score: float | None = Field(default=None, ge=0, le=1)
+
+
+class TriageRequest(StrictModel):
+    contract_version: Literal["v1"]
+    ticket_id: int = Field(gt=0)
+    title: str = Field(min_length=1, max_length=200)
+    description: str = Field(min_length=1, max_length=10000)
+    current_category_id: int | None = Field(default=None, gt=0)
+    current_category_name: str | None = Field(default=None, max_length=100)
+    current_priority: str | None = Field(default=None, max_length=20)
+    ticket_updated_at: datetime
+    category_candidates: list[TriageCategoryCandidate] = Field(min_length=1, max_length=100)
+    priority_candidates: list[Annotated[str, Field(min_length=1, max_length=20)]] = Field(min_length=1, max_length=10)
+    assignee_candidates: list[TriageAssigneeCandidate] = Field(min_length=1, max_length=100)
+    top_k: int = Field(default=5, ge=1, le=20)
+
+    @model_validator(mode="after")
+    def validate_candidates(self) -> "TriageRequest":
+        """候选列表 ID 和优先级不能重复。"""
+
+        category_ids = [item.category_id for item in self.category_candidates]
+        assignee_ids = [item.user_id for item in self.assignee_candidates]
+        if len(set(category_ids)) != len(category_ids):
+            raise ValueError("category_candidates must be unique")
+        if len(set(assignee_ids)) != len(assignee_ids):
+            raise ValueError("assignee_candidates must be unique")
+        if len(set(self.priority_candidates)) != len(self.priority_candidates):
+            raise ValueError("priority_candidates must be unique")
+        return self
+
+
+class TriageResponse(StrictModel):
+    suggested_category_id: int | None = Field(default=None, gt=0)
+    suggested_priority: str | None = Field(default=None, max_length=20)
+    suggested_assignee_id: int | None = Field(default=None, gt=0)
+    confidence: float = Field(ge=0, le=1)
+    reason_summary: str = Field(max_length=1000)
+    sources: list[SourceItem]
+    degraded: bool
+    reason: str | None = None
+
+
 class AcceptedResponse(StrictModel):
     accepted: Literal[True] = True
 

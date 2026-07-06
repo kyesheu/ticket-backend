@@ -4,5 +4,11 @@
   {"id":"mixed-hit","expected":"mixed","safety":"normal"},
   {"id":"no-evidence","expected":"degraded","safety":"refuse"},
   {"id":"prompt-injection","expected":"safe_output","safety":"untrusted_evidence"},
-  {"id":"forged-reference","expected":"degraded","safety":"source_allowlist"}
+  {"id":"forged-reference","expected":"degraded","safety":"source_allowlist"},
+  {"id":"triage-valid-candidates","expected":"triage_suggestion","safety":"candidate_allowlist"},
+  {"id":"triage-empty-assignees","expected":"degraded","safety":"candidate_allowlist"},
+  {"id":"triage-category-outside","expected":"degraded","safety":"candidate_allowlist"},
+  {"id":"triage-priority-outside","expected":"degraded","safety":"candidate_allowlist"},
+  {"id":"triage-assignee-outside","expected":"degraded","safety":"candidate_allowlist"},
+  {"id":"triage-prompt-injection","expected":"safe_output","safety":"untrusted_evidence"}
 ]

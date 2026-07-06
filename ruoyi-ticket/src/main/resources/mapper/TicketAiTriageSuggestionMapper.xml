@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ruoyi.ticket.mapper.TicketAiTriageSuggestionMapper">
+
+    <resultMap id="TicketAiTriageSuggestionResult" type="com.ruoyi.ticket.domain.TicketAiTriageSuggestion">
+        <id property="suggestionId" column="suggestion_id"/>
+        <result property="ticketId" column="ticket_id"/>
+        <result property="ticketUpdatedAt" column="ticket_updated_at"/>
+        <result property="suggestedCategoryId" column="suggested_category_id"/>
+        <result property="suggestedPriority" column="suggested_priority"/>
+        <result property="suggestedAssigneeId" column="suggested_assignee_id"/>
+        <result property="confidence" column="confidence"/>
+        <result property="reasonSummary" column="reason_summary"/>
+        <result property="sourceRefs" column="source_refs"/>
+        <result property="suggestionStatus" column="suggestion_status"/>
+        <result property="finalCategoryId" column="final_category_id"/>
+        <result property="finalPriority" column="final_priority"/>
+        <result property="finalAssigneeId" column="final_assignee_id"/>
+        <result property="operatedBy" column="operated_by"/>
+        <result property="operatedAt" column="operated_at"/>
+        <result property="createTime" column="create_time"/>
+        <result property="updateTime" column="update_time"/>
+    </resultMap>
+
+    <sql id="BaseColumns">
+        suggestion_id, ticket_id, ticket_updated_at, suggested_category_id, suggested_priority,
+        suggested_assignee_id, confidence, reason_summary, source_refs, suggestion_status,
+        final_category_id, final_priority, final_assignee_id, operated_by, operated_at,
+        create_time, update_time
+    </sql>
+
+    <insert id="insertSuggestion" useGeneratedKeys="true" keyProperty="suggestionId">
+        INSERT INTO ticket_ai_triage_suggestion
+            (ticket_id, ticket_updated_at, suggested_category_id, suggested_priority,
+             suggested_assignee_id, confidence, reason_summary, source_refs, suggestion_status,
+             create_time, update_time)
+        VALUES
+            (#{ticketId}, #{ticketUpdatedAt}, #{suggestedCategoryId}, #{suggestedPriority},
+             #{suggestedAssigneeId}, #{confidence}, #{reasonSummary}, #{sourceRefs}, #{suggestionStatus},
+             #{createTime}, #{updateTime})
+    </insert>
+
+    <select id="selectById" resultMap="TicketAiTriageSuggestionResult">
+        SELECT <include refid="BaseColumns"/>
+        FROM ticket_ai_triage_suggestion
+        WHERE suggestion_id = #{suggestionId}
+    </select>
+
+    <update id="applyPending">
+        UPDATE ticket_ai_triage_suggestion
+        SET suggestion_status = 'APPLIED',
+            final_category_id = #{finalCategoryId},
+            final_priority = #{finalPriority},
+            final_assignee_id = #{finalAssigneeId},
+            operated_by = #{operatedBy},
+            operated_at = #{operatedAt},
+            update_time = #{updateTime}
+        WHERE suggestion_id = #{suggestionId}
+          AND suggestion_status = 'PENDING'
+    </update>
+
+    <update id="rejectPending">
+        UPDATE ticket_ai_triage_suggestion
+        SET suggestion_status = 'REJECTED',
+            operated_by = #{operatedBy},
+            operated_at = NOW(),
+            update_time = NOW()
+        WHERE suggestion_id = #{suggestionId}
+          AND suggestion_status = 'PENDING'
+    </update>
+
+    <update id="expirePending">
+        UPDATE ticket_ai_triage_suggestion
+        SET suggestion_status = 'EXPIRED',
+            operated_at = NOW(),
+            update_time = NOW()
+        WHERE suggestion_id = #{suggestionId}
+          AND suggestion_status = 'PENDING'
+    </update>
+</mapper>

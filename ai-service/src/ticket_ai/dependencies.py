@@ -58,6 +58,22 @@ def _smoke_llm(prompt):
     }, ensure_ascii=False)
 
 
+def _smoke_triage_llm(prompt):
+    category_match = re.search(r"允许分类：([^\n]+)", prompt.to_string())
+    priority_match = re.search(r"允许优先级：([^\n]+)", prompt.to_string())
+    source_match = re.search(r"允许来源 ID：([^\n]+)", prompt.to_string())
+    category_id = int(category_match.group(1).split(":")[0].strip()) if category_match else None
+    priority = priority_match.group(1).split(",")[0].strip() if priority_match else ""
+    source_id = source_match.group(1).split(",")[0].strip() if source_match else ""
+    return json.dumps({
+        "suggested_category_id": category_id,
+        "suggested_priority": priority,
+        "confidence": 0.7,
+        "reason_summary": "根据检索证据和候选集生成分诊建议。",
+        "source_ids": [source_id],
+    }, ensure_ascii=False)
+
+
 @lru_cache
 def get_document_importer() -> DocumentImporter:
     """创建文档导入深模块。"""
@@ -122,7 +138,15 @@ def get_ticket_assist_service() -> TicketAssistService:
 def get_ticket_triage_service() -> TicketTriageService:
     """创建 AI 分诊服务。"""
 
-    return TicketTriageService()
+    settings = get_settings()
+    llm = RunnableLambda(_smoke_triage_llm) if settings.smoke_mode else ChatOpenAI(
+        api_key=settings.llm_api_key or settings.embedding_api_key,
+        base_url=settings.llm_base_url or settings.embedding_base_url,
+        model=settings.llm_model,
+        timeout=settings.llm_timeout_seconds,
+        temperature=0,
+    )
+    return TicketTriageService(get_similar_knowledge_search_service(), llm)
 
 
 @lru_cache

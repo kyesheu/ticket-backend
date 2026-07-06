@@ -1,61 +1,39 @@
-# AGENTS.md
+# 项目规则
 
-## 项目
+基于 RuoYi-Vue Spring Boot 3 的企业工单系统；业务代码集中在 ruoyi-ticket，AI 能力集中在 ai-service。
 
-基于 RuoYi-Vue Spring Boot 3 二开的企业工单管理系统。v1.0 新增 `ruoyi-ticket` 模块，实现工单创建、分派、处理、确认、关闭/取消、评论、操作日志主流程。
+## 沟通
 
-## 文档
+- 默认中文；代码、命令、变量和路径保持英文。
+- 结论先行，简洁直接；发现问题或更优方案时明确说明。
 
-改代码前先从 `docs/README.md` 定位版本，读取对应版本目录文档，并按该目录的 `04-implementation-plan.md` 分阶段推进，不跳阶段。当前开发版本为 `docs/3.x/`。
+## 文档与阶段
 
-| 文档 | 内容 |
-|---|---|
-| `docs/README.md` | 版本文档索引 |
-| `docs/{version}/01-project-spec.md` | 项目边界、验收标准 |
-| `docs/{version}/02-architecture-design.md` | 分层规范、命名约定 |
-| `docs/{version}/03-database-design.md` | 表结构、索引与数据归属 |
-| `docs/{version}/04-implementation-plan.md` | 当前版本实施计划 |
-| `docs/{version}/05-test-release.md` | 测试清单与发布记录 |
+- 从 docs/README.md 定位版本，读取该版本 01–05 文档。
+- 严格按 04-implementation-plan.md 推进，一次只做一个阶段，不跳阶段。
+- 开发前说明版本与阶段、文件范围、原因、是否影响基础模块和验证方式。
+- 文档、实现和 05-test-release.md 实测记录必须一致。
 
-## 代码规范
+## Java 规范
 
-写 Java 前先加载 `alibaba-java-coding-guidelines-skill`，按规范生成，不事后审查。
+- 写 Java、Spring、MyBatis 或 SQL 前加载 alibaba-java-coding-guidelines-skill。
+- Domain、DTO、VO 实现 Serializable 并声明 serialVersionUID。
+- 类名 UpperCamelCase；方法和变量 lowerCamelCase；常量 UPPER_SNAKE_CASE。
+- 固定值使用枚举，不使用魔法值；注释使用中文 Javadoc。
+- Service 接口使用 I 前缀，实现使用 Impl 后缀。
 
-- POJO（Domain / DTO / VO）必须实现 `Serializable`，声明 `serialVersionUID`
-- 类名 UpperCamelCase，方法/变量 lowerCamelCase，常量 UPPER_SNAKE_CASE
-- 不用魔法值，固定值用枚举
-- 注释用中文 Javadoc
-- Service 接口 `I` 前缀，实现 `Impl` 后缀
+## 开发顺序
 
-## 开发和测试流程
+1. 列出合法、非法和边界测试用例。
+2. 只建立当前功能需要的骨架；临时实现标记 TODO: 阶段X实现，禁止空方法。
+3. 先写核心规则测试：状态、权限、参数和事务边界；Service 测试可 mock Mapper。
+4. 实现业务逻辑，使目标测试通过。
+5. 执行 mvn test 和 mvn clean compile。
+6. 按版本 05-test-release.md 启动依赖并执行 smoke。
 
-每次开发前先说明：哪个阶段、改哪些文件、为什么、是否涉及基础模块、如何验证。一次一个阶段。
+没有实际测试结果，不得声称阶段或版本完成。
 
-### 1. 列测试用例
+## Git 与红线
 
-合法场景 + 非法场景 + 边界条件。先想清楚要测什么。
-
-### 2. 建代码骨架
-
-**只建当前功能需要的类**，不一次性生成全部。保证编译通过即可。
-
-- 非空壳：临时实现必须写 `// TODO: 阶段X实现`，不能留空方法体导致编译错误
-- 骨架不算完成——只是让后续步骤能编译的前提
-
-### 3. 写单元测试
-
-核心规则必测：状态流转、权限判断、参数校验。Service 层用 Mockito mock Mapper（Mapper = 数据库边界，mock 合理）。测行为不测实现。
-
-### 4. 实现业务逻辑
-
-填充 Service Impl 和 Controller 方法体，使测试通过。
-
-### 5. `mvn test` → `mvn clean compile`
-
-全部通过才能继续。
-
-### 6. 启动后端 + 接口 smoke
-
-启动 Spring Boot，执行 `scripts/ticket/v3.x/smoke-test.ps1`，覆盖：分类 CRUD、工单主流程、合法/非法流转、评论、日志、权限。
-
-**没有测试结果，不声称功能完成。**
+- 不自动 commit 或 push；提交前先展示变更摘要，commit message 使用简洁英文。
+- 删除文件/目录或 Git 历史、修改 .env/密钥/token/证书/CI/CD、push、rebase、reset --hard、强制推送、公开发布前必须先确认。

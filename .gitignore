@@ -64,3 +64,4 @@ scripts/ticket/v3.x/smoke-env.local.ps1
 !*/build/*.java
 !*/build/*.html
 !*/build/*.xml
+/logs/

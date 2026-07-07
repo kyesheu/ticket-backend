@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.PropertyNamingStrategies;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import com.ruoyi.common.filter.TraceIdFilter;
 import com.ruoyi.ticket.config.TicketAiProperties;
 import com.ruoyi.ticket.dto.TicketAiClosedTicketSyncDTO;
 import com.ruoyi.ticket.dto.TicketAiAssistRequestDTO;
@@ -32,6 +33,7 @@ import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
+import org.slf4j.MDC;
 
 /**
  * 基于 JDK HTTP Client 的 Python AI 服务 adapter。
@@ -139,9 +141,14 @@ public class HttpTicketAiServiceImpl implements ITicketAiService {
 
     private HttpRequest.Builder baseRequest(String path) {
         URI uri = URI.create(properties.getBaseUrl()).resolve(path);
-        return HttpRequest.newBuilder(uri)
+        HttpRequest.Builder builder = HttpRequest.newBuilder(uri)
                 .timeout(properties.getReadTimeout())
                 .header("Accept", JSON_CONTENT_TYPE);
+        String traceId = MDC.get(TraceIdFilter.TRACE_ID_MDC_KEY);
+        if (traceId != null && !traceId.isBlank()) {
+            builder.header(TraceIdFilter.TRACE_ID_HEADER, traceId);
+        }
+        return builder;
     }
 
     private <T> T execute(HttpRequest request, Class<T> responseType) {

@@ -26,6 +26,25 @@ logging:
     com.ruoyi.ticket: ${LOG_LEVEL_TICKET:debug}
     org.springframework: ${LOG_LEVEL_SPRING:warn}
 
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+  endpoint:
+    health:
+      probes:
+        enabled: true
+      show-details: ${MANAGEMENT_HEALTH_SHOW_DETAILS:when_authorized}
+      group:
+        liveness:
+          include: livenessState
+        readiness:
+          include: readinessState,db,redis,ticketAi,ticketSearch
+  metrics:
+    tags:
+      application: ${spring.application.name}
+
 spring:
   application:
     name: ticket-backend
@@ -210,3 +229,4 @@ ticket:
     service-token: ${TICKET_AI_SERVICE_TOKEN:}
     connect-timeout: ${TICKET_AI_CONNECT_TIMEOUT:2s}
     read-timeout: ${TICKET_AI_READ_TIMEOUT:10s}
+    max-response-bytes: ${TICKET_AI_MAX_RESPONSE_BYTES:1048576}

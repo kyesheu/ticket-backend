@@ -1,10 +1,11 @@
 # =============================================
-# Ticket API v3.0 ~ v3.1 冒烟测试 (PowerShell)
+# Ticket API v3.x 冒烟测试 (PowerShell)
 # 用法: .\scripts\ticket\v3.x\smoke-test.ps1
 # =============================================
 
 $ErrorActionPreference = "Continue"
 $RepoRoot = (Resolve-Path (Join-Path $PSScriptRoot "..\..\..")).Path
+. (Join-Path $RepoRoot "scripts\ticket\_lib\Smoke-Bootstrap.ps1")
 $SmokeEnvFile = Join-Path $PSScriptRoot "smoke-env.local.ps1"
 if (Test-Path -LiteralPath $SmokeEnvFile) {
     . $SmokeEnvFile
@@ -262,30 +263,14 @@ function Assert-Equal($Desc, $Expected, $Actual) {
     }
 }
 
-function Get-RequiredCustomFieldInputs($CategoryId) {
-    $Form = Invoke-RestMethod -Uri "$BaseUrl/ticket/custom-field/form/$CategoryId" -Headers $Headers -Method Get
-    $Inputs = @()
-    foreach ($Field in $Form.data) {
-        if ($Field.requiredFlag -ne "1" -or $Field.defaultValue) { continue }
-        $Value = switch ($Field.fieldType) {
-            "TEXT" { "smoke" }; "NUMBER" { if ($Field.minNumber) { $Field.minNumber } else { 1 } }
-            "DATE" { "2026-07-03" }; "DATETIME" { "2026-07-03 10:20:30" }; "BOOLEAN" { $true }
-            "SINGLE_SELECT" { $Field.options[0].optionValue }; "MULTI_SELECT" { @($Field.options[0].optionValue) }
-        }
-        $Inputs += @{ fieldKey = $Field.fieldKey; value = $Value }
-    }
-    return $Inputs
-}
-
 # 创建测试工单
 Write-Host ""
 Write-Host "[T] Create test ticket for AI smoke" -ForegroundColor Cyan
 $TestBody = @{
     title = "PS-AI-Smoke-$([DateTimeOffset]::Now.ToUnixTimeSeconds())"
     content = "AI smoke test ticket"
-    categoryId = 6
+    categoryId = 7
     priority = "MEDIUM"
-    customFields = @(Get-RequiredCustomFieldInputs 6)
 } | ConvertTo-Json -Depth 10
 try {
     $TestResp = Invoke-RestMethod -Uri "$BaseUrl/ticket" -Method Post -Body $TestBody -ContentType "application/json" -Headers $Headers
@@ -394,9 +379,8 @@ if (-not $AiSmokeEnabled) {
         $TriageBody = @{
             title = "PS-Smoke-Triage Apply $([DateTimeOffset]::Now.ToUnixTimeSeconds())"
             content = "Office WiFi is unstable for multiple users and needs network support"
-            categoryId = 6
+            categoryId = 7
             priority = "MEDIUM"
-            customFields = @(Get-RequiredCustomFieldInputs 6)
         } | ConvertTo-Json -Depth 10
         $TriageTicketId = (Invoke-RestMethod -Uri "$BaseUrl/ticket" -Method Post -Headers $Headers `
             -Body $TriageBody -ContentType "application/json").data
@@ -427,9 +411,8 @@ if (-not $AiSmokeEnabled) {
         $RejectBody = @{
             title = "PS-Smoke-Triage Reject $([DateTimeOffset]::Now.ToUnixTimeSeconds())"
             content = "Printer access request should be reviewed by service desk"
-            categoryId = 6
+            categoryId = 7
             priority = "LOW"
-            customFields = @(Get-RequiredCustomFieldInputs 6)
         } | ConvertTo-Json -Depth 10
         $RejectTicketId = (Invoke-RestMethod -Uri "$BaseUrl/ticket" -Method Post -Headers $Headers `
             -Body $RejectBody -ContentType "application/json").data

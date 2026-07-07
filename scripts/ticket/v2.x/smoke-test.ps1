@@ -1,13 +1,21 @@
 # =============================================
-# Ticket API v2.0 ~ v2.3 冒烟测试 (PowerShell)
+# Ticket API v2.x 冒烟测试 (PowerShell)
 # 用法: .\scripts\ticket\v2.x\smoke-test.ps1
 # =============================================
 
 $ErrorActionPreference = "Continue"
+$RepoRoot = (Resolve-Path (Join-Path $PSScriptRoot "..\..\..")).Path
+. (Join-Path $RepoRoot "scripts\ticket\_lib\Smoke-Bootstrap.ps1")
 $BaseUrl = "http://localhost:8080"
+$StartedProcesses = @()
 $Pass = 0
 $Fail = 0
 $Skip = 0
+
+trap {
+    Stop-SmokeStartedProcesses
+    throw
+}
 
 function Get-ResponseText($Response) {
     if ($Response -is [string]) { return $Response }
@@ -72,6 +80,15 @@ function Assert-Contains($Desc, $Expected, $Response) {
         Write-Host "  [FAIL] $Desc (expected: $Expected)" -ForegroundColor Red
         $script:Fail++
     }
+}
+
+# ============ 启动项目 ============
+Write-Host ""
+Write-Host "[S] Ensure Java backend" -ForegroundColor Cyan
+if (-not (Ensure-SmokeJavaBackend -RepoRoot $RepoRoot -BaseUrl $BaseUrl)) {
+    Write-Host "  Logs: $RepoRoot\logs\smoke-java-backend.log" -ForegroundColor Yellow
+    Stop-SmokeStartedProcesses
+    exit 1
 }
 
 # ============ 登录 ============
@@ -188,12 +205,5 @@ Write-Host "==========================================" -ForegroundColor Cyan
 Write-Host "  Result: $Pass passed, $Fail failed, $Skip skipped" -ForegroundColor $(if ($Fail -eq 0) { "Green" } else { "Red" })
 Write-Host "==========================================" -ForegroundColor Cyan
 
-if ($Fail -gt 0) { exit 1 }
-
-# ============ 结果 ============
-Write-Host ""
-Write-Host "==========================================" -ForegroundColor Cyan
-Write-Host "  Result: $Pass passed, $Fail failed, $Skip skipped" -ForegroundColor $(if ($Fail -eq 0) { "Green" } else { "Red" })
-Write-Host "==========================================" -ForegroundColor Cyan
-
+Stop-SmokeStartedProcesses
 if ($Fail -gt 0) { exit 1 }

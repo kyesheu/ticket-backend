@@ -13,7 +13,7 @@ from langchain_core.runnables import RunnableLambda
 from ticket_ai.assist import TicketAssistService
 from ticket_ai.triage import TicketTriageService
 from ticket_ai.config import get_settings
-from ticket_ai.knowledge import DocumentImporter, ElasticsearchKnowledgeWriter
+from ticket_ai.knowledge import DocumentImporter, ElasticsearchKnowledgeDocumentReader, ElasticsearchKnowledgeWriter
 from ticket_ai.history_sync import (
     ClosedTicketSyncPreparationService,
     ClosedTicketSyncService,
@@ -86,6 +86,15 @@ def get_document_importer() -> DocumentImporter:
     client = Elasticsearch(settings.elasticsearch_url, request_timeout=settings.external_timeout_seconds)
     writer = ElasticsearchKnowledgeWriter(client, embeddings, settings.knowledge_index)
     return DocumentImporter(writer, max_bytes=settings.max_request_bytes)
+
+
+@lru_cache
+def get_knowledge_document_reader() -> ElasticsearchKnowledgeDocumentReader:
+    """创建知识文档管理只读服务。"""
+
+    settings = get_settings()
+    client = Elasticsearch(settings.elasticsearch_url, request_timeout=settings.external_timeout_seconds)
+    return ElasticsearchKnowledgeDocumentReader(client, settings.knowledge_index)
 
 
 @lru_cache

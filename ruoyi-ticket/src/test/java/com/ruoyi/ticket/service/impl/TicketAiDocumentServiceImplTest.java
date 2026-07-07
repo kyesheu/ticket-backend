@@ -3,6 +3,7 @@ package com.ruoyi.ticket.service.impl;
 import com.ruoyi.common.exception.ServiceException;
 import com.ruoyi.ticket.config.TicketAiProperties;
 import com.ruoyi.ticket.dto.TicketAiDocumentImportDTO;
+import com.ruoyi.ticket.dto.TicketAiDocumentQueryDTO;
 import com.ruoyi.ticket.service.ITicketAiService;
 import java.nio.charset.StandardCharsets;
 import org.junit.jupiter.api.BeforeEach;
@@ -75,5 +76,43 @@ class TicketAiDocumentServiceImplTest {
         assertThatThrownBy(() -> service.importDocument("doc-1", file))
                 .isInstanceOf(ServiceException.class)
                 .hasMessage("知识文档大小超过限制");
+    }
+
+    @Test
+    @DisplayName("合法分页查询转发 Python 文档管理契约")
+    void shouldForwardDocumentListQuery() {
+        TicketAiDocumentQueryDTO query = new TicketAiDocumentQueryDTO();
+        query.setPageNum(2);
+        query.setPageSize(20);
+        query.setStatus("ACTIVE");
+
+        service.listDocuments(query);
+
+        ArgumentCaptor<TicketAiDocumentQueryDTO> captor = ArgumentCaptor.forClass(TicketAiDocumentQueryDTO.class);
+        verify(ticketAiService).listDocuments(captor.capture());
+        assertThat(captor.getValue().getPageNum()).isEqualTo(2);
+        assertThat(captor.getValue().getPageSize()).isEqualTo(20);
+        assertThat(captor.getValue().getStatus()).isEqualTo("ACTIVE");
+    }
+
+    @Test
+    @DisplayName("分页边界非法时拒绝")
+    void shouldRejectInvalidDocumentListPagination() {
+        TicketAiDocumentQueryDTO query = new TicketAiDocumentQueryDTO();
+        query.setPageNum(0);
+        query.setPageSize(101);
+
+        assertThatThrownBy(() -> service.listDocuments(query))
+                .isInstanceOf(ServiceException.class)
+                .hasMessage("知识文档页码必须大于 0");
+        verify(ticketAiService, never()).listDocuments(org.mockito.ArgumentMatchers.any());
+    }
+
+    @Test
+    @DisplayName("文档详情校验 sourceId 后转发")
+    void shouldForwardDocumentDetailQuery() {
+        service.getDocument("doc-1");
+
+        verify(ticketAiService).getDocument("doc-1");
     }
 }

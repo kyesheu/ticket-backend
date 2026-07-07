@@ -10,12 +10,14 @@ from ticket_ai.config import Settings, get_settings
 from ticket_ai.dependencies import (
     get_closed_ticket_sync_service,
     get_document_importer,
+    get_knowledge_document_reader,
     get_similar_knowledge_search_service,
     get_ticket_assist_service,
     get_ticket_triage_service,
     get_health_service,
 )
 from ticket_ai.main import app
+from ticket_ai.knowledge import KnowledgeDocumentSummary
 
 TEST_TOKEN = "test-service-token-12345"
 
@@ -214,6 +216,105 @@ async def test_document_import_returns_chunk_count(client: AsyncClient) -> None:
 
     assert response.status_code == 200
     assert response.json() == {"accepted": True, "chunk_count": 1}
+
+
+@pytest.mark.anyio
+async def test_document_list_returns_management_metadata(client: AsyncClient) -> None:
+    class FakeDocumentReader:
+        def list_documents(self, page_num: int, page_size: int, status: str | None = None):
+            assert (page_num, page_size, status) == (1, 10, "ACTIVE")
+            return [
+                KnowledgeDocumentSummary(
+                    source_id="doc-1", title="Redis 指南", status="ACTIVE", chunk_count=3,
+                    summary="缓存方案", last_imported_at=None, last_import_result="SUCCESS",
+                    failure_reason_summary=None,
+                )
+            ], 1
+
+        def get_document(self, source_id: str):
+            raise AssertionError(source_id)
+
+    app.dependency_overrides[get_knowledge_document_reader] = lambda: FakeDocumentReader()
+    try:
+        response = await client.get(
+            "/api/v1/documents?page_num=1&page_size=10&status=ACTIVE",
+            headers={"X-Service-Token": TEST_TOKEN},
+        )
+    finally:
+        app.dependency_overrides.pop(get_knowledge_document_reader, None)
+
+    assert response.status_code == 200
+    assert response.json() == {
+        "rows": [{
+            "source_id": "doc-1", "title": "Redis 指南", "status": "ACTIVE", "chunk_count": 3,
+            "summary": "缓存方案", "last_imported_at": None, "last_import_result": "SUCCESS",
+            "failure_reason_summary": None,
+        }],
+        "total": 1,
+        "page_num": 1,
+        "page_size": 10,
+    }
+
+
+@pytest.mark.anyio
+async def test_document_list_rejects_invalid_pagination(client: AsyncClient) -> None:
+    class FakeDocumentReader:
+        def list_documents(self, page_num: int, page_size: int, status: str | None = None):
+            raise ValueError("invalid pagination")
+
+    app.dependency_overrides[get_knowledge_document_reader] = lambda: FakeDocumentReader()
+    try:
+        response = await client.get(
+            "/api/v1/documents?page_num=0&page_size=101",
+            headers={"X-Service-Token": TEST_TOKEN},
+        )
+    finally:
+        app.dependency_overrides.pop(get_knowledge_document_reader, None)
+
+    assert response.status_code == 422
+
+
+@pytest.mark.anyio
+async def test_document_detail_returns_management_metadata(client: AsyncClient) -> None:
+    class FakeDocumentReader:
+        def get_document(self, source_id: str):
+            assert source_id == "doc-1"
+            return KnowledgeDocumentSummary(
+                source_id="doc-1", title="Redis 指南", status="ACTIVE", chunk_count=3,
+                summary="缓存方案", last_imported_at=None, last_import_result="SUCCESS",
+                failure_reason_summary=None,
+            )
+
+    app.dependency_overrides[get_knowledge_document_reader] = lambda: FakeDocumentReader()
+    try:
+        response = await client.get(
+            "/api/v1/documents/doc-1",
+            headers={"X-Service-Token": TEST_TOKEN},
+        )
+    finally:
+        app.dependency_overrides.pop(get_knowledge_document_reader, None)
+
+    assert response.status_code == 200
+    assert response.json()["source_id"] == "doc-1"
+    assert response.json()["chunk_count"] == 3
+
+
+@pytest.mark.anyio
+async def test_document_detail_returns_404_when_missing(client: AsyncClient) -> None:
+    class FakeDocumentReader:
+        def get_document(self, source_id: str):
+            return None
+
+    app.dependency_overrides[get_knowledge_document_reader] = lambda: FakeDocumentReader()
+    try:
+        response = await client.get(
+            "/api/v1/documents/missing",
+            headers={"X-Service-Token": TEST_TOKEN},
+        )
+    finally:
+        app.dependency_overrides.pop(get_knowledge_document_reader, None)
+
+    assert response.status_code == 404
 
 
 @pytest.mark.anyio

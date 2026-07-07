@@ -1,6 +1,9 @@
 package com.ruoyi.ticket.service;
 
+import com.ruoyi.ticket.dto.TicketAiDocumentQueryDTO;
 import com.ruoyi.ticket.vo.TicketAiAcceptedVO;
+import com.ruoyi.ticket.vo.TicketAiDocumentDetailVO;
+import com.ruoyi.ticket.vo.TicketAiDocumentListVO;
 import org.springframework.web.multipart.MultipartFile;
 
 /**
@@ -16,4 +19,20 @@ public interface ITicketAiDocumentService {
      * @return Python 导入结果
      */
     TicketAiAcceptedVO importDocument(String sourceId, MultipartFile file);
+
+    /**
+     * 分页查询知识文档。
+     *
+     * @param query 查询条件
+     * @return 文档分页结果
+     */
+    TicketAiDocumentListVO listDocuments(TicketAiDocumentQueryDTO query);
+
+    /**
+     * 查询知识文档详情。
+     *
+     * @param sourceId 稳定来源标识
+     * @return 文档详情
+     */
+    TicketAiDocumentDetailVO getDocument(String sourceId);
 }

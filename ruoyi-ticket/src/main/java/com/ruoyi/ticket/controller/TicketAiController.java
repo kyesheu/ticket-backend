@@ -4,6 +4,7 @@ import com.ruoyi.common.annotation.Log;
 import com.ruoyi.common.core.controller.BaseController;
 import com.ruoyi.common.core.domain.AjaxResult;
 import com.ruoyi.common.enums.BusinessType;
+import com.ruoyi.ticket.dto.TicketAiDocumentQueryDTO;
 import com.ruoyi.ticket.dto.TicketAiTriageDecisionDTO;
 import com.ruoyi.ticket.service.ITicketAiDocumentService;
 import com.ruoyi.ticket.service.ITicketAiKnowledgeService;
@@ -12,6 +13,7 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -46,6 +48,20 @@ public class TicketAiController extends BaseController {
     @PostMapping("/document/import")
     public AjaxResult importDocument(@RequestParam String sourceId, @RequestParam("file") MultipartFile file) {
         return success(ticketAiDocumentService.importDocument(sourceId, file));
+    }
+
+    @Operation(summary = "分页查询知识文档")
+    @PreAuthorize("@ss.hasPermi('ticket:ai:document:list')")
+    @GetMapping("/documents")
+    public AjaxResult listDocuments(TicketAiDocumentQueryDTO query) {
+        return success(ticketAiDocumentService.listDocuments(query));
+    }
+
+    @Operation(summary = "查询知识文档详情")
+    @PreAuthorize("@ss.hasPermi('ticket:ai:document:query')")
+    @GetMapping("/documents/{sourceId}")
+    public AjaxResult getDocument(@org.springframework.web.bind.annotation.PathVariable String sourceId) {
+        return success(ticketAiDocumentService.getDocument(sourceId));
     }
 
     @Operation(summary = "同步历史已关闭工单")

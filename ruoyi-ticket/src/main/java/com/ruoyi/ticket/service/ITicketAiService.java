@@ -4,11 +4,14 @@ import com.ruoyi.ticket.dto.TicketAiClosedTicketSyncDTO;
 import com.ruoyi.ticket.dto.TicketAiAssistRequestDTO;
 import com.ruoyi.ticket.dto.TicketAiContextDTO;
 import com.ruoyi.ticket.dto.TicketAiDocumentImportDTO;
+import com.ruoyi.ticket.dto.TicketAiDocumentQueryDTO;
 import com.ruoyi.ticket.dto.TicketAiSimilarSearchDTO;
 import com.ruoyi.ticket.dto.TicketAiTriageRequestDTO;
 import com.ruoyi.ticket.vo.TicketAiAcceptedVO;
 import com.ruoyi.ticket.vo.TicketAiAssistVO;
 import com.ruoyi.ticket.vo.TicketAiClosedTicketSyncVO;
+import com.ruoyi.ticket.vo.TicketAiDocumentDetailVO;
+import com.ruoyi.ticket.vo.TicketAiDocumentListVO;
 import com.ruoyi.ticket.vo.TicketAiHealthVO;
 import com.ruoyi.ticket.vo.TicketAiSearchResultVO;
 import com.ruoyi.ticket.vo.TicketAiSimilarSearchResultVO;
@@ -24,6 +27,12 @@ public interface ITicketAiService {
 
     /** 导入知识文档。 */
     TicketAiAcceptedVO importDocument(TicketAiDocumentImportDTO dto);
+
+    /** 分页查询知识文档。 */
+    TicketAiDocumentListVO listDocuments(TicketAiDocumentQueryDTO dto);
+
+    /** 查询知识文档详情。 */
+    TicketAiDocumentDetailVO getDocument(String sourceId);
 
     /** 同步已关闭工单知识快照。 */
     TicketAiClosedTicketSyncVO syncClosedTicket(TicketAiClosedTicketSyncDTO dto);

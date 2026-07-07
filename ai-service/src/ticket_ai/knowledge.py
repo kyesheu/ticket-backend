@@ -5,8 +5,9 @@ import binascii
 import io
 import uuid
 from dataclasses import dataclass
+from datetime import datetime, timezone
 from pathlib import PurePath
-from typing import Protocol
+from typing import Literal, Protocol
 
 from elasticsearch import Elasticsearch, helpers
 from langchain_core.embeddings import Embeddings
@@ -34,10 +35,33 @@ class KnowledgeChunk:
     content: str
 
 
+@dataclass(frozen=True)
+class KnowledgeDocumentSummary:
+    """知识文档管理列表项。"""
+
+    source_id: str
+    title: str
+    status: Literal["ACTIVE", "IMPORTING", "FAILED", "DELETED"]
+    chunk_count: int
+    summary: str | None
+    last_imported_at: datetime | None
+    last_import_result: Literal["SUCCESS", "FAILED", "PENDING"] | None
+    failure_reason_summary: str | None
+
+
 class KnowledgeWriter(Protocol):
     """以来源为单位原子替换知识切片。"""
 
     def replace(self, source_id: str, chunks: list[KnowledgeChunk]) -> None: ...
+
+
+class KnowledgeDocumentReader(Protocol):
+    """读取知识文档运营元数据。"""
+
+    def list_documents(self, page_num: int, page_size: int,
+                       status: str | None = None) -> tuple[list[KnowledgeDocumentSummary], int]: ...
+
+    def get_document(self, source_id: str) -> KnowledgeDocumentSummary | None: ...
 
 
 class DocumentImporter:
@@ -161,4 +185,73 @@ class ElasticsearchKnowledgeWriter:
                     "vector": {"type": "dense_vector", "dims": dimensions, "index": True, "similarity": "cosine"},
                 },
             },
+        )
+
+
+class ElasticsearchKnowledgeDocumentReader:
+    """从 Elasticsearch 有效切片聚合知识文档管理元数据。"""
+
+    def __init__(self, client: Elasticsearch, index_name: str) -> None:
+        self._client = client
+        self._index_name = index_name
+
+    def list_documents(self, page_num: int, page_size: int,
+                       status: str | None = None) -> tuple[list[KnowledgeDocumentSummary], int]:
+        if page_num < 1 or page_size < 1 or page_size > 100:
+            raise ValueError("invalid pagination")
+        if status not in {None, "ACTIVE"}:
+            return [], 0
+        if not self._client.indices.exists(index=self._index_name):
+            return [], 0
+        start = (page_num - 1) * page_size
+        response = self._client.search(
+            index=self._index_name,
+            size=0,
+            query={"term": {"active": True}},
+            aggs={
+                "documents": {
+                    "terms": {"field": "source_id", "size": start + page_size, "order": {"_key": "asc"}},
+                    "aggs": {
+                        "title": {"top_hits": {"size": 1, "_source": ["title"]}},
+                        "chunk_count": {"value_count": {"field": "chunk_index"}},
+                    },
+                }
+            },
+        )
+        buckets = response.get("aggregations", {}).get("documents", {}).get("buckets", [])
+        rows = [self._bucket_to_summary(bucket) for bucket in buckets[start:start + page_size]]
+        return rows, len(buckets)
+
+    def get_document(self, source_id: str) -> KnowledgeDocumentSummary | None:
+        if not source_id or not self._client.indices.exists(index=self._index_name):
+            return None
+        response = self._client.search(
+            index=self._index_name,
+            size=0,
+            query={"bool": {"filter": [{"term": {"active": True}}, {"term": {"source_id": source_id}}]}},
+            aggs={
+                "documents": {
+                    "terms": {"field": "source_id", "size": 1},
+                    "aggs": {
+                        "title": {"top_hits": {"size": 1, "_source": ["title"]}},
+                        "chunk_count": {"value_count": {"field": "chunk_index"}},
+                    },
+                }
+            },
+        )
+        buckets = response.get("aggregations", {}).get("documents", {}).get("buckets", [])
+        return self._bucket_to_summary(buckets[0]) if buckets else None
+
+    def _bucket_to_summary(self, bucket: dict) -> KnowledgeDocumentSummary:
+        title_hits = bucket.get("title", {}).get("hits", {}).get("hits", [])
+        title = title_hits[0].get("_source", {}).get("title", bucket["key"]) if title_hits else bucket["key"]
+        return KnowledgeDocumentSummary(
+            source_id=bucket["key"],
+            title=title,
+            status="ACTIVE",
+            chunk_count=int(bucket.get("chunk_count", {}).get("value", bucket.get("doc_count", 0))),
+            summary=None,
+            last_imported_at=datetime.now(timezone.utc),
+            last_import_result="SUCCESS",
+            failure_reason_summary=None,
         )

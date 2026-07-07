@@ -79,13 +79,22 @@ async def client() -> AsyncClient:
 
 @pytest.mark.anyio
 async def test_health_exposes_v1_contract(client: AsyncClient) -> None:
-    response = await client.get("/api/v1/health")
+    response = await client.get("/api/v1/health", headers={"X-Trace-Id": "trace-123"})
 
     assert response.status_code == 200
+    assert response.headers["X-Trace-Id"] == "trace-123"
     assert response.json() == {
         "status": "UP", "contract_version": "v1", "elasticsearch_available": True,
         "embedding_configured": True, "llm_configured": True,
     }
+
+
+@pytest.mark.anyio
+async def test_trace_id_is_generated_when_missing(client: AsyncClient) -> None:
+    response = await client.get("/api/v1/health")
+
+    assert response.status_code == 200
+    assert response.headers["X-Trace-Id"]
 
 
 @pytest.mark.anyio

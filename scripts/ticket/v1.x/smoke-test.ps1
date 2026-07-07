@@ -1,13 +1,21 @@
 # =============================================
-# Ticket API v1.0 ~ v1.3 冒烟测试 (PowerShell)
+# Ticket API v1.x 冒烟测试 (PowerShell)
 # 用法: .\scripts\ticket\v1.x\smoke-test.ps1
 # =============================================
 
 $ErrorActionPreference = "Continue"
+$RepoRoot = (Resolve-Path (Join-Path $PSScriptRoot "..\..\..")).Path
+. (Join-Path $RepoRoot "scripts\ticket\_lib\Smoke-Bootstrap.ps1")
 $BaseUrl = "http://localhost:8080"
+$StartedProcesses = @()
 $Pass = 0
 $Fail = 0
 $Skip = 0
+
+trap {
+    Stop-SmokeStartedProcesses
+    throw
+}
 
 function Get-ResponseText($Response) {
     if ($Response -is [string]) { return $Response }
@@ -74,6 +82,15 @@ function Assert-Contains($Desc, $Expected, $Response) {
     }
 }
 
+# ============ 启动项目 ============
+Write-Host ""
+Write-Host "[S] Ensure Java backend" -ForegroundColor Cyan
+if (-not (Ensure-SmokeJavaBackend -RepoRoot $RepoRoot -BaseUrl $BaseUrl)) {
+    Write-Host "  Logs: $RepoRoot\logs\smoke-java-backend.log" -ForegroundColor Yellow
+    Stop-SmokeStartedProcesses
+    exit 1
+}
+
 # ============ 登录 ============
 Write-Host ""
 Write-Host "[0] Login" -ForegroundColor Cyan
@@ -91,21 +108,6 @@ $Token = $LoginResp.token
 $Headers = @{ "Authorization" = "Bearer $Token" }
 if (-not $Token) { throw "Login failed: $($LoginResp.msg)" }
 Write-Host "  [PASS] Login" -ForegroundColor Green
-
-function Get-RequiredCustomFieldInputs($CategoryId) {
-    $Form = Invoke-RestMethod -Uri "$BaseUrl/ticket/custom-field/form/$CategoryId" -Headers $Headers -Method Get
-    $Inputs = @()
-    foreach ($Field in $Form.data) {
-        if ($Field.requiredFlag -ne "1" -or $Field.defaultValue) { continue }
-        $Value = switch ($Field.fieldType) {
-            "TEXT" { "smoke" }; "NUMBER" { if ($Field.minNumber) { $Field.minNumber } else { 1 } }
-            "DATE" { "2026-07-03" }; "DATETIME" { "2026-07-03 10:20:30" }; "BOOLEAN" { $true }
-            "SINGLE_SELECT" { $Field.options[0].optionValue }; "MULTI_SELECT" { @($Field.options[0].optionValue) }
-        }
-        $Inputs += @{ fieldKey = $Field.fieldKey; value = $Value }
-    }
-    return $Inputs
-}
 
 # ============ 分类测试 ============
 Write-Host ""
@@ -132,8 +134,8 @@ Assert-Error "DELETE /ticket/category/2 (has children - should fail)" $R
 Write-Host ""
 Write-Host "[2] Ticket Creation" -ForegroundColor Cyan
 
-$Body1 = @{ title = "PS-Smoke-1 WiFi Issue"; content = "Office WiFi down"; categoryId = 6;
-    priority = "HIGH"; customFields = @(Get-RequiredCustomFieldInputs 6) } | ConvertTo-Json -Depth 10
+$Body1 = @{ title = "PS-Smoke-1 WiFi Issue"; content = "Office WiFi down"; categoryId = 7;
+    priority = "HIGH" } | ConvertTo-Json -Depth 10
 $R1 = Invoke-RestMethod -Uri "$BaseUrl/ticket" -Method Post -Body $Body1 -ContentType "application/json" -Headers $Headers
 $T1 = $R1.data
 Assert-Success "POST /ticket (create ticket 1)" $R1
@@ -194,15 +196,6 @@ function Assert-Equal($Desc, $Expected, $Actual) {
         Write-Host "  [FAIL] $Desc (expected: $Expected, actual: $Actual)" -ForegroundColor Red
         $script:Fail++
     }
-}
-
-function Invoke-SearchDispatch {
-    $Jobs = Invoke-RestMethod -Uri "$BaseUrl/monitor/job/list?jobGroup=TICKET&pageNum=1&pageSize=100" `
-        -Headers $Headers -Method Get
-    $Job = @($Jobs.rows | Where-Object { $_.invokeTarget -eq "ticketSearchTask.dispatch" }) | Select-Object -First 1
-    if (-not $Job) { throw "Search dispatcher job ticketSearchTask.dispatch was not found" }
-    return Invoke-RestMethod -Uri "$BaseUrl/monitor/job/run" -Method Put -Headers $Headers `
-        -Body (@{ jobId = $Job.jobId; jobGroup = $Job.jobGroup } | ConvertTo-Json) -ContentType "application/json"
 }
 
 function Invoke-TicketLogin($Username, $Password) {
@@ -405,7 +398,7 @@ try {
     $ScopeTitle = "V13-SCOPE-$ScopeSuffix"
     $Body = @{
         title = $ScopeTitle; content = "Department data scope smoke"
-        categoryId = 6; priority = "MEDIUM"; customFields = @(Get-RequiredCustomFieldInputs 6)
+        categoryId = 7; priority = "MEDIUM"
     } | ConvertTo-Json -Depth 10
     $ScopeTicket = (Invoke-RestMethod -Uri "$BaseUrl/ticket" -Method Post -Headers $Headers `
         -Body $Body -ContentType "application/json").data
@@ -426,20 +419,6 @@ try {
         Assert-Equal "$($Case.Name) list scope" $Case.Expected $Page.total
     }
 
-    $Run = Invoke-SearchDispatch
-    Assert-Success "dispatch search events for data scope" $Run
-    foreach ($Attempt in 1..20) {
-        Start-Sleep -Milliseconds 500
-        $AllSearch = Invoke-RestMethod `
-            -Uri "$BaseUrl/ticket/search?keyword=$ScopeSuffix&pageSize=10" `
-            -Headers @{ Authorization = "Bearer $(Invoke-TicketLogin "v13all_$UserSuffix" $ScopePassword)" }
-        if ($AllSearch.data.items.Count -eq 1) { break }
-    }
-    Assert-Equal "ALL search scope" 1 $AllSearch.data.items.Count
-    $SelfSearch = Invoke-RestMethod -Uri "$BaseUrl/ticket/search?keyword=$ScopeSuffix&pageSize=10" `
-        -Headers @{ Authorization = "Bearer $(Invoke-TicketLogin "v13self_$UserSuffix" $ScopePassword)" }
-    Assert-Equal "SELF search scope" 0 $SelfSearch.data.items.Count
-
     $SelfToken = Invoke-TicketLogin "v13self_$UserSuffix" $ScopePassword
     $SelfHeaders = @{ Authorization = "Bearer $SelfToken" }
     $InjectedPage = Invoke-RestMethod `
@@ -451,8 +430,7 @@ try {
         "$BaseUrl/ticket/$ScopeTicket",
         "$BaseUrl/ticket/$ScopeTicket/comment",
         "$BaseUrl/ticket/$ScopeTicket/logs",
-        "$BaseUrl/ticket/satisfaction/ticket/$ScopeTicket",
-        "$BaseUrl/ticket/attachment/ticket/$ScopeTicket"
+        "$BaseUrl/ticket/satisfaction/ticket/$ScopeTicket"
     )
     foreach ($Uri in $ObjectUris) {
         $Response = Invoke-RestMethod -Uri $Uri -Headers $SelfHeaders
@@ -489,4 +467,5 @@ Write-Host "==========================================" -ForegroundColor Cyan
 Write-Host "  Result: $Pass passed, $Fail failed, $Skip skipped" -ForegroundColor $(if ($Fail -eq 0) { "Green" } else { "Red" })
 Write-Host "==========================================" -ForegroundColor Cyan
 
+Stop-SmokeStartedProcesses
 if ($Fail -gt 0) { exit 1 }

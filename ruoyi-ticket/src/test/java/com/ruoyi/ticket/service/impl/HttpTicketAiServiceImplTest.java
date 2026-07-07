@@ -29,6 +29,8 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.slf4j.MDC;
+import com.ruoyi.common.filter.TraceIdFilter;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -80,9 +82,11 @@ class HttpTicketAiServiceImplTest {
     @DisplayName("业务请求使用服务凭据和 snake_case 契约")
     void shouldSendCredentialAndSnakeCaseContract() {
         AtomicReference<String> token = new AtomicReference<>();
+        AtomicReference<String> traceId = new AtomicReference<>();
         AtomicReference<String> body = new AtomicReference<>();
         server.createContext("/api/v1/knowledge/search", exchange -> {
             token.set(exchange.getRequestHeaders().getFirst("X-Service-Token"));
+            traceId.set(exchange.getRequestHeaders().getFirst("X-Trace-Id"));
             body.set(new String(exchange.getRequestBody().readAllBytes(), StandardCharsets.UTF_8));
             respond(exchange, 200, "{\"sources\":[]}");
         });
@@ -92,9 +96,15 @@ class HttpTicketAiServiceImplTest {
         dto.setDescription("如何处理？");
         dto.setPriority("HIGH");
 
-        createService().search(dto);
+        MDC.put(TraceIdFilter.TRACE_ID_MDC_KEY, "trace-abc");
+        try {
+            createService().search(dto);
+        } finally {
+            MDC.remove(TraceIdFilter.TRACE_ID_MDC_KEY);
+        }
 
         assertThat(token.get()).isEqualTo(SERVICE_TOKEN);
+        assertThat(traceId.get()).isEqualTo("trace-abc");
         assertThat(body.get()).contains("\"contract_version\":\"v1\"")
                 .contains("\"ticket_no\":\"TK202607040001\"");
     }

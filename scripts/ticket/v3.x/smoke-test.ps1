@@ -4,10 +4,150 @@
 # =============================================
 
 $ErrorActionPreference = "Continue"
+$RepoRoot = (Resolve-Path (Join-Path $PSScriptRoot "..\..\..")).Path
+$SmokeEnvFile = Join-Path $PSScriptRoot "smoke-env.local.ps1"
+if (Test-Path -LiteralPath $SmokeEnvFile) {
+    . $SmokeEnvFile
+    Write-Host "Loaded smoke env: $SmokeEnvFile" -ForegroundColor DarkGray
+}
+
+function Set-DefaultEnv($Name, $Value) {
+    if (-not [Environment]::GetEnvironmentVariable($Name, "Process")) {
+        [Environment]::SetEnvironmentVariable($Name, $Value, "Process")
+    }
+}
+
+Set-DefaultEnv "TICKET_AI_SMOKE_ENABLED" "true"
+Set-DefaultEnv "TICKET_AI_ENABLED" "true"
+Set-DefaultEnv "TICKET_AI_BASE_URL" "http://127.0.0.1:8090"
+Set-DefaultEnv "TICKET_AI_SERVICE_TOKEN" "local-smoke-token-12345"
+Set-DefaultEnv "TICKET_AI_SMOKE_MODE" "true"
+Set-DefaultEnv "TICKET_AI_KNOWLEDGE_INDEX" "ticket-knowledge-smoke"
+Set-DefaultEnv "TICKET_AI_TICKET_HISTORY_INDEX" "ticket-history-smoke"
+Set-DefaultEnv "TICKET_AI_ELASTICSEARCH_URL" "http://127.0.0.1:9200"
+Set-DefaultEnv "TICKET_AI_EMBEDDING_API_KEY" "local-smoke-embedding-key"
+Set-DefaultEnv "TICKET_AI_EMBEDDING_MODEL" "local-smoke-embedding-model"
+
 $BaseUrl = "http://localhost:8080"
+$AiBaseUrl = $env:TICKET_AI_BASE_URL
+$StartedProcesses = @()
 $Pass = 0
 $Fail = 0
 $Skip = 0
+
+function Test-HttpReady($Url) {
+    try {
+        Invoke-RestMethod -Uri $Url -Method Get -TimeoutSec 3 | Out-Null
+        return $true
+    } catch {
+        return $false
+    }
+}
+
+function Wait-HttpReady($Desc, $Url, $TimeoutSeconds) {
+    $Deadline = (Get-Date).AddSeconds($TimeoutSeconds)
+    while ((Get-Date) -lt $Deadline) {
+        if (Test-HttpReady $Url) {
+            Write-Host "  [PASS] $Desc ready" -ForegroundColor Green
+            return $true
+        }
+        Start-Sleep -Seconds 2
+    }
+    Write-Host "  [FAIL] $Desc not ready: $Url" -ForegroundColor Red
+    $script:Fail++
+    return $false
+}
+
+function Start-SmokeProcess($Desc, $WorkingDirectory, $Command, $LogFile) {
+    Write-Host "  Starting $Desc" -ForegroundColor DarkGray
+    $EscapedLogFile = $LogFile.Replace("'", "''")
+    $WrappedCommand = "& { $Command } *>> '$EscapedLogFile'"
+    $Process = Start-Process -FilePath "pwsh" `
+        -ArgumentList @("-NoProfile", "-ExecutionPolicy", "Bypass", "-Command", $WrappedCommand) `
+        -WorkingDirectory $WorkingDirectory `
+        -WindowStyle Hidden `
+        -PassThru
+    $script:StartedProcesses += [pscustomobject]@{
+        Desc = $Desc
+        Process = $Process
+        LogFile = $LogFile
+    }
+}
+
+function Ensure-PythonAiService() {
+    if (Test-HttpReady "$AiBaseUrl/api/v1/health") {
+        Write-Host "  [PASS] Python AI service already running" -ForegroundColor Green
+        return $true
+    }
+
+    $PythonExe = Join-Path $RepoRoot "ai-service\.venv\Scripts\python.exe"
+    if (-not (Test-Path -LiteralPath $PythonExe)) {
+        Write-Host "  Installing ai-service virtualenv" -ForegroundColor DarkGray
+        Push-Location (Join-Path $RepoRoot "ai-service")
+        try {
+            python -m venv .venv
+            & $PythonExe -m pip install -e ".[test]"
+        } finally {
+            Pop-Location
+        }
+    }
+
+    $AiLog = Join-Path $RepoRoot "logs\smoke-ai-service.log"
+    New-Item -ItemType Directory -Force -Path (Split-Path $AiLog) | Out-Null
+    Start-SmokeProcess "Python AI service" (Join-Path $RepoRoot "ai-service") `
+        ".\.venv\Scripts\python.exe -m uvicorn ticket_ai.main:app --host 127.0.0.1 --port 8090" `
+        $AiLog
+    return (Wait-HttpReady "Python AI service" "$AiBaseUrl/api/v1/health" 60)
+}
+
+function Ensure-JavaService() {
+    if (Test-HttpReady "$BaseUrl/captchaImage") {
+        Write-Host "  [PASS] Java backend already running" -ForegroundColor Green
+        return $true
+    }
+
+    $JavaLog = Join-Path $RepoRoot "logs\smoke-java-backend.log"
+    New-Item -ItemType Directory -Force -Path (Split-Path $JavaLog) | Out-Null
+    Write-Host "  Packaging Java backend" -ForegroundColor DarkGray
+    Push-Location $RepoRoot
+    try {
+        mvn -pl ruoyi-admin -am package -DskipTests *>> $JavaLog
+        if ($LASTEXITCODE -ne 0) {
+            Write-Host "  [FAIL] Java backend package failed, see $JavaLog" -ForegroundColor Red
+            $script:Fail++
+            return $false
+        }
+    } finally {
+        Pop-Location
+    }
+
+    $JarPath = Join-Path $RepoRoot "ruoyi-admin\target\ruoyi-admin.jar"
+    Start-SmokeProcess "Java backend" $RepoRoot "java -jar '$JarPath'" $JavaLog
+    return (Wait-HttpReady "Java backend" "$BaseUrl/captchaImage" 120)
+}
+
+function Test-AiEndpointActive() {
+    try {
+        Invoke-RestMethod -Uri "$BaseUrl/ticket/ai/documents?pageNum=1&pageSize=1" -Headers $Headers -Method Get `
+            -TimeoutSec 5 | Out-Null
+        return $true
+    } catch {
+        $Text = $_.Exception.Message
+        if ($Text -match "No static resource" -or $Text -match "404") {
+            return $false
+        }
+        return $true
+    }
+}
+
+function Stop-SmokeStartedProcesses() {
+    foreach ($Item in $script:StartedProcesses) {
+        if ($Item.Process -and -not $Item.Process.HasExited) {
+            Write-Host "  Stopping $($Item.Desc)" -ForegroundColor DarkGray
+            taskkill /PID $Item.Process.Id /T /F | Out-Null
+        }
+    }
+}
 
 function Get-ResponseText($Response) {
     if ($Response -is [string]) { return $Response }
@@ -74,6 +214,20 @@ function Assert-Contains($Desc, $Expected, $Response) {
     }
 }
 
+# ============ 启动依赖服务 ============
+Write-Host ""
+Write-Host "[S] Ensure smoke services" -ForegroundColor Cyan
+$ServicesReady = (Ensure-PythonAiService) -and (Ensure-JavaService)
+if (-not $ServicesReady) {
+    Write-Host ""
+    Write-Host "==========================================" -ForegroundColor Cyan
+    Write-Host "  Result: $Pass passed, $Fail failed, $Skip skipped" -ForegroundColor Red
+    Write-Host "  Logs: $RepoRoot\logs\smoke-ai-service.log, $RepoRoot\logs\smoke-java-backend.log" -ForegroundColor Yellow
+    Write-Host "==========================================" -ForegroundColor Cyan
+    Stop-SmokeStartedProcesses
+    exit 1
+}
+
 # ============ 登录 ============
 Write-Host ""
 Write-Host "[0] Login" -ForegroundColor Cyan
@@ -91,6 +245,12 @@ $Token = $LoginResp.token
 $Headers = @{ "Authorization" = "Bearer $Token" }
 if (-not $Token) { throw "Login failed: $($LoginResp.msg)" }
 Write-Host "  [PASS] Login" -ForegroundColor Green
+if (-not (Test-AiEndpointActive)) {
+    Write-Host "  [FAIL] Java backend is running without AI smoke endpoints. Stop the current Java process and rerun this script so it can start Java with smoke defaults." -ForegroundColor Red
+    $Fail++
+    Stop-SmokeStartedProcesses
+    exit 1
+}
 
 function Assert-Equal($Desc, $Expected, $Actual) {
     if ($Expected -eq $Actual) {
@@ -168,7 +328,7 @@ Write-Host "  ---------------------------------" -ForegroundColor DarkGray
 
 $AiSmokeEnabled = $env:TICKET_AI_SMOKE_ENABLED -eq "true"
 if (-not $AiSmokeEnabled) {
-    Write-Host "  [SKIP] Set TICKET_AI_SMOKE_ENABLED=true and use smoke/test AI indexes" -ForegroundColor Yellow
+    Write-Skip "v3 AI smoke" "Set TICKET_AI_SMOKE_ENABLED=true and use smoke/test AI indexes"
 } elseif ($env:TICKET_AI_KNOWLEDGE_INDEX -notmatch "(smoke|test)" -or
           $env:TICKET_AI_TICKET_HISTORY_INDEX -notmatch "(smoke|test)") {
     Write-Host "  [FAIL] AI smoke requires knowledge/history index names containing smoke or test" -ForegroundColor Red
@@ -304,4 +464,5 @@ Write-Host "==========================================" -ForegroundColor Cyan
 Write-Host "  Result: $Pass passed, $Fail failed, $Skip skipped" -ForegroundColor $(if ($Fail -eq 0) { "Green" } else { "Red" })
 Write-Host "==========================================" -ForegroundColor Cyan
 
+Stop-SmokeStartedProcesses
 if ($Fail -gt 0) { exit 1 }

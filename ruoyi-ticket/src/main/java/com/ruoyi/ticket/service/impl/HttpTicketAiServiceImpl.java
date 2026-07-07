@@ -10,6 +10,7 @@ import com.ruoyi.ticket.dto.TicketAiClosedTicketSyncDTO;
 import com.ruoyi.ticket.dto.TicketAiAssistRequestDTO;
 import com.ruoyi.ticket.dto.TicketAiContextDTO;
 import com.ruoyi.ticket.dto.TicketAiDocumentImportDTO;
+import com.ruoyi.ticket.dto.TicketAiDocumentQueryDTO;
 import com.ruoyi.ticket.dto.TicketAiSimilarSearchDTO;
 import com.ruoyi.ticket.dto.TicketAiTriageRequestDTO;
 import com.ruoyi.ticket.exception.TicketAiServiceException;
@@ -17,6 +18,8 @@ import com.ruoyi.ticket.service.ITicketAiService;
 import com.ruoyi.ticket.vo.TicketAiAcceptedVO;
 import com.ruoyi.ticket.vo.TicketAiAssistVO;
 import com.ruoyi.ticket.vo.TicketAiClosedTicketSyncVO;
+import com.ruoyi.ticket.vo.TicketAiDocumentDetailVO;
+import com.ruoyi.ticket.vo.TicketAiDocumentListVO;
 import com.ruoyi.ticket.vo.TicketAiHealthVO;
 import com.ruoyi.ticket.vo.TicketAiSearchResultVO;
 import com.ruoyi.ticket.vo.TicketAiSimilarSearchResultVO;
@@ -24,6 +27,7 @@ import com.ruoyi.ticket.vo.TicketAiTriageVO;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URI;
+import java.net.URLEncoder;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
@@ -67,6 +71,21 @@ public class HttpTicketAiServiceImpl implements ITicketAiService {
     }
 
     @Override
+    public TicketAiDocumentListVO listDocuments(TicketAiDocumentQueryDTO dto) {
+        String path = "/api/v1/documents?page_num=" + dto.getPageNum()
+                + "&page_size=" + dto.getPageSize();
+        if (dto.getStatus() != null && !dto.getStatus().isBlank()) {
+            path = path + "&status=" + encode(dto.getStatus());
+        }
+        return get(path, TicketAiDocumentListVO.class);
+    }
+
+    @Override
+    public TicketAiDocumentDetailVO getDocument(String sourceId) {
+        return get("/api/v1/documents/" + encode(sourceId), TicketAiDocumentDetailVO.class);
+    }
+
+    @Override
     public TicketAiClosedTicketSyncVO syncClosedTicket(TicketAiClosedTicketSyncDTO dto) {
         return post("/api/v1/tickets/sync", dto, TicketAiClosedTicketSyncVO.class);
     }
@@ -104,6 +123,18 @@ public class HttpTicketAiServiceImpl implements ITicketAiService {
                 .POST(HttpRequest.BodyPublishers.ofString(requestBody, StandardCharsets.UTF_8))
                 .build();
         return execute(request, responseType);
+    }
+
+    private <T> T get(String path, Class<T> responseType) {
+        HttpRequest request = baseRequest(path)
+                .header(SERVICE_TOKEN_HEADER, properties.getServiceToken())
+                .GET()
+                .build();
+        return execute(request, responseType);
+    }
+
+    private String encode(String value) {
+        return URLEncoder.encode(value, StandardCharsets.UTF_8);
     }
 
     private HttpRequest.Builder baseRequest(String path) {

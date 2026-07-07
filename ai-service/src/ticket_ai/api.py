@@ -1,6 +1,6 @@
 """v1 内部 HTTP 接口。"""
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 
 from ticket_ai.models import (
     AcceptedResponse,
@@ -8,8 +8,10 @@ from ticket_ai.models import (
     AssistResponse,
     ClosedTicketSyncRequest,
     ClosedTicketSyncResponse,
+    DocumentDetailResponse,
     DocumentImportRequest,
     DocumentImportResponse,
+    DocumentListResponse,
     HealthResponse,
     SearchResponse,
     TicketContextRequest,
@@ -20,6 +22,7 @@ from ticket_ai.security import verify_service_token
 from ticket_ai.dependencies import (
     get_closed_ticket_sync_service,
     get_document_importer,
+    get_knowledge_document_reader,
     get_similar_knowledge_search_service,
     get_ticket_assist_service,
     get_ticket_triage_service,
@@ -30,7 +33,7 @@ from ticket_ai.resilience import RetrievalUnavailable, verify_ai_rate_limit
 from ticket_ai.assist import TicketAssistService
 from ticket_ai.triage import TicketTriageService
 from ticket_ai.history_sync import ClosedTicketSyncService
-from ticket_ai.knowledge import DocumentImporter, DocumentImportError
+from ticket_ai.knowledge import DocumentImporter, DocumentImportError, KnowledgeDocumentReader
 from ticket_ai.similar_search import SimilarKnowledgeSearchService
 
 router = APIRouter(prefix="/api/v1")
@@ -59,6 +62,33 @@ def import_document(request: DocumentImportRequest,
     except Exception as exception:
         raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
                             detail="document import unavailable") from exception
+
+
+@router.get("/documents", response_model=DocumentListResponse,
+            dependencies=[Depends(verify_service_token)])
+def list_documents(page_num: int = 1, page_size: int = 10,
+                   status_filter: str | None = Query(default=None, alias="status"),
+                   reader: KnowledgeDocumentReader = Depends(get_knowledge_document_reader)) -> DocumentListResponse:
+    """分页查询知识文档运营元数据。"""
+
+    try:
+        rows, total = reader.list_documents(page_num, page_size, status_filter)
+        return DocumentListResponse(rows=[row.__dict__ for row in rows], total=total,
+                                    page_num=page_num, page_size=page_size)
+    except ValueError as exception:
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail=str(exception)) from exception
+
+
+@router.get("/documents/{source_id}", response_model=DocumentDetailResponse,
+            dependencies=[Depends(verify_service_token)])
+def get_document(source_id: str,
+                 reader: KnowledgeDocumentReader = Depends(get_knowledge_document_reader)) -> DocumentDetailResponse:
+    """查询知识文档详情。"""
+
+    document = reader.get_document(source_id)
+    if document is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="document not found")
+    return DocumentDetailResponse(**document.__dict__)
 
 
 @router.post("/tickets/sync", response_model=ClosedTicketSyncResponse,

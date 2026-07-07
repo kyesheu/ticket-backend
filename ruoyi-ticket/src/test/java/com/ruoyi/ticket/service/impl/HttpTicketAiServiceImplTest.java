@@ -4,11 +4,14 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.ruoyi.ticket.config.TicketAiProperties;
 import com.ruoyi.ticket.dto.TicketAiContextDTO;
 import com.ruoyi.ticket.dto.TicketAiAssistRequestDTO;
+import com.ruoyi.ticket.dto.TicketAiDocumentQueryDTO;
 import com.ruoyi.ticket.dto.TicketAiSimilarSearchDTO;
 import com.ruoyi.ticket.dto.TicketAiTriageRequestDTO;
 import com.ruoyi.ticket.exception.TicketAiServiceException;
 import com.ruoyi.ticket.vo.TicketAiHealthVO;
 import com.ruoyi.ticket.vo.TicketAiAssistVO;
+import com.ruoyi.ticket.vo.TicketAiDocumentDetailVO;
+import com.ruoyi.ticket.vo.TicketAiDocumentListVO;
 import com.ruoyi.ticket.vo.TicketAiSimilarSearchResultVO;
 import com.ruoyi.ticket.vo.TicketAiTriageVO;
 import com.sun.net.httpserver.HttpExchange;
@@ -94,6 +97,56 @@ class HttpTicketAiServiceImplTest {
         assertThat(token.get()).isEqualTo(SERVICE_TOKEN);
         assertThat(body.get()).contains("\"contract_version\":\"v1\"")
                 .contains("\"ticket_no\":\"TK202607040001\"");
+    }
+
+    @Test
+    @DisplayName("知识文档列表使用服务凭据和分页查询参数")
+    void shouldListKnowledgeDocuments() {
+        AtomicReference<String> token = new AtomicReference<>();
+        AtomicReference<String> query = new AtomicReference<>();
+        server.createContext("/api/v1/documents", exchange -> {
+            token.set(exchange.getRequestHeaders().getFirst("X-Service-Token"));
+            query.set(exchange.getRequestURI().getRawQuery());
+            respond(exchange, 200, "{\"rows\":[{\"source_id\":\"doc-1\",\"title\":\"Redis 指南\","
+                    + "\"status\":\"ACTIVE\",\"chunk_count\":3,\"summary\":\"缓存方案\","
+                    + "\"last_imported_at\":\"2026-07-07T12:00:00+08:00\","
+                    + "\"last_import_result\":\"SUCCESS\",\"failure_reason_summary\":null}],"
+                    + "\"total\":1,\"page_num\":1,\"page_size\":10}");
+        });
+        TicketAiDocumentQueryDTO dto = new TicketAiDocumentQueryDTO();
+        dto.setPageNum(1);
+        dto.setPageSize(10);
+        dto.setStatus("ACTIVE");
+
+        TicketAiDocumentListVO result = createService().listDocuments(dto);
+
+        assertThat(token.get()).isEqualTo(SERVICE_TOKEN);
+        assertThat(query.get()).contains("page_num=1", "page_size=10", "status=ACTIVE");
+        assertThat(result.getTotal()).isEqualTo(1L);
+        assertThat(result.getRows()).singleElement().satisfies(row -> {
+            assertThat(row.getSourceId()).isEqualTo("doc-1");
+            assertThat(row.getChunkCount()).isEqualTo(3);
+            assertThat(row.getLastImportResult()).isEqualTo("SUCCESS");
+        });
+    }
+
+    @Test
+    @DisplayName("知识文档详情按 sourceId 查询并解析")
+    void shouldReadKnowledgeDocumentDetail() {
+        AtomicReference<String> token = new AtomicReference<>();
+        server.createContext("/api/v1/documents/doc-1", exchange -> {
+            token.set(exchange.getRequestHeaders().getFirst("X-Service-Token"));
+            respond(exchange, 200, "{\"source_id\":\"doc-1\",\"title\":\"Redis 指南\","
+                    + "\"status\":\"ACTIVE\",\"chunk_count\":3,\"summary\":\"缓存方案\","
+                    + "\"last_imported_at\":\"2026-07-07T12:00:00+08:00\","
+                    + "\"last_import_result\":\"SUCCESS\",\"failure_reason_summary\":null}");
+        });
+
+        TicketAiDocumentDetailVO result = createService().getDocument("doc-1");
+
+        assertThat(token.get()).isEqualTo(SERVICE_TOKEN);
+        assertThat(result.getSourceId()).isEqualTo("doc-1");
+        assertThat(result.getTitle()).isEqualTo("Redis 指南");
     }
 
     @Test

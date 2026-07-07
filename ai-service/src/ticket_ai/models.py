@@ -28,6 +28,28 @@ class DocumentImportRequest(StrictModel):
     content_base64: str = Field(min_length=1)
 
 
+class DocumentSummary(StrictModel):
+    source_id: str = Field(min_length=1, max_length=64)
+    title: str = Field(min_length=1, max_length=255)
+    status: Literal["ACTIVE", "IMPORTING", "FAILED", "DELETED"]
+    chunk_count: int = Field(ge=0)
+    summary: str | None = Field(default=None, max_length=500)
+    last_imported_at: datetime | None = None
+    last_import_result: Literal["SUCCESS", "FAILED", "PENDING"] | None = None
+    failure_reason_summary: str | None = Field(default=None, max_length=500)
+
+
+class DocumentListResponse(StrictModel):
+    rows: list[DocumentSummary]
+    total: int = Field(ge=0)
+    page_num: int = Field(ge=1)
+    page_size: int = Field(ge=1, le=100)
+
+
+class DocumentDetailResponse(DocumentSummary):
+    pass
+
+
 class ClosedTicketSyncRequest(StrictModel):
     contract_version: Literal["v1"]
     ticket_id: int = Field(gt=0)

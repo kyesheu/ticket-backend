@@ -87,6 +87,18 @@ public class TicketAiDocumentServiceImpl implements ITicketAiDocumentService {
         return ticketAiService.getDocument(sourceId);
     }
 
+    @Override
+    public TicketAiAcceptedVO deleteDocument(String sourceId) {
+        validateSourceId(sourceId);
+        return ticketAiService.deleteDocument(sourceId);
+    }
+
+    @Override
+    public TicketAiAcceptedVO reimportDocument(String sourceId) {
+        validateSourceId(sourceId);
+        return ticketAiService.reimportDocument(sourceId);
+    }
+
     private void validateSourceId(String sourceId) {
         if (!StringUtils.hasText(sourceId) || !SOURCE_ID_PATTERN.matcher(sourceId).matches()) {
             throw new ServiceException("知识文档来源标识格式错误");

@@ -63,6 +63,14 @@ class KnowledgeDocumentReader(Protocol):
 
     def get_document(self, source_id: str) -> KnowledgeDocumentSummary | None: ...
 
+    def delete_document(self, source_id: str) -> int: ...
+
+    def reimport_document(self, source_id: str) -> int: ...
+
+
+class KnowledgeDocumentOperationError(ValueError):
+    """文档管理操作失败。"""
+
 
 class DocumentImporter:
     """隐藏解析、切片和向量存储细节的导入模块。"""
@@ -241,6 +249,28 @@ class ElasticsearchKnowledgeDocumentReader:
         )
         buckets = response.get("aggregations", {}).get("documents", {}).get("buckets", [])
         return self._bucket_to_summary(buckets[0]) if buckets else None
+
+    def delete_document(self, source_id: str) -> int:
+        if not source_id:
+            raise KnowledgeDocumentOperationError("invalid source id")
+        if not self._client.indices.exists(index=self._index_name):
+            return 0
+        document = self.get_document(source_id)
+        if document is None:
+            return 0
+        response = self._client.delete_by_query(
+            index=self._index_name,
+            query={"term": {"source_id": source_id}},
+            refresh=True,
+            conflicts="proceed",
+        )
+        return int(response.get("deleted", 0))
+
+    def reimport_document(self, source_id: str) -> int:
+        document = self.get_document(source_id)
+        if document is None:
+            raise KnowledgeDocumentOperationError("document not found")
+        return document.chunk_count
 
     def _bucket_to_summary(self, bucket: dict) -> KnowledgeDocumentSummary:
         title_hits = bucket.get("title", {}).get("hits", {}).get("hits", [])

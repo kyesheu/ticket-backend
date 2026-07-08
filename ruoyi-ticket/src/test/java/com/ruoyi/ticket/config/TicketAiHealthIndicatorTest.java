@@ -101,6 +101,10 @@ class TicketAiHealthIndicatorTest {
         @Override
         public com.ruoyi.ticket.vo.TicketAiDocumentDetailVO getDocument(String sourceId) { return null; }
         @Override
+        public com.ruoyi.ticket.vo.TicketAiAcceptedVO deleteDocument(String sourceId) { return null; }
+        @Override
+        public com.ruoyi.ticket.vo.TicketAiAcceptedVO reimportDocument(String sourceId) { return null; }
+        @Override
         public com.ruoyi.ticket.vo.TicketAiClosedTicketSyncVO syncClosedTicket(
                 com.ruoyi.ticket.dto.TicketAiClosedTicketSyncDTO dto) { return null; }
         @Override

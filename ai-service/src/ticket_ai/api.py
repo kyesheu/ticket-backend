@@ -11,6 +11,7 @@ from ticket_ai.models import (
     DocumentDetailResponse,
     DocumentImportRequest,
     DocumentImportResponse,
+    DocumentOperationResponse,
     DocumentListResponse,
     HealthResponse,
     SearchResponse,
@@ -33,7 +34,7 @@ from ticket_ai.resilience import RetrievalUnavailable, verify_ai_rate_limit
 from ticket_ai.assist import TicketAssistService
 from ticket_ai.triage import TicketTriageService
 from ticket_ai.history_sync import ClosedTicketSyncService
-from ticket_ai.knowledge import DocumentImporter, DocumentImportError, KnowledgeDocumentReader
+from ticket_ai.knowledge import DocumentImporter, DocumentImportError, KnowledgeDocumentOperationError, KnowledgeDocumentReader
 from ticket_ai.similar_search import SimilarKnowledgeSearchService
 
 router = APIRouter(prefix="/api/v1")
@@ -89,6 +90,32 @@ def get_document(source_id: str,
     if document is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="document not found")
     return DocumentDetailResponse(**document.__dict__)
+
+
+@router.post("/documents/{source_id}/reimport", response_model=DocumentOperationResponse,
+             dependencies=[Depends(verify_service_token)])
+def reimport_document(source_id: str,
+                      reader: KnowledgeDocumentReader = Depends(get_knowledge_document_reader)) -> DocumentOperationResponse:
+    """重新确认知识文档可用性并返回当前有效切片数。"""
+
+    try:
+        chunk_count = reader.reimport_document(source_id)
+        return DocumentOperationResponse(chunk_count=chunk_count)
+    except KnowledgeDocumentOperationError as exception:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exception)) from exception
+
+
+@router.delete("/documents/{source_id}", response_model=DocumentOperationResponse,
+               dependencies=[Depends(verify_service_token)])
+def delete_document(source_id: str,
+                    reader: KnowledgeDocumentReader = Depends(get_knowledge_document_reader)) -> DocumentOperationResponse:
+    """删除知识文档的有效切片。"""
+
+    try:
+        deleted = reader.delete_document(source_id)
+        return DocumentOperationResponse(chunk_count=deleted)
+    except KnowledgeDocumentOperationError as exception:
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail=str(exception)) from exception
 
 
 @router.post("/tickets/sync", response_model=ClosedTicketSyncResponse,

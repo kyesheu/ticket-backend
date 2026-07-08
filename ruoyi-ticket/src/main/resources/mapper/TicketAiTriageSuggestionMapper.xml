@@ -79,4 +79,14 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         WHERE suggestion_id = #{suggestionId}
           AND suggestion_status = 'PENDING'
     </update>
+
+    <select id="countAll" resultType="long">
+        SELECT COUNT(1) FROM ticket_ai_triage_suggestion
+    </select>
+
+    <select id="countByStatus" resultType="long">
+        SELECT COUNT(1)
+        FROM ticket_ai_triage_suggestion
+        WHERE suggestion_status = #{status}
+    </select>
 </mapper>

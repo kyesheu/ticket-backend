@@ -20,4 +20,8 @@ public interface TicketAiTriageSuggestionMapper {
                       @Param("operatedBy") Long operatedBy);
 
     int expirePending(@Param("suggestionId") Long suggestionId);
+
+    long countAll();
+
+    long countByStatus(@Param("status") String status);
 }

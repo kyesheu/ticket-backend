@@ -184,3 +184,8 @@ class AcceptedResponse(StrictModel):
 class DocumentImportResponse(StrictModel):
     accepted: Literal[True] = True
     chunk_count: int = Field(gt=0)
+
+
+class DocumentOperationResponse(StrictModel):
+    accepted: Literal[True] = True
+    chunk_count: int = Field(ge=0)

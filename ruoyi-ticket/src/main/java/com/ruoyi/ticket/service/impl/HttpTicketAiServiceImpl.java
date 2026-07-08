@@ -88,6 +88,16 @@ public class HttpTicketAiServiceImpl implements ITicketAiService {
     }
 
     @Override
+    public TicketAiAcceptedVO deleteDocument(String sourceId) {
+        return delete("/api/v1/documents/" + encode(sourceId), TicketAiAcceptedVO.class);
+    }
+
+    @Override
+    public TicketAiAcceptedVO reimportDocument(String sourceId) {
+        return post("/api/v1/documents/" + encode(sourceId) + "/reimport", new Object(), TicketAiAcceptedVO.class);
+    }
+
+    @Override
     public TicketAiClosedTicketSyncVO syncClosedTicket(TicketAiClosedTicketSyncDTO dto) {
         return post("/api/v1/tickets/sync", dto, TicketAiClosedTicketSyncVO.class);
     }
@@ -131,6 +141,14 @@ public class HttpTicketAiServiceImpl implements ITicketAiService {
         HttpRequest request = baseRequest(path)
                 .header(SERVICE_TOKEN_HEADER, properties.getServiceToken())
                 .GET()
+                .build();
+        return execute(request, responseType);
+    }
+
+    private <T> T delete(String path, Class<T> responseType) {
+        HttpRequest request = baseRequest(path)
+                .header(SERVICE_TOKEN_HEADER, properties.getServiceToken())
+                .DELETE()
                 .build();
         return execute(request, responseType);
     }

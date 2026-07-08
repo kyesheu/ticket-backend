@@ -35,4 +35,10 @@ public interface ITicketAiDocumentService {
      * @return 文档详情
      */
     TicketAiDocumentDetailVO getDocument(String sourceId);
+
+    /** 删除知识文档。 */
+    TicketAiAcceptedVO deleteDocument(String sourceId);
+
+    /** 重导知识文档。 */
+    TicketAiAcceptedVO reimportDocument(String sourceId);
 }

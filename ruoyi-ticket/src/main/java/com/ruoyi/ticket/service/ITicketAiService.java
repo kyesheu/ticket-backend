@@ -34,6 +34,12 @@ public interface ITicketAiService {
     /** 查询知识文档详情。 */
     TicketAiDocumentDetailVO getDocument(String sourceId);
 
+    /** 删除知识文档。 */
+    TicketAiAcceptedVO deleteDocument(String sourceId);
+
+    /** 重导知识文档。 */
+    TicketAiAcceptedVO reimportDocument(String sourceId);
+
     /** 同步已关闭工单知识快照。 */
     TicketAiClosedTicketSyncVO syncClosedTicket(TicketAiClosedTicketSyncDTO dto);
 

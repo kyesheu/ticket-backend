@@ -36,4 +36,22 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
           AND target_type = #{targetType}
           AND target_id = #{targetId}
     </select>
+
+    <select id="selectByTicketId" resultMap="TicketAiFeedbackResult">
+        SELECT <include refid="BaseColumns"/>
+        FROM ticket_ai_feedback
+        WHERE ticket_id = #{ticketId}
+        ORDER BY create_time DESC
+    </select>
+
+    <select id="selectStatistics" resultType="com.ruoyi.ticket.vo.TicketAiFeedbackStatisticsVO">
+        SELECT
+            COUNT(1) AS total_count,
+            SUM(CASE WHEN feedback_value = 'USEFUL' THEN 1 ELSE 0 END) AS useful_count,
+            SUM(CASE WHEN feedback_value = 'NOT_USEFUL' THEN 1 ELSE 0 END) AS not_useful_count,
+            SUM(CASE WHEN adopted = 1 THEN 1 ELSE 0 END) AS adopted_count,
+            CASE WHEN COUNT(1) = 0 THEN 0 ELSE ROUND(SUM(CASE WHEN feedback_value = 'USEFUL' THEN 1 ELSE 0 END) / COUNT(1), 4) END AS useful_rate,
+            CASE WHEN COUNT(1) = 0 THEN 0 ELSE ROUND(SUM(CASE WHEN adopted = 1 THEN 1 ELSE 0 END) / COUNT(1), 4) END AS adopted_rate
+        FROM ticket_ai_feedback
+    </select>
 </mapper>

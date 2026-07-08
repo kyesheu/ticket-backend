@@ -4,17 +4,23 @@ import com.ruoyi.common.annotation.Log;
 import com.ruoyi.common.core.controller.BaseController;
 import com.ruoyi.common.core.domain.AjaxResult;
 import com.ruoyi.common.enums.BusinessType;
+import com.ruoyi.ticket.dto.TicketAiFeedbackDTO;
 import com.ruoyi.ticket.dto.TicketAiDocumentQueryDTO;
 import com.ruoyi.ticket.dto.TicketAiTriageDecisionDTO;
 import com.ruoyi.ticket.service.ITicketAiDocumentService;
 import com.ruoyi.ticket.service.ITicketAiKnowledgeService;
+import com.ruoyi.ticket.service.ITicketAiOperationsService;
 import com.ruoyi.ticket.service.ITicketAiTriageService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -33,13 +39,16 @@ public class TicketAiController extends BaseController {
     private final ITicketAiDocumentService ticketAiDocumentService;
     private final ITicketAiKnowledgeService ticketAiKnowledgeService;
     private final ITicketAiTriageService ticketAiTriageService;
+    private final ITicketAiOperationsService ticketAiOperationsService;
 
     public TicketAiController(ITicketAiDocumentService ticketAiDocumentService,
                               ITicketAiKnowledgeService ticketAiKnowledgeService,
-                              ITicketAiTriageService ticketAiTriageService) {
+                              ITicketAiTriageService ticketAiTriageService,
+                              ITicketAiOperationsService ticketAiOperationsService) {
         this.ticketAiDocumentService = ticketAiDocumentService;
         this.ticketAiKnowledgeService = ticketAiKnowledgeService;
         this.ticketAiTriageService = ticketAiTriageService;
+        this.ticketAiOperationsService = ticketAiOperationsService;
     }
 
     @Operation(summary = "导入知识文档")
@@ -60,8 +69,24 @@ public class TicketAiController extends BaseController {
     @Operation(summary = "查询知识文档详情")
     @PreAuthorize("@ss.hasPermi('ticket:ai:document:query')")
     @GetMapping("/documents/{sourceId}")
-    public AjaxResult getDocument(@org.springframework.web.bind.annotation.PathVariable String sourceId) {
+    public AjaxResult getDocument(@PathVariable String sourceId) {
         return success(ticketAiDocumentService.getDocument(sourceId));
+    }
+
+    @Operation(summary = "重导知识文档")
+    @Log(title = "AI 知识文档重导", businessType = BusinessType.UPDATE)
+    @PreAuthorize("@ss.hasPermi('ticket:ai:document:edit')")
+    @PutMapping("/documents/{sourceId}/reimport")
+    public AjaxResult reimportDocument(@PathVariable String sourceId) {
+        return success(ticketAiDocumentService.reimportDocument(sourceId));
+    }
+
+    @Operation(summary = "删除知识文档")
+    @Log(title = "AI 知识文档删除", businessType = BusinessType.DELETE)
+    @PreAuthorize("@ss.hasPermi('ticket:ai:document:remove')")
+    @DeleteMapping("/documents/{sourceId}")
+    public AjaxResult deleteDocument(@PathVariable String sourceId) {
+        return success(ticketAiDocumentService.deleteDocument(sourceId));
     }
 
     @Operation(summary = "同步历史已关闭工单")
@@ -98,7 +123,7 @@ public class TicketAiController extends BaseController {
     @Operation(summary = "采纳 AI 分诊建议")
     @PreAuthorize("@ss.hasPermi('ticket:ticket:assign')")
     @PostMapping("/triage/{suggestionId}/apply")
-    public AjaxResult applyTriage(@org.springframework.web.bind.annotation.PathVariable Long suggestionId,
+    public AjaxResult applyTriage(@PathVariable Long suggestionId,
                                   @RequestBody TicketAiTriageDecisionDTO dto) {
         ticketAiTriageService.apply(suggestionId, dto);
         return success();
@@ -107,8 +132,59 @@ public class TicketAiController extends BaseController {
     @Operation(summary = "拒绝 AI 分诊建议")
     @PreAuthorize("@ss.hasPermi('ticket:ticket:assign')")
     @PostMapping("/triage/{suggestionId}/reject")
-    public AjaxResult rejectTriage(@org.springframework.web.bind.annotation.PathVariable Long suggestionId) {
+    public AjaxResult rejectTriage(@PathVariable Long suggestionId) {
         ticketAiTriageService.reject(suggestionId);
         return success();
+    }
+
+    @Operation(summary = "提交 AI 反馈")
+    @Log(title = "AI 反馈", businessType = BusinessType.INSERT)
+    @PreAuthorize("@ss.hasPermi('ticket:ai:feedback:add')")
+    @PostMapping("/feedback")
+    public AjaxResult createFeedback(@Valid @RequestBody TicketAiFeedbackDTO dto) {
+        return success(ticketAiOperationsService.createFeedback(dto, getUserId()));
+    }
+
+    @Operation(summary = "查询工单 AI 反馈")
+    @PreAuthorize("@ss.hasPermi('ticket:ai:feedback:list')")
+    @GetMapping("/feedback/ticket/{ticketId}")
+    public AjaxResult listFeedbackByTicket(@PathVariable Long ticketId) {
+        return success(ticketAiOperationsService.listFeedbackByTicket(ticketId));
+    }
+
+    @Operation(summary = "AI 反馈统计")
+    @PreAuthorize("@ss.hasPermi('ticket:ai:feedback:statistics')")
+    @GetMapping("/feedback/statistics")
+    public AjaxResult feedbackStatistics() {
+        return success(ticketAiOperationsService.feedbackStatistics());
+    }
+
+    @Operation(summary = "AI 固定评测集")
+    @PreAuthorize("@ss.hasPermi('ticket:ai:evaluation:list')")
+    @GetMapping("/evaluation/cases")
+    public AjaxResult evaluationCases() {
+        return success(ticketAiOperationsService.evaluationCases());
+    }
+
+    @Operation(summary = "运行 AI 评测")
+    @Log(title = "AI 评测", businessType = BusinessType.OTHER)
+    @PreAuthorize("@ss.hasPermi('ticket:ai:evaluation:run')")
+    @PostMapping("/evaluation/run")
+    public AjaxResult runEvaluation() {
+        return success(ticketAiOperationsService.runEvaluation());
+    }
+
+    @Operation(summary = "AI 评测结果")
+    @PreAuthorize("@ss.hasPermi('ticket:ai:evaluation:list')")
+    @GetMapping("/evaluation/results")
+    public AjaxResult evaluationResults() {
+        return success(ticketAiOperationsService.evaluationResults());
+    }
+
+    @Operation(summary = "AI 运营指标摘要")
+    @PreAuthorize("@ss.hasPermi('ticket:ai:metrics:summary')")
+    @GetMapping("/metrics/summary")
+    public AjaxResult metricsSummary() {
+        return success(ticketAiOperationsService.metricsSummary());
     }
 }

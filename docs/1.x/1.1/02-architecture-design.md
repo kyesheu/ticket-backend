@@ -10,7 +10,7 @@
 
 ## 约束
 
-- ruoyi-ticket 不依赖 ruoyi-quartz，ruoyi-quartz 不写工单业务。
+- ticket-ticket 不依赖 ticket-quartz，ticket-quartz 不写工单业务。
 - 创建工单时在原事务中查询启用策略并写截止时间快照。
 - 扫描按页处理；更新超时标记和插入告警使用事务。
 - 唯一键兜底重复或并发扫描；扫描只记录事实，不发送外部消息。

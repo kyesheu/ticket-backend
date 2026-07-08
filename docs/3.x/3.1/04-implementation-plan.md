@@ -10,4 +10,4 @@
 | 52 | 建议持久化、采纳/修改/拒绝和过期控制 | 已完成 |
 | 53 | 固定评测集、完整回归和端到端 smoke | 待验证：pytest、Maven、完整依赖和主 smoke |
 
-只修改 ruoyi-ticket、ai-service、必要的 ruoyi-admin 配置、SQL、脚本和文档；不修改基础模块。
+只修改 ticket-ticket、ai-service、必要的 ticket-admin 配置、SQL、脚本和文档；不修改基础模块。

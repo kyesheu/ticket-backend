@@ -7,4 +7,4 @@
 - 部门归属使用 ticket.dept_id 快照。
 - 自定义部门复用 sys_role_dept。
 - 部门树复用 sys_dept.ancestors。
-- 角色状态、权限和数据范围读取 RuoYi 现有表。
+- 角色状态、权限和数据范围读取 Ticket 现有表。

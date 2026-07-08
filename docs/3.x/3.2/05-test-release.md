@@ -22,9 +22,9 @@
 
 - 2026-07-07：`E:\project\ticket\ticket-backend\ai-service\.venv\Scripts\python.exe -m pytest ai-service\tests\test_contract.py ai-service\tests\test_knowledge.py`，22 passed。
 - 2026-07-07：`E:\project\ticket\ticket-backend\ai-service\.venv\Scripts\python.exe -m pytest ai-service\tests`，80 passed。
-- 2026-07-07：`mvn -pl ruoyi-ticket "-Dtest=TicketAiDocumentServiceImplTest,HttpTicketAiServiceImplTest,TicketAiFeedbackModelTest,TicketAiFeedbackMapperXmlTest,TicketAiFeedbackSqlTest" test`，24 passed。
-- 2026-07-07：`mvn -pl ruoyi-ticket test`，247 passed。
-- 2026-07-07：`mvn -pl ruoyi-ticket clean compile`，BUILD SUCCESS。
-- 2026-07-07：`mvn test`，BUILD SUCCESS，ruoyi-ticket 247 passed。
+- 2026-07-07：`mvn -pl ticket-ticket "-Dtest=TicketAiDocumentServiceImplTest,HttpTicketAiServiceImplTest,TicketAiFeedbackModelTest,TicketAiFeedbackMapperXmlTest,TicketAiFeedbackSqlTest" test`，24 passed。
+- 2026-07-07：`mvn -pl ticket-ticket test`，247 passed。
+- 2026-07-07：`mvn -pl ticket-ticket clean compile`，BUILD SUCCESS。
+- 2026-07-07：`mvn test`，BUILD SUCCESS，ticket-ticket 247 passed。
 - 2026-07-07：`mvn clean compile`，BUILD SUCCESS。
 - 2026-07-07：v3.x smoke 未执行；`http://localhost:8080/captchaImage` 3 秒超时，当前没有可用 Java 服务响应。现有 smoke 脚本仍为 v3.0-v3.1，尚未补充 v3.2 阶段 54 文档管理契约 smoke。

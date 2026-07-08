@@ -23,7 +23,7 @@
 1. 启动 MySQL、Redis、Elasticsearch。
 2. 启动 Python：`ai-service\.venv\Scripts\python.exe -m uvicorn ticket_ai.main:app --app-dir ai-service\src --host 127.0.0.1 --port 8090`。
 3. 执行 smoke：`powershell scripts/ticket/v1.x/smoke-test.ps1`、`powershell scripts/ticket/v2.x/smoke-test.ps1`、`powershell scripts/ticket/v3.x/smoke-test.ps1`。
-4. 脚本会在 Java 未运行时打包并启动 `ruoyi-admin\target\ruoyi-admin.jar`；v3.x 脚本会在 Python 未运行时启动 `ai-service`。
+4. 脚本会在 Java 未运行时打包并启动 `ticket-admin\target\ticket-admin.jar`；v3.x 脚本会在 Python 未运行时启动 `ai-service`。
 5. 检查 Java：`GET /actuator/health/liveness`、`GET /actuator/health/readiness`、`GET /actuator/prometheus`。
 6. 检查 Python：`GET /api/v1/health`，请求头带 `X-Trace-Id` 时响应头应回显。
 7. 使用同一 `X-Trace-Id` 调用一个 AI 业务接口，确认 Java 日志包含 `traceId=` 且 Python 响应回显。
@@ -31,8 +31,8 @@
 ## 实测记录
 
 - 2026-07-07 阶段 58 聚焦测试：
-  - `mvn -pl ruoyi-common -Dtest=TraceIdFilterTest test`：通过，2 个测试。
-  - `mvn -pl ruoyi-ticket -am '-Dtest=HttpTicketAiServiceImplTest,TicketAiHealthIndicatorTest,TraceIdFilterTest' '-Dsurefire.failIfNoSpecifiedTests=false' test`：通过，16 个测试。
+  - `mvn -pl ticket-common -Dtest=TraceIdFilterTest test`：通过，2 个测试。
+  - `mvn -pl ticket-ticket -am '-Dtest=HttpTicketAiServiceImplTest,TicketAiHealthIndicatorTest,TraceIdFilterTest' '-Dsurefire.failIfNoSpecifiedTests=false' test`：通过，16 个测试。
   - `ai-service\.venv\Scripts\python.exe -m pytest ai-service\tests\test_contract.py -q`：通过，16 个测试。
 - 2026-07-07 全量验证：
   - `mvn test`：通过，Java 全量 250 个测试。
@@ -103,7 +103,7 @@ powershell scripts/ticket/v3.x/stage61-final-release.ps1 -SkipSmoke
 
 - `mvn test`：7 模块全量测试。
 - `mvn clean compile`：全模块编译。
-- `mvn -pl ruoyi-admin -am package -DskipTests`：生成 `ruoyi-admin.jar`。
+- `mvn -pl ticket-admin -am package -DskipTests`：生成 `ticket-admin.jar`。
 - `pytest ai-service/tests`：全量 Python 测试。
 - v1.x、v2.x、v3.x smoke 脚本逐一执行。
 - 12 版本 × 5 文档 = 60 份全部存在；SQL 增量脚本覆盖全部需变更版本。

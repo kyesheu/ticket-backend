@@ -4,7 +4,7 @@
 
 ## 部署单元
 
-- Java：ruoyi-admin，承载 RuoYi 和 ruoyi-ticket。
+- Java：ticket-admin，承载 Ticket 和 ticket-ticket。
 - Python：ai-service，仅提供内部版本化 HTTP API。
 - 数据：MySQL、Redis、Elasticsearch；模型和 Embedding 为外部依赖。
 

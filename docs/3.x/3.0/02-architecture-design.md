@@ -4,7 +4,7 @@
 
 ## 边界
 
-ruoyi-ticket 通过版本化内部 HTTP 调用独立 ai-service。ITicketAiService 隔离 HTTP 适配，Python API 不暴露 LangChain 类型。
+ticket-ticket 通过版本化内部 HTTP 调用独立 ai-service。ITicketAiService 隔离 HTTP 适配，Python API 不暴露 LangChain 类型。
 
 - Java：ITicketAccessPolicy、最小上下文、历史工单筛选与脱敏、超时和响应上限。
 - Python：loader、splitter、embedding、Elasticsearch、RAG chain 和结构校验。

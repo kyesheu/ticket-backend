@@ -4,9 +4,9 @@
 
 ## 模块边界
 
-- ruoyi-admin：启动入口和配置，不承载工单业务。
-- ruoyi-ticket：Controller、Service、Mapper、Domain、DTO、VO、Enum。
-- ruoyi-ticket 仅依赖 ruoyi-common；用户和部门名称通过 Mapper 查询，不依赖 ruoyi-system Service。
+- ticket-admin：启动入口和配置，不承载工单业务。
+- ticket-ticket：Controller、Service、Mapper、Domain、DTO、VO、Enum。
+- ticket-ticket 仅依赖 ticket-common；用户和部门名称通过 Mapper 查询，不依赖 ticket-system Service。
 
 ## 分层
 

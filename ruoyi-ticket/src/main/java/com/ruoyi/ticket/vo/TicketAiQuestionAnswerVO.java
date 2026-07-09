@@ -13,6 +13,7 @@ public class TicketAiQuestionAnswerVO implements Serializable {
     private static final long serialVersionUID = 1L;
 
     private String answer;
+    private Long sessionId;
     private String suggestion;
     private Double confidence;
     private Boolean needHuman;
@@ -22,6 +23,8 @@ public class TicketAiQuestionAnswerVO implements Serializable {
 
     public String getAnswer() { return answer; }
     public void setAnswer(String answer) { this.answer = answer; }
+    public Long getSessionId() { return sessionId; }
+    public void setSessionId(Long sessionId) { this.sessionId = sessionId; }
     public String getSuggestion() { return suggestion; }
     public void setSuggestion(String suggestion) { this.suggestion = suggestion; }
     public Double getConfidence() { return confidence; }

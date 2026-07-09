@@ -12,5 +12,7 @@ public interface ITicketAiQuestionService {
 
     TicketAiQuestionAnswerVO ask(TicketAiAskDTO dto);
 
+    void markResolved(Long sessionId);
+
     TicketAiEscalateVO escalate(TicketAiEscalateDTO dto);
 }

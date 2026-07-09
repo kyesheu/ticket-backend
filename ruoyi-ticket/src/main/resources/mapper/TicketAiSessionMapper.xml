@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ruoyi.ticket.mapper.TicketAiSessionMapper">
+
+    <insert id="insertSession" useGeneratedKeys="true" keyProperty="sessionId">
+        INSERT INTO ticket_ai_session
+            (user_id, question, answer, suggestion, confidence, need_human,
+             degraded, reason, status, ticket_id, create_time, update_time)
+        VALUES
+            (#{userId}, #{question}, #{answer}, #{suggestion}, #{confidence}, #{needHuman},
+             #{degraded}, #{reason}, #{status}, #{ticketId}, #{createTime}, #{updateTime})
+    </insert>
+
+    <insert id="insertSource" useGeneratedKeys="true" keyProperty="sourceRefId">
+        INSERT INTO ticket_ai_session_source
+            (session_id, source_type, source_id, title, snippet, score, metadata_json, create_time)
+        VALUES
+            (#{sessionId}, #{sourceType}, #{sourceId}, #{title}, #{snippet}, #{score}, #{metadataJson}, #{createTime})
+    </insert>
+
+    <insert id="insertEscalation" useGeneratedKeys="true" keyProperty="escalationId">
+        INSERT INTO ticket_ai_escalation
+            (session_id, ticket_id, user_id, user_comment, ai_summary, create_time)
+        VALUES
+            (#{sessionId}, #{ticketId}, #{userId}, #{userComment}, #{aiSummary}, #{createTime})
+    </insert>
+
+    <update id="markResolved">
+        UPDATE ticket_ai_session
+        SET status = 'RESOLVED',
+            update_time = NOW()
+        WHERE session_id = #{sessionId}
+          AND user_id = #{userId}
+          AND status = 'ACTIVE'
+    </update>
+
+    <update id="markEscalated">
+        UPDATE ticket_ai_session
+        SET status = 'ESCALATED',
+            ticket_id = #{ticketId},
+            update_time = NOW()
+        WHERE session_id = #{sessionId}
+          AND user_id = #{userId}
+          AND status IN ('ACTIVE', 'RESOLVED')
+    </update>
+</mapper>

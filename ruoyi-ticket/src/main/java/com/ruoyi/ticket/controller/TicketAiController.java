@@ -64,6 +64,14 @@ public class TicketAiController extends BaseController {
         return success(ticketAiQuestionService.ask(dto));
     }
 
+    @Operation(summary = "标记 AI 问答已解决")
+    @PreAuthorize("@ss.hasPermi('ticket:ai:ask')")
+    @PostMapping("/session/{sessionId}/resolved")
+    public AjaxResult markResolved(@PathVariable Long sessionId) {
+        ticketAiQuestionService.markResolved(sessionId);
+        return success();
+    }
+
     @Operation(summary = "AI 问答转人工建单")
     @Log(title = "AI 转人工建单", businessType = BusinessType.INSERT)
     @PreAuthorize("@ss.hasPermi('ticket:ai:escalate')")

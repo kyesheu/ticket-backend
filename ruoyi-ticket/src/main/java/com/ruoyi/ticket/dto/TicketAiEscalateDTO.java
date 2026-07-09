@@ -21,6 +21,8 @@ public class TicketAiEscalateDTO implements Serializable {
     @Size(max = 10000, message = "问题不能超过10000个字符")
     private String question;
 
+    private Long sessionId;
+
     @Size(max = 10000, message = "AI回答不能超过10000个字符")
     private String aiAnswer;
 
@@ -41,6 +43,8 @@ public class TicketAiEscalateDTO implements Serializable {
 
     public String getQuestion() { return question; }
     public void setQuestion(String question) { this.question = question; }
+    public Long getSessionId() { return sessionId; }
+    public void setSessionId(Long sessionId) { this.sessionId = sessionId; }
     public String getAiAnswer() { return aiAnswer; }
     public void setAiAnswer(String aiAnswer) { this.aiAnswer = aiAnswer; }
     public String getAiSuggestion() { return aiSuggestion; }

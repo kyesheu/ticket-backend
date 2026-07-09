@@ -130,6 +130,8 @@ INSERT INTO sys_menu
      is_frame, is_cache, menu_type, visible, status, perms, icon,
      create_by, create_time, update_by, update_time, remark)
 VALUES
+    (2059, '我的待办', 2000, 0, 'workbench', 'ticket/workbench/index', NULL, 'ticketWorkbench',
+     1, 0, 'C', '0', '0', 'ticket:workbench:list', 'tickets', 'admin', NOW(), 'admin', NOW(), '处理人工作台'),
     (2060, 'AI 助手', 0, 5, 'ai', NULL, NULL, 'ai',
      1, 0, 'M', '0', '0', '', 'education', 'admin', NOW(), 'admin', NOW(), 'AI 前置问答目录'),
     (2061, '智能问答', 2060, 1, 'ask', 'ticket/ai/ask/index', NULL, 'aiAsk',
@@ -155,4 +157,4 @@ ON DUPLICATE KEY UPDATE
     remark = VALUES(remark);
 
 INSERT IGNORE INTO sys_role_menu (role_id, menu_id)
-SELECT 1, menu_id FROM sys_menu WHERE menu_id IN (2060, 2061, 2062);
+SELECT 1, menu_id FROM sys_menu WHERE menu_id IN (2059, 2060, 2061, 2062);

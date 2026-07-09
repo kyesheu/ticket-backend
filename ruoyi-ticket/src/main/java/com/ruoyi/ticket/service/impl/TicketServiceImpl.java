@@ -108,6 +108,14 @@ public class TicketServiceImpl implements ITicketService {
     }
 
     @Override
+    public List<TicketListVO> selectMyTodoTickets(TicketQueryDTO query) {
+        query.setStatus(TicketStatus.PROCESSING.name());
+        query.setAssigneeId(SecurityUtils.getUserId());
+        query.setAccessScope(ticketAccessPolicy.resolveScope(TICKET_PROCESS_PERMISSION));
+        return ticketMapper.selectTicketList(query);
+    }
+
+    @Override
     public TicketVO selectTicketById(Long ticketId) {
         ticketAccessPolicy.assertCanAccess(ticketId, TICKET_QUERY_PERMISSION);
         TicketVO vo = ticketMapper.selectTicketById(ticketId);

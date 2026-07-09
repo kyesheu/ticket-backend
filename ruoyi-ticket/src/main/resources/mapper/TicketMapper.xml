@@ -155,6 +155,9 @@
         <if test="categoryId != null">
             AND t.category_id = #{categoryId}
         </if>
+        <if test="assigneeId != null">
+            AND t.assignee_id = #{assigneeId}
+        </if>
         <if test="keyword != null and keyword != ''">
             AND (t.title LIKE CONCAT('%', #{keyword}, '%') OR t.content LIKE CONCAT('%', #{keyword}, '%'))
         </if>

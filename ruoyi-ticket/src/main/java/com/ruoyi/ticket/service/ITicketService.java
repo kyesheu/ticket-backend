@@ -23,6 +23,11 @@ public interface ITicketService {
     List<TicketListVO> selectTicketList(TicketQueryDTO query);
 
     /**
+     * 查询当前处理人的待办工单。
+     */
+    List<TicketListVO> selectMyTodoTickets(TicketQueryDTO query);
+
+    /**
      * 查询工单详情（含分类/用户/部门名称、评论列表、操作日志）
      */
     TicketVO selectTicketById(Long ticketId);

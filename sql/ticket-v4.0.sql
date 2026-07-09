@@ -137,7 +137,9 @@ VALUES
     (2061, '智能问答', 2060, 1, 'ask', 'ticket/ai/ask/index', NULL, 'aiAsk',
      1, 0, 'C', '0', '0', 'ticket:ai:ask', 'education', 'admin', NOW(), 'admin', NOW(), 'AI 前置问答入口'),
     (2062, '转人工建单', 2061, 1, '', NULL, NULL, '',
-     1, 0, 'F', '0', '0', 'ticket:ai:escalate', '#', 'admin', NOW(), 'admin', NOW(), '')
+     1, 0, 'F', '0', '0', 'ticket:ai:escalate', '#', 'admin', NOW(), 'admin', NOW(), ''),
+    (2063, '工单沉淀知识', 2001, 10, '', NULL, NULL, '',
+     1, 0, 'F', '0', '0', 'ticket:ai:document:import', '#', 'admin', NOW(), 'admin', NOW(), '')
 ON DUPLICATE KEY UPDATE
     menu_name = VALUES(menu_name),
     parent_id = VALUES(parent_id),
@@ -157,4 +159,4 @@ ON DUPLICATE KEY UPDATE
     remark = VALUES(remark);
 
 INSERT IGNORE INTO sys_role_menu (role_id, menu_id)
-SELECT 1, menu_id FROM sys_menu WHERE menu_id IN (2059, 2060, 2061, 2062);
+SELECT 1, menu_id FROM sys_menu WHERE menu_id IN (2059, 2060, 2061, 2062, 2063);

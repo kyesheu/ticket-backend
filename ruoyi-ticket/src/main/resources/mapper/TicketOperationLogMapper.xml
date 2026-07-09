@@ -22,6 +22,18 @@
         ORDER BY operate_time DESC
     </select>
 
+    <select id="selectLatestProcessLog" parameterType="Long" resultMap="TicketOperationLogResult">
+        SELECT log_id, ticket_id, operation_type, from_status, to_status,
+               operator_id, operator_name, comment, operate_time
+        FROM ticket_operation_log
+        WHERE ticket_id = #{ticketId}
+          AND operation_type = 'PROCESS'
+          AND comment IS NOT NULL
+          AND TRIM(comment) != ''
+        ORDER BY operate_time DESC, log_id DESC
+        LIMIT 1
+    </select>
+
     <insert id="insertLog" parameterType="com.ruoyi.ticket.domain.TicketOperationLog">
         INSERT INTO ticket_operation_log (
             ticket_id, operation_type, from_status, to_status,

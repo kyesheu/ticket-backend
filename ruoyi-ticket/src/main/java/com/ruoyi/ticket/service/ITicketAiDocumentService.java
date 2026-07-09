@@ -41,4 +41,7 @@ public interface ITicketAiDocumentService {
 
     /** 重导知识文档。 */
     TicketAiAcceptedVO reimportDocument(String sourceId);
+
+    /** 从已关闭工单沉淀知识文档。 */
+    TicketAiAcceptedVO importClosedTicketKnowledge(Long ticketId);
 }

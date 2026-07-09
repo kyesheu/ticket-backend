@@ -1,6 +1,9 @@
 package com.ruoyi.ticket.config;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.ruoyi.ticket.mapper.TicketMapper;
+import com.ruoyi.ticket.mapper.TicketOperationLogMapper;
+import com.ruoyi.ticket.service.ITicketAccessPolicy;
 import com.ruoyi.ticket.service.ITicketAiService;
 import com.ruoyi.ticket.service.ITicketAiDocumentService;
 import com.ruoyi.ticket.service.impl.HttpTicketAiServiceImpl;
@@ -56,8 +59,11 @@ public class TicketAiConfiguration {
     /** 创建知识文档导入 Service。 */
     @Bean
     public ITicketAiDocumentService ticketAiDocumentService(ITicketAiService ticketAiService,
-                                                             TicketAiProperties properties) {
-        return new TicketAiDocumentServiceImpl(ticketAiService, properties);
+                                                             TicketAiProperties properties,
+                                                             TicketMapper ticketMapper,
+                                                             TicketOperationLogMapper operationLogMapper,
+                                                             ITicketAccessPolicy accessPolicy) {
+        return new TicketAiDocumentServiceImpl(ticketAiService, properties, ticketMapper, operationLogMapper, accessPolicy);
     }
 
     private void validate(TicketAiProperties properties) {

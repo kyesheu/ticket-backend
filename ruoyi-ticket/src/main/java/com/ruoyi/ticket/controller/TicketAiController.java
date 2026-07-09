@@ -112,6 +112,14 @@ public class TicketAiController extends BaseController {
         return success(ticketAiDocumentService.reimportDocument(sourceId));
     }
 
+    @Operation(summary = "从已关闭工单沉淀知识文档")
+    @Log(title = "AI 知识沉淀", businessType = BusinessType.INSERT)
+    @PreAuthorize("@ss.hasPermi('ticket:ai:document:import')")
+    @PostMapping("/ticket/{ticketId}/knowledge")
+    public AjaxResult importTicketKnowledge(@PathVariable Long ticketId) {
+        return success(ticketAiDocumentService.importClosedTicketKnowledge(ticketId));
+    }
+
     @Operation(summary = "删除知识文档")
     @Log(title = "AI 知识文档删除", businessType = BusinessType.DELETE)
     @PreAuthorize("@ss.hasPermi('ticket:ai:document:remove')")

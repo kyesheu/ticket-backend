@@ -14,6 +14,8 @@ from ticket_ai.models import (
     DocumentOperationResponse,
     DocumentListResponse,
     HealthResponse,
+    QuestionAnswerRequest,
+    QuestionAnswerResponse,
     SearchResponse,
     TicketContextRequest,
     TriageRequest,
@@ -68,7 +70,7 @@ def import_document(request: DocumentImportRequest,
         raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail=str(exception)) from exception
     except Exception as exception:
         raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-                            detail="document import unavailable") from exception
+                            detail=f"document import unavailable: {exception}") from exception
 
 
 @router.get("/documents", response_model=DocumentListResponse,
@@ -174,6 +176,15 @@ def assist(request: AssistRequest,
     """生成仅供展示和编辑的处理建议与回复草稿。"""
 
     return service.assist(request)
+
+
+@router.post("/qa/ask", response_model=QuestionAnswerResponse,
+             dependencies=[Depends(verify_service_token), Depends(verify_ai_rate_limit)])
+def ask_question(request: QuestionAnswerRequest,
+                 service: TicketAssistService = Depends(get_ticket_assist_service)) -> QuestionAnswerResponse:
+    """用户建单前的知识库问答。"""
+
+    return service.answer_question(request)
 
 
 @router.post("/tickets/triage", response_model=TriageResponse,

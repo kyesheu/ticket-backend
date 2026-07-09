@@ -7,7 +7,7 @@ from langchain_core.output_parsers import StrOutputParser
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.runnables import Runnable
 
-from ticket_ai.models import AssistRequest, AssistResponse, SourceItem
+from ticket_ai.models import AssistRequest, AssistResponse, QuestionAnswerRequest, QuestionAnswerResponse, SourceItem
 from ticket_ai.similar_search import SimilarKnowledgeResult, SimilarKnowledgeSearchService
 from ticket_ai.resilience import RetrievalUnavailable
 
@@ -58,6 +58,37 @@ class TicketAssistService:
             return self._degraded("model_unavailable")
         return self._validate_output(raw, evidence)
 
+    def answer_question(self, request: QuestionAnswerRequest) -> QuestionAnswerResponse:
+        """面向用户的前置问答，复用同一套可信证据和输出校验。"""
+
+        assist = self.assist(AssistRequest(
+            contract_version=request.contract_version,
+            ticket_id=1,
+            title=self._question_title(request.question),
+            description=request.question,
+            category=request.category,
+            top_k=request.top_k,
+        ))
+        if assist.degraded:
+            return QuestionAnswerResponse(
+                answer="暂时没有找到可靠答案，建议转人工处理。",
+                suggestion="AI 未能基于知识库生成可靠处理建议。",
+                confidence=0,
+                need_human=True,
+                sources=[],
+                degraded=True,
+                reason=assist.reason,
+            )
+        confidence = self._estimate_confidence(assist.sources)
+        return QuestionAnswerResponse(
+            answer=assist.reply_draft,
+            suggestion=assist.suggestion,
+            confidence=confidence,
+            need_human=confidence < 0.72,
+            sources=assist.sources,
+            degraded=False,
+        )
+
     def _validate_output(self, raw: str, evidence: list[SimilarKnowledgeResult]) -> AssistResponse:
         try:
             payload = json.loads(raw)
@@ -94,3 +125,14 @@ class TicketAssistService:
 
     def _degraded(self, reason: str) -> AssistResponse:
         return AssistResponse(suggestion="", reply_draft="", sources=[], degraded=True, reason=reason)
+
+    def _question_title(self, question: str) -> str:
+        first_line = question.strip().splitlines()[0]
+        return first_line[:80] or "用户问题"
+
+    def _estimate_confidence(self, sources: list[SourceItem]) -> float:
+        if not sources:
+            return 0
+        best_score = max(item.score for item in sources)
+        coverage_bonus = min(len(sources), 3) * 0.06
+        return max(0, min(0.95, best_score + coverage_bonus))

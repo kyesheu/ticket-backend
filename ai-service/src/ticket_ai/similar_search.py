@@ -108,10 +108,18 @@ class SimilarKnowledgeSearchService:
             raise RetrievalUnavailable("embedding_unavailable") from exception
         if not vector or not all(math.isfinite(value) for value in vector):
             raise ValueError("embedding response must be a finite non-empty vector")
+        results: list[SimilarKnowledgeResult] = []
+        failures = 0
         try:
-            results = self._search_documents(vector, limit) + self._search_history(vector, limit)
-        except Exception as exception:
-            raise RetrievalUnavailable("vector_store_unavailable") from exception
+            results.extend(self._search_documents(vector, limit))
+        except Exception:
+            failures += 1
+        try:
+            results.extend(self._search_history(vector, limit))
+        except Exception:
+            failures += 1
+        if failures == 2:
+            raise RetrievalUnavailable("vector_store_unavailable")
         return sorted(results, key=lambda item: item.score, reverse=True)[:limit]
 
     def _search_documents(self, vector: list[float], limit: int) -> list[SimilarKnowledgeResult]:

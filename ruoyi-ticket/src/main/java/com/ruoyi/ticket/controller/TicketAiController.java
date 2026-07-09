@@ -5,11 +5,14 @@ import com.ruoyi.common.core.controller.BaseController;
 import com.ruoyi.common.core.domain.AjaxResult;
 import com.ruoyi.common.enums.BusinessType;
 import com.ruoyi.ticket.dto.TicketAiFeedbackDTO;
+import com.ruoyi.ticket.dto.TicketAiAskDTO;
 import com.ruoyi.ticket.dto.TicketAiDocumentQueryDTO;
+import com.ruoyi.ticket.dto.TicketAiEscalateDTO;
 import com.ruoyi.ticket.dto.TicketAiTriageDecisionDTO;
 import com.ruoyi.ticket.service.ITicketAiDocumentService;
 import com.ruoyi.ticket.service.ITicketAiKnowledgeService;
 import com.ruoyi.ticket.service.ITicketAiOperationsService;
+import com.ruoyi.ticket.service.ITicketAiQuestionService;
 import com.ruoyi.ticket.service.ITicketAiTriageService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -40,15 +43,33 @@ public class TicketAiController extends BaseController {
     private final ITicketAiKnowledgeService ticketAiKnowledgeService;
     private final ITicketAiTriageService ticketAiTriageService;
     private final ITicketAiOperationsService ticketAiOperationsService;
+    private final ITicketAiQuestionService ticketAiQuestionService;
 
     public TicketAiController(ITicketAiDocumentService ticketAiDocumentService,
                               ITicketAiKnowledgeService ticketAiKnowledgeService,
                               ITicketAiTriageService ticketAiTriageService,
-                              ITicketAiOperationsService ticketAiOperationsService) {
+                              ITicketAiOperationsService ticketAiOperationsService,
+                              ITicketAiQuestionService ticketAiQuestionService) {
         this.ticketAiDocumentService = ticketAiDocumentService;
         this.ticketAiKnowledgeService = ticketAiKnowledgeService;
         this.ticketAiTriageService = ticketAiTriageService;
         this.ticketAiOperationsService = ticketAiOperationsService;
+        this.ticketAiQuestionService = ticketAiQuestionService;
+    }
+
+    @Operation(summary = "AI 智能问答")
+    @PreAuthorize("@ss.hasPermi('ticket:ai:ask')")
+    @PostMapping("/ask")
+    public AjaxResult ask(@Valid @RequestBody TicketAiAskDTO dto) {
+        return success(ticketAiQuestionService.ask(dto));
+    }
+
+    @Operation(summary = "AI 问答转人工建单")
+    @Log(title = "AI 转人工建单", businessType = BusinessType.INSERT)
+    @PreAuthorize("@ss.hasPermi('ticket:ai:escalate')")
+    @PostMapping("/escalate")
+    public AjaxResult escalate(@Valid @RequestBody TicketAiEscalateDTO dto) {
+        return success(ticketAiQuestionService.escalate(dto));
     }
 
     @Operation(summary = "导入知识文档")

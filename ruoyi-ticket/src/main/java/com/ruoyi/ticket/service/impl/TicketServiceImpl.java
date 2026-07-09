@@ -59,6 +59,9 @@ public class TicketServiceImpl implements ITicketService {
     /** 未超时标记 */
     private static final String NOT_OVERDUE = "0";
 
+    private static final String SOURCE_TYPE_MANUAL = "MANUAL";
+    private static final String DISPATCH_MODE_MANUAL = "MANUAL";
+
     /** 工单列表权限字符 */
     private static final String TICKET_LIST_PERMISSION = "ticket:ticket:list";
 
@@ -144,6 +147,11 @@ public class TicketServiceImpl implements ITicketService {
         ticket.setResolveDueAt(addMinutes(createTime, slaPolicy.getResolveMinutes()));
         ticket.setResponseOverdue(NOT_OVERDUE);
         ticket.setResolveOverdue(NOT_OVERDUE);
+        ticket.setSourceType(StringUtils.isBlank(dto.getSourceType()) ? SOURCE_TYPE_MANUAL : dto.getSourceType());
+        ticket.setAiSessionId(dto.getAiSessionId());
+        ticket.setAiSummary(dto.getAiSummary());
+        ticket.setDispatchMode(DISPATCH_MODE_MANUAL);
+        ticket.setDispatchReason(null);
         ticket.setDelFlag("0");
         ticket.setCreateBy(SecurityUtils.getUsername());
         ticket.setCreateTime(createTime);

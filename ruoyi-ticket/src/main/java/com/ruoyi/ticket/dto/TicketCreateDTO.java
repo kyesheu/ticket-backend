@@ -34,6 +34,15 @@ private static final long serialVersionUID = 1L;
     @Schema(description = "待绑定的临时附件ID")
     private List<Long> attachmentIds;
 
+    @Schema(description = "来源类型：MANUAL/AI_ESCALATION")
+    private String sourceType;
+
+    @Schema(description = "来源 AI 问答会话 ID")
+    private Long aiSessionId;
+
+    @Schema(description = "AI 问答摘要")
+    private String aiSummary;
+
     public String getTitle() { return title; }
     public void setTitle(String title) { this.title = title; }
     public String getContent() { return content; }
@@ -46,4 +55,10 @@ private static final long serialVersionUID = 1L;
     public void setCustomFields(List<TicketCustomFieldInputDTO> customFields) { this.customFields = customFields; }
     public List<Long> getAttachmentIds() { return attachmentIds; }
     public void setAttachmentIds(List<Long> attachmentIds) { this.attachmentIds = attachmentIds; }
+    public String getSourceType() { return sourceType; }
+    public void setSourceType(String sourceType) { this.sourceType = sourceType; }
+    public Long getAiSessionId() { return aiSessionId; }
+    public void setAiSessionId(Long aiSessionId) { this.aiSessionId = aiSessionId; }
+    public String getAiSummary() { return aiSummary; }
+    public void setAiSummary(String aiSummary) { this.aiSummary = aiSummary; }
 }

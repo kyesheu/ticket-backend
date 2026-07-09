@@ -19,6 +19,11 @@
         <result property="resolveDueAt" column="resolve_due_at" />
         <result property="responseOverdue" column="response_overdue" />
         <result property="resolveOverdue" column="resolve_overdue" />
+        <result property="sourceType"   column="source_type"   />
+        <result property="aiSessionId"  column="ai_session_id" />
+        <result property="aiSummary"    column="ai_summary"    />
+        <result property="dispatchMode" column="dispatch_mode" />
+        <result property="dispatchReason" column="dispatch_reason" />
         <result property="delFlag"     column="del_flag"     />
         <result property="createBy"    column="create_by"    />
         <result property="createTime"  column="create_time"  />
@@ -46,6 +51,8 @@
         <result property="resolveDueAt" column="resolve_due_at" />
         <result property="responseOverdue" column="response_overdue" />
         <result property="resolveOverdue" column="resolve_overdue" />
+        <result property="dispatchMode" column="dispatch_mode" />
+        <result property="dispatchReason" column="dispatch_reason" />
     </resultMap>
 
     <resultMap type="com.ruoyi.ticket.vo.TicketVO" id="TicketVOResult">
@@ -69,6 +76,11 @@
         <result property="resolveDueAt" column="resolve_due_at" />
         <result property="responseOverdue" column="response_overdue" />
         <result property="resolveOverdue" column="resolve_overdue" />
+        <result property="sourceType"   column="source_type"   />
+        <result property="aiSessionId"  column="ai_session_id" />
+        <result property="aiSummary"    column="ai_summary"    />
+        <result property="dispatchMode" column="dispatch_mode" />
+        <result property="dispatchReason" column="dispatch_reason" />
         <result property="createTime"   column="create_time"   />
         <result property="updateTime"   column="update_time"   />
         <result property="remark"       column="remark"        />
@@ -78,7 +90,8 @@
         SELECT t.ticket_id, t.ticket_no, t.title, t.content, t.category_id,
                t.priority, t.status, t.creator_id, t.assignee_id, t.dept_id,
                t.processed_at, t.closed_at, t.response_due_at, t.resolve_due_at,
-               t.response_overdue, t.resolve_overdue, t.del_flag, t.create_by, t.create_time,
+               t.response_overdue, t.resolve_overdue, t.source_type, t.ai_session_id,
+               t.ai_summary, t.dispatch_mode, t.dispatch_reason, t.del_flag, t.create_by, t.create_time,
                t.update_by, t.update_time, t.remark
         FROM ticket t
     </sql>
@@ -127,7 +140,7 @@
                u.nick_name AS creator_name,
                a.nick_name AS assignee_name,
                t.create_time, t.update_time, t.response_due_at, t.resolve_due_at,
-               t.response_overdue, t.resolve_overdue
+               t.response_overdue, t.resolve_overdue, t.dispatch_mode, t.dispatch_reason
         FROM ticket t
         LEFT JOIN ticket_category c ON c.category_id = t.category_id
         LEFT JOIN sys_user u ON u.user_id = t.creator_id
@@ -244,6 +257,7 @@
                t.dept_id, d.dept_name,
                t.processed_at, t.closed_at, t.response_due_at, t.resolve_due_at,
                t.response_overdue, t.resolve_overdue,
+               t.source_type, t.ai_session_id, t.ai_summary, t.dispatch_mode, t.dispatch_reason,
                t.create_time, t.update_time, t.remark
         FROM ticket t
         LEFT JOIN ticket_category c ON c.category_id = t.category_id
@@ -300,11 +314,13 @@
             ticket_no, title, content, category_id, priority, status,
             creator_id, assignee_id, dept_id, processed_at, closed_at,
             response_due_at, resolve_due_at, response_overdue, resolve_overdue, del_flag,
+            source_type, ai_session_id, ai_summary, dispatch_mode, dispatch_reason,
             create_by, create_time, update_by, update_time, remark
         ) VALUES (
             #{ticketNo}, #{title}, #{content}, #{categoryId}, #{priority}, #{status},
             #{creatorId}, #{assigneeId}, #{deptId}, #{processedAt}, #{closedAt},
             #{responseDueAt}, #{resolveDueAt}, #{responseOverdue}, #{resolveOverdue}, #{delFlag},
+            #{sourceType}, #{aiSessionId}, #{aiSummary}, #{dispatchMode}, #{dispatchReason},
             #{createBy}, #{createTime}, #{updateBy}, #{updateTime}, #{remark}
         )
     </insert>
@@ -320,6 +336,11 @@
             assignee_id = #{assigneeId},
             processed_at = #{processedAt},
             closed_at   = #{closedAt},
+            source_type = #{sourceType},
+            ai_session_id = #{aiSessionId},
+            ai_summary = #{aiSummary},
+            dispatch_mode = #{dispatchMode},
+            dispatch_reason = #{dispatchReason},
             update_by   = #{updateBy},
             update_time = #{updateTime},
             remark      = #{remark}
@@ -383,6 +404,26 @@
         SET resolve_overdue = '1'
         WHERE ticket_id = #{ticketId}
           AND resolve_overdue = '0'
+          AND del_flag = '0'
+    </update>
+
+    <update id="updateAiTriageFields">
+        UPDATE ticket
+        SET category_id = #{categoryId},
+            priority = #{priority},
+            update_by = #{updateBy},
+            update_time = NOW()
+        WHERE ticket_id = #{ticketId}
+          AND del_flag = '0'
+    </update>
+
+    <update id="updateAiDispatchResult">
+        UPDATE ticket
+        SET dispatch_mode = #{dispatchMode},
+            dispatch_reason = #{dispatchReason},
+            update_by = #{updateBy},
+            update_time = NOW()
+        WHERE ticket_id = #{ticketId}
           AND del_flag = '0'
     </update>
 

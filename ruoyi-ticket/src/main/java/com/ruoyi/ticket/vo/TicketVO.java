@@ -96,6 +96,21 @@ private static final long serialVersionUID = 1L;
     @Schema(description = "备注")
     private String remark;
 
+    @Schema(description = "来源类型：MANUAL/AI_ESCALATION")
+    private String sourceType;
+
+    @Schema(description = "来源 AI 问答会话 ID")
+    private Long aiSessionId;
+
+    @Schema(description = "AI 问答摘要")
+    private String aiSummary;
+
+    @Schema(description = "分派方式：MANUAL/AI_AUTO")
+    private String dispatchMode;
+
+    @Schema(description = "分派原因")
+    private String dispatchReason;
+
     @Schema(description = "评论列表")
     private List<TicketComment> comments;
 
@@ -151,6 +166,16 @@ private static final long serialVersionUID = 1L;
     public void setUpdateTime(Date updateTime) { this.updateTime = updateTime; }
     public String getRemark() { return remark; }
     public void setRemark(String remark) { this.remark = remark; }
+    public String getSourceType() { return sourceType; }
+    public void setSourceType(String sourceType) { this.sourceType = sourceType; }
+    public Long getAiSessionId() { return aiSessionId; }
+    public void setAiSessionId(Long aiSessionId) { this.aiSessionId = aiSessionId; }
+    public String getAiSummary() { return aiSummary; }
+    public void setAiSummary(String aiSummary) { this.aiSummary = aiSummary; }
+    public String getDispatchMode() { return dispatchMode; }
+    public void setDispatchMode(String dispatchMode) { this.dispatchMode = dispatchMode; }
+    public String getDispatchReason() { return dispatchReason; }
+    public void setDispatchReason(String dispatchReason) { this.dispatchReason = dispatchReason; }
     public List<TicketComment> getComments() { return comments; }
     public void setComments(List<TicketComment> comments) { this.comments = comments; }
     public List<TicketOperationLog> getLogs() { return logs; }

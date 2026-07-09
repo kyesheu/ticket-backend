@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ruoyi.ticket.mapper.TicketAiDispatchMapper">
+
+    <select id="countEnabledRule" resultType="int">
+        SELECT COUNT(1)
+        FROM ticket_dispatch_rule
+        WHERE category_id = #{categoryId}
+          AND handler_id = #{handlerId}
+          AND enabled = '1'
+          AND (priority IS NULL OR priority = '' OR priority = #{priority})
+        LIMIT 1
+    </select>
+
+    <insert id="insertLog" parameterType="com.ruoyi.ticket.domain.TicketAiDispatchLog" useGeneratedKeys="true" keyProperty="logId">
+        INSERT INTO ticket_ai_dispatch_log (
+            ticket_id, session_id, suggested_category_id, suggested_priority,
+            suggested_assignee_id, confidence, decision, reason, create_time
+        ) VALUES (
+            #{ticketId}, #{sessionId}, #{suggestedCategoryId}, #{suggestedPriority},
+            #{suggestedAssigneeId}, #{confidence}, #{decision}, #{reason}, #{createTime}
+        )
+    </insert>
+</mapper>

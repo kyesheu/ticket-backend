@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.ruoyi.common.exception.ServiceException;
 import com.ruoyi.common.utils.SecurityUtils;
 import com.ruoyi.common.utils.StringUtils;
+import com.ruoyi.ticket.domain.TicketAiDispatchLog;
 import com.ruoyi.ticket.domain.TicketAiEscalation;
 import com.ruoyi.ticket.domain.TicketAiSession;
 import com.ruoyi.ticket.domain.TicketAiSessionSource;
@@ -13,7 +14,9 @@ import com.ruoyi.ticket.dto.TicketAiEscalateDTO;
 import com.ruoyi.ticket.dto.TicketAiQuestionAnswerRequestDTO;
 import com.ruoyi.ticket.dto.TicketAiTriageDecisionDTO;
 import com.ruoyi.ticket.dto.TicketCreateDTO;
+import com.ruoyi.ticket.mapper.TicketAiDispatchMapper;
 import com.ruoyi.ticket.mapper.TicketAiSessionMapper;
+import com.ruoyi.ticket.mapper.TicketMapper;
 import com.ruoyi.ticket.service.ITicketAiQuestionService;
 import com.ruoyi.ticket.service.ITicketAiService;
 import com.ruoyi.ticket.service.ITicketAiTriageService;
@@ -35,6 +38,12 @@ import org.springframework.stereotype.Service;
 public class TicketAiQuestionServiceImpl implements ITicketAiQuestionService {
 
     private static final double AUTO_ASSIGN_CONFIDENCE = 0.75D;
+    private static final String SOURCE_TYPE_AI_ESCALATION = "AI_ESCALATION";
+    private static final String DISPATCH_AUTO_ASSIGNED = "auto_assigned";
+    private static final String DISPATCH_MANUAL_REQUIRED = "manual_required";
+    private static final String DISPATCH_REJECTED = "rejected";
+    private static final String DISPATCH_MODE_AI_AUTO = "AI_AUTO";
+    private static final String DISPATCH_MODE_MANUAL = "MANUAL";
 
     @Autowired(required = false)
     private ITicketAiService ticketAiService;
@@ -47,6 +56,12 @@ public class TicketAiQuestionServiceImpl implements ITicketAiQuestionService {
 
     @Autowired
     private TicketAiSessionMapper ticketAiSessionMapper;
+
+    @Autowired
+    private TicketAiDispatchMapper ticketAiDispatchMapper;
+
+    @Autowired
+    private TicketMapper ticketMapper;
 
     private final ObjectMapper objectMapper = new ObjectMapper();
 
@@ -94,11 +109,17 @@ public class TicketAiQuestionServiceImpl implements ITicketAiQuestionService {
                 ticketAiTriageService.apply(triage.getSuggestionId(), decision);
                 result.setAutoAssigned(true);
                 result.setDispatchReason("AI 自动分派成功");
+                updateDispatchResult(ticketId, DISPATCH_MODE_AI_AUTO, result.getDispatchReason());
+                saveDispatchLog(dto.getSessionId(), ticketId, triage, DISPATCH_AUTO_ASSIGNED, result.getDispatchReason());
             } else {
                 result.setDispatchReason(dispatchPendingReason(triage));
+                updateDispatchResult(ticketId, DISPATCH_MODE_MANUAL, result.getDispatchReason());
+                saveDispatchLog(dto.getSessionId(), ticketId, triage, DISPATCH_MANUAL_REQUIRED, result.getDispatchReason());
             }
         } catch (Exception exception) {
             result.setDispatchReason("已创建工单，自动分派失败：" + safeMessage(exception));
+            updateDispatchResult(ticketId, DISPATCH_MODE_MANUAL, result.getDispatchReason());
+            saveDispatchLog(dto.getSessionId(), ticketId, null, DISPATCH_REJECTED, result.getDispatchReason());
         }
         return result;
     }
@@ -159,6 +180,9 @@ public class TicketAiQuestionServiceImpl implements ITicketAiQuestionService {
         ticket.setCategoryId(dto.getCategoryId());
         ticket.setPriority(StringUtils.isBlank(dto.getPriority()) ? "MEDIUM" : dto.getPriority());
         ticket.setAttachmentIds(dto.getAttachmentIds());
+        ticket.setSourceType(SOURCE_TYPE_AI_ESCALATION);
+        ticket.setAiSessionId(dto.getSessionId());
+        ticket.setAiSummary(summary(dto));
         return ticket;
     }
 
@@ -192,7 +216,11 @@ public class TicketAiQuestionServiceImpl implements ITicketAiQuestionService {
                 && triage.getSuggestionId() != null
                 && triage.getSuggestedAssigneeId() != null
                 && triage.getConfidence() != null
-                && triage.getConfidence() >= AUTO_ASSIGN_CONFIDENCE;
+                && triage.getConfidence() >= AUTO_ASSIGN_CONFIDENCE
+                && ticketAiDispatchMapper.countEnabledRule(
+                        triage.getSuggestedCategoryId(),
+                        triage.getSuggestedAssigneeId(),
+                        triage.getSuggestedPriority()) > 0;
     }
 
     private String dispatchPendingReason(TicketAiTriageVO triage) {
@@ -205,9 +233,38 @@ public class TicketAiQuestionServiceImpl implements ITicketAiQuestionService {
         return "已创建工单，AI 分派置信度不足或缺少处理人";
     }
 
+    private void updateDispatchResult(Long ticketId, String dispatchMode, String dispatchReason) {
+        ticketMapper.updateAiDispatchResult(ticketId, dispatchMode, truncate(dispatchReason, 1000), SecurityUtils.getUsername());
+    }
+
+    private void saveDispatchLog(Long sessionId, Long ticketId, TicketAiTriageVO triage, String decision, String reason) {
+        TicketAiDispatchLog log = new TicketAiDispatchLog();
+        log.setTicketId(ticketId);
+        log.setSessionId(sessionId);
+        if (triage != null) {
+            log.setSuggestedCategoryId(triage.getSuggestedCategoryId());
+            log.setSuggestedPriority(triage.getSuggestedPriority());
+            log.setSuggestedAssigneeId(triage.getSuggestedAssigneeId());
+            log.setConfidence(triage.getConfidence() == null ? BigDecimal.ZERO : BigDecimal.valueOf(triage.getConfidence()));
+        } else {
+            log.setConfidence(BigDecimal.ZERO);
+        }
+        log.setDecision(decision);
+        log.setReason(truncate(reason, 1000));
+        log.setCreateTime(new Date());
+        ticketAiDispatchMapper.insertLog(log);
+    }
+
     private String summary(TicketAiEscalateDTO dto) {
         String answer = StringUtils.isBlank(dto.getAiAnswer()) ? "" : dto.getAiAnswer();
         return answer.length() > 1000 ? answer.substring(0, 1000) : answer;
+    }
+
+    private String truncate(String text, int length) {
+        if (text == null || text.length() <= length) {
+            return text;
+        }
+        return text.substring(0, length);
     }
 
     private String toJson(Object value) {

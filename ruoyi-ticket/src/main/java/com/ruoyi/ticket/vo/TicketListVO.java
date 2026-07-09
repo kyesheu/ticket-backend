@@ -63,6 +63,12 @@ private static final long serialVersionUID = 1L;
     @Schema(description = "解决是否超时：0否 1是")
     private String resolveOverdue;
 
+    @Schema(description = "分派方式：MANUAL/AI_AUTO")
+    private String dispatchMode;
+
+    @Schema(description = "分派原因")
+    private String dispatchReason;
+
     public Long getTicketId() { return ticketId; }
     public void setTicketId(Long ticketId) { this.ticketId = ticketId; }
     public String getTicketNo() { return ticketNo; }
@@ -91,4 +97,8 @@ private static final long serialVersionUID = 1L;
     public void setResponseOverdue(String responseOverdue) { this.responseOverdue = responseOverdue; }
     public String getResolveOverdue() { return resolveOverdue; }
     public void setResolveOverdue(String resolveOverdue) { this.resolveOverdue = resolveOverdue; }
+    public String getDispatchMode() { return dispatchMode; }
+    public void setDispatchMode(String dispatchMode) { this.dispatchMode = dispatchMode; }
+    public String getDispatchReason() { return dispatchReason; }
+    public void setDispatchReason(String dispatchReason) { this.dispatchReason = dispatchReason; }
 }

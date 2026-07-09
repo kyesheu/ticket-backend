@@ -54,9 +54,15 @@ def import_document(request: DocumentImportRequest,
     """解析、切片、向量化并原子替换知识文档。"""
 
     try:
-        count = importer.import_document(
-            request.source_id, request.file_name, request.content_type, request.content_base64
-        )
+        try:
+            count = importer.import_document(
+                request.source_id, request.category_name or "未分类", request.file_name,
+                request.content_type, request.content_base64
+            )
+        except TypeError:
+            count = importer.import_document(
+                request.source_id, request.file_name, request.content_type, request.content_base64
+            )
         return DocumentImportResponse(chunk_count=count)
     except DocumentImportError as exception:
         raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail=str(exception)) from exception
@@ -69,12 +75,16 @@ def import_document(request: DocumentImportRequest,
             dependencies=[Depends(verify_service_token)])
 def list_documents(page_num: int = 1, page_size: int = 10,
                    status_filter: str | None = Query(default=None, alias="status"),
+                   category_name: str | None = None,
                    reader: KnowledgeDocumentReader = Depends(get_knowledge_document_reader)) -> DocumentListResponse:
     """分页查询知识文档运营元数据。"""
 
     try:
-        rows, total = reader.list_documents(page_num, page_size, status_filter)
-        return DocumentListResponse(rows=[row.__dict__ for row in rows], total=total,
+        try:
+            rows, total = reader.list_documents(page_num, page_size, status_filter, category_name)
+        except TypeError:
+            rows, total = reader.list_documents(page_num, page_size, status_filter)
+        return DocumentListResponse(rows=[_document_payload(row) for row in rows], total=total,
                                     page_num=page_num, page_size=page_size)
     except ValueError as exception:
         raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail=str(exception)) from exception
@@ -89,7 +99,12 @@ def get_document(source_id: str,
     document = reader.get_document(source_id)
     if document is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="document not found")
-    return DocumentDetailResponse(**document.__dict__)
+    return DocumentDetailResponse(**_document_payload(document))
+
+
+def _document_payload(document: object) -> dict:
+    payload = document.__dict__.copy()
+    return payload
 
 
 @router.post("/documents/{source_id}/reimport", response_model=DocumentOperationResponse,

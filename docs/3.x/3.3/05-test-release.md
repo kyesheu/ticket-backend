@@ -21,7 +21,7 @@
 ### Smoke 步骤
 
 1. 启动 MySQL、Redis、Elasticsearch。
-2. 启动 Python：`ai-service\.venv\Scripts\python.exe -m uvicorn ticket_ai.main:app --app-dir ai-service\src --host 127.0.0.1 --port 8090`。
+2. 本地联调先从 `.env.example` 复制 `.env`，配置 `TICKET_AI_*`；Java 和 Python 都会读取后端根目录 `.env`。随后在后端根目录执行 `start.bat` 启动后端和 Python AI 服务。脚本会复用 `.env` 配置，未配置时才使用本地 smoke 默认值。
 3. 执行 smoke：`powershell scripts/ticket/v1.x/smoke-test.ps1`、`powershell scripts/ticket/v2.x/smoke-test.ps1`、`powershell scripts/ticket/v3.x/smoke-test.ps1`。
 4. 脚本会在 Java 未运行时打包并启动 `ticket-admin\target\ticket-admin.jar`；v3.x 脚本会在 Python 未运行时启动 `ai-service`。
 5. 检查 Java：`GET /actuator/health/liveness`、`GET /actuator/health/readiness`、`GET /actuator/prometheus`。

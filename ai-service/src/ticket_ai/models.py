@@ -23,6 +23,7 @@ class HealthResponse(StrictModel):
 class DocumentImportRequest(StrictModel):
     contract_version: Literal["v1"]
     source_id: str = Field(min_length=1, max_length=64)
+    category_name: str | None = Field(default="未分类", min_length=1, max_length=100)
     file_name: str = Field(min_length=1, max_length=255)
     content_type: str = Field(min_length=1, max_length=100)
     content_base64: str = Field(min_length=1)
@@ -31,6 +32,7 @@ class DocumentImportRequest(StrictModel):
 class DocumentSummary(StrictModel):
     source_id: str = Field(min_length=1, max_length=64)
     title: str = Field(min_length=1, max_length=255)
+    category_name: str | None = Field(default=None, max_length=100)
     status: Literal["ACTIVE", "IMPORTING", "FAILED", "DELETED"]
     chunk_count: int = Field(ge=0)
     summary: str | None = Field(default=None, max_length=500)

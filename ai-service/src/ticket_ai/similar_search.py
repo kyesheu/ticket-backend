@@ -119,7 +119,7 @@ class SimilarKnowledgeSearchService:
             index=self._knowledge_index,
             knn={"field": "vector", "query_vector": vector, "k": limit,
                  "num_candidates": max(50, limit * 10), "filter": {"term": {"active": True}}},
-            source=["source_id", "title", "content", "chunk_index", "generation"],
+            source=["source_id", "title", "category_name", "content", "chunk_index", "generation"],
         )
         return [self._document_result(hit) for hit in self._hits(response)]
 
@@ -138,10 +138,13 @@ class SimilarKnowledgeSearchService:
 
     def _document_result(self, hit: dict) -> SimilarKnowledgeResult:
         source = hit["_source"]
+        metadata = {"chunk_index": source["chunk_index"], "generation": source["generation"]}
+        if source.get("category_name"):
+            metadata["category"] = source["category_name"]
         return SimilarKnowledgeResult(
             "knowledge_document", str(source["source_id"]), str(source["title"]),
             str(source["content"]), float(hit["_score"]),
-            {"chunk_index": source["chunk_index"], "generation": source["generation"]},
+            metadata,
         )
 
     def _history_result(self, hit: dict) -> SimilarKnowledgeResult:

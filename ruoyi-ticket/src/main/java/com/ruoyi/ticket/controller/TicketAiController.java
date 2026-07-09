@@ -55,8 +55,10 @@ public class TicketAiController extends BaseController {
     @Log(title = "AI 知识文档", businessType = BusinessType.INSERT)
     @PreAuthorize("@ss.hasPermi('ticket:ai:document:import')")
     @PostMapping("/document/import")
-    public AjaxResult importDocument(@RequestParam String sourceId, @RequestParam("file") MultipartFile file) {
-        return success(ticketAiDocumentService.importDocument(sourceId, file));
+    public AjaxResult importDocument(@RequestParam String sourceId,
+                                     @RequestParam(required = false) String categoryName,
+                                     @RequestParam("file") MultipartFile file) {
+        return success(ticketAiDocumentService.importDocument(sourceId, categoryName, file));
     }
 
     @Operation(summary = "分页查询知识文档")

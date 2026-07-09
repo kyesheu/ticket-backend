@@ -254,8 +254,9 @@ async def test_document_list_returns_management_metadata(client: AsyncClient) ->
 
     assert response.status_code == 200
     assert response.json() == {
-        "rows": [{
-            "source_id": "doc-1", "title": "Redis 指南", "status": "ACTIVE", "chunk_count": 3,
+            "rows": [{
+            "source_id": "doc-1", "title": "Redis 指南", "category_name": "未分类",
+            "status": "ACTIVE", "chunk_count": 3,
             "summary": "缓存方案", "last_imported_at": None, "last_import_result": "SUCCESS",
             "failure_reason_summary": None,
         }],

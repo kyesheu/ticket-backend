@@ -18,7 +18,7 @@ public interface ITicketAiDocumentService {
      * @param file 上传文件
      * @return Python 导入结果
      */
-    TicketAiAcceptedVO importDocument(String sourceId, MultipartFile file);
+    TicketAiAcceptedVO importDocument(String sourceId, String categoryName, MultipartFile file);
 
     /**
      * 分页查询知识文档。

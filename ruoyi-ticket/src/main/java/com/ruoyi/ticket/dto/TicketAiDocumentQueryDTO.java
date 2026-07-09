@@ -15,6 +15,7 @@ public class TicketAiDocumentQueryDTO implements Serializable {
     private Integer pageNum = 1;
     private Integer pageSize = 10;
     private String status;
+    private String categoryName;
 
     public String getContractVersion() { return contractVersion; }
     public void setContractVersion(String contractVersion) { this.contractVersion = contractVersion; }
@@ -24,4 +25,6 @@ public class TicketAiDocumentQueryDTO implements Serializable {
     public void setPageSize(Integer pageSize) { this.pageSize = pageSize; }
     public String getStatus() { return status; }
     public void setStatus(String status) { this.status = status; }
+    public String getCategoryName() { return categoryName; }
+    public void setCategoryName(String categoryName) { this.categoryName = categoryName; }
 }

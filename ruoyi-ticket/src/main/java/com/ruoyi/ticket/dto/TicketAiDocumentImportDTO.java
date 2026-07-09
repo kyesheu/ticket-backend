@@ -13,6 +13,7 @@ public class TicketAiDocumentImportDTO implements Serializable {
 
     private String contractVersion = "v1";
     private String sourceId;
+    private String categoryName;
     private String fileName;
     private String contentType;
     private String contentBase64;
@@ -21,6 +22,8 @@ public class TicketAiDocumentImportDTO implements Serializable {
     public void setContractVersion(String contractVersion) { this.contractVersion = contractVersion; }
     public String getSourceId() { return sourceId; }
     public void setSourceId(String sourceId) { this.sourceId = sourceId; }
+    public String getCategoryName() { return categoryName; }
+    public void setCategoryName(String categoryName) { this.categoryName = categoryName; }
     public String getFileName() { return fileName; }
     public void setFileName(String fileName) { this.fileName = fileName; }
     public String getContentType() { return contentType; }

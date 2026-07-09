@@ -9,7 +9,10 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 class Settings(BaseSettings):
     """从环境变量读取的服务配置。"""
 
-    model_config = SettingsConfigDict(env_prefix="TICKET_AI_", extra="ignore")
+    model_config = SettingsConfigDict(
+        env_prefix="TICKET_AI_",
+        extra="ignore",
+    )
 
     service_token: str = Field(min_length=16)
     contract_version: str = "v1"
@@ -43,4 +46,4 @@ class Settings(BaseSettings):
 def get_settings() -> Settings:
     """返回进程级不可变配置。"""
 
-    return Settings()
+    return Settings(_env_file=("../.env", ".env"), _env_file_encoding="utf-8")

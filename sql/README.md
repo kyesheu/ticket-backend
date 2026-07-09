@@ -12,6 +12,7 @@ ticket-v2.0.sql      →  动态流程引擎
 ticket-v2.1.sql      →  自定义字段
 ticket-v2.2.sql      →  附件管理
 ticket-v2.3.sql      →  Elasticsearch 检索事件
+ticket-v3.0.sql      →  AI 知识库菜单与权限
 ticket-v3.1.sql      →  AI 分诊建议
 ticket-v3.2.sql      →  AI 反馈与评测
 ```
@@ -21,7 +22,7 @@ ticket-v3.2.sql      →  AI 反馈与评测
 | 版本 | 原因 |
 |---|---|
 | v1.3 | 部门数据权限，复用 RuoYi 现有表 |
-| v3.0 | AI 知识库与 RAG，数据存 Elasticsearch，无 MySQL 新表 |
+| v3.0 | AI 知识库与 RAG，业务数据存 Elasticsearch，无 MySQL 业务表 |
 | v3.3 | 生产化收尾，不新增业务表 |
 
 ## 约定

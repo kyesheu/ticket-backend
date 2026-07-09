@@ -38,8 +38,12 @@ public class TicketAiDocumentServiceImpl implements ITicketAiDocumentService {
         this.properties = properties;
     }
 
-    @Override
     public TicketAiAcceptedVO importDocument(String sourceId, MultipartFile file) {
+        return importDocument(sourceId, null, file);
+    }
+
+    @Override
+    public TicketAiAcceptedVO importDocument(String sourceId, String categoryName, MultipartFile file) {
         validateSourceId(sourceId);
         if (file == null || file.isEmpty()) {
             throw new ServiceException("知识文档不能为空");
@@ -59,6 +63,7 @@ public class TicketAiDocumentServiceImpl implements ITicketAiDocumentService {
         try {
             TicketAiDocumentImportDTO dto = new TicketAiDocumentImportDTO();
             dto.setSourceId(sourceId);
+            dto.setCategoryName(StringUtils.hasText(categoryName) ? categoryName.trim() : "未分类");
             dto.setFileName(fileName);
             dto.setContentType(expectedContentType);
             dto.setContentBase64(Base64.getEncoder().encodeToString(file.getBytes()));

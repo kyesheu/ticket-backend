@@ -79,6 +79,9 @@ public class HttpTicketAiServiceImpl implements ITicketAiService {
         if (dto.getStatus() != null && !dto.getStatus().isBlank()) {
             path = path + "&status=" + encode(dto.getStatus());
         }
+        if (dto.getCategoryName() != null && !dto.getCategoryName().isBlank()) {
+            path = path + "&category_name=" + encode(dto.getCategoryName());
+        }
         return get(path, TicketAiDocumentListVO.class);
     }
 

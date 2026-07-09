@@ -30,6 +30,7 @@ class KnowledgeChunk:
     """准备写入向量库的知识切片。"""
 
     source_id: str
+    category_name: str
     title: str
     chunk_index: int
     content: str
@@ -47,6 +48,7 @@ class KnowledgeDocumentSummary:
     last_imported_at: datetime | None
     last_import_result: Literal["SUCCESS", "FAILED", "PENDING"] | None
     failure_reason_summary: str | None
+    category_name: str | None = "未分类"
 
 
 class KnowledgeWriter(Protocol):
@@ -58,8 +60,8 @@ class KnowledgeWriter(Protocol):
 class KnowledgeDocumentReader(Protocol):
     """读取知识文档运营元数据。"""
 
-    def list_documents(self, page_num: int, page_size: int,
-                       status: str | None = None) -> tuple[list[KnowledgeDocumentSummary], int]: ...
+    def list_documents(self, page_num: int, page_size: int, status: str | None = None,
+                       category_name: str | None = None) -> tuple[list[KnowledgeDocumentSummary], int]: ...
 
     def get_document(self, source_id: str) -> KnowledgeDocumentSummary | None: ...
 
@@ -85,7 +87,14 @@ class DocumentImporter:
             length_function=len,
         )
 
-    def import_document(self, source_id: str, file_name: str, content_type: str, encoded: str) -> int:
+    def import_document(self, source_id: str, *args: str) -> int:
+        if len(args) == 3:
+            category_name = "未分类"
+            file_name, content_type, encoded = args
+        elif len(args) == 4:
+            category_name, file_name, content_type, encoded = args
+        else:
+            raise TypeError("import_document expects source_id plus 3 or 4 arguments")
         extension = PurePath(file_name).suffix.lower()
         if ALLOWED_TYPES.get(extension) != content_type:
             raise DocumentImportError("unsupported document type")
@@ -101,7 +110,8 @@ class DocumentImporter:
         if not text:
             raise DocumentImportError("document contains no extractable text")
         pieces = self._splitter.split_text(text)
-        chunks = [KnowledgeChunk(source_id, file_name, index, piece) for index, piece in enumerate(pieces)]
+        clean_category = category_name.strip() or "未分类"
+        chunks = [KnowledgeChunk(source_id, clean_category, file_name, index, piece) for index, piece in enumerate(pieces)]
         self._writer.replace(source_id, chunks)
         return len(chunks)
 
@@ -144,6 +154,7 @@ class ElasticsearchKnowledgeWriter:
                 "_source": {
                     "source_type": "DOCUMENT",
                     "source_id": source_id,
+                    "category_name": chunk.category_name,
                     "title": chunk.title,
                     "chunk_index": chunk.chunk_index,
                     "content": chunk.content,
@@ -177,6 +188,7 @@ class ElasticsearchKnowledgeWriter:
 
     def _ensure_index(self, dimensions: int) -> None:
         if self._client.indices.exists(index=self._index_name):
+            self._ensure_category_mapping()
             return
         self._client.indices.create(
             index=self._index_name,
@@ -185,6 +197,7 @@ class ElasticsearchKnowledgeWriter:
                 "properties": {
                     "source_type": {"type": "keyword"},
                     "source_id": {"type": "keyword"},
+                    "category_name": {"type": "keyword"},
                     "title": {"type": "text"},
                     "chunk_index": {"type": "integer"},
                     "content": {"type": "text"},
@@ -195,6 +208,15 @@ class ElasticsearchKnowledgeWriter:
             },
         )
 
+    def _ensure_category_mapping(self) -> None:
+        mapping = self._client.indices.get_mapping(index=self._index_name)
+        properties = mapping.get(self._index_name, {}).get("mappings", {}).get("properties", {})
+        if "category_name" not in properties:
+            self._client.indices.put_mapping(
+                index=self._index_name,
+                properties={"category_name": {"type": "keyword"}},
+            )
+
 
 class ElasticsearchKnowledgeDocumentReader:
     """从 Elasticsearch 有效切片聚合知识文档管理元数据。"""
@@ -203,8 +225,8 @@ class ElasticsearchKnowledgeDocumentReader:
         self._client = client
         self._index_name = index_name
 
-    def list_documents(self, page_num: int, page_size: int,
-                       status: str | None = None) -> tuple[list[KnowledgeDocumentSummary], int]:
+    def list_documents(self, page_num: int, page_size: int, status: str | None = None,
+                       category_name: str | None = None) -> tuple[list[KnowledgeDocumentSummary], int]:
         if page_num < 1 or page_size < 1 or page_size > 100:
             raise ValueError("invalid pagination")
         if status not in {None, "ACTIVE"}:
@@ -212,15 +234,18 @@ class ElasticsearchKnowledgeDocumentReader:
         if not self._client.indices.exists(index=self._index_name):
             return [], 0
         start = (page_num - 1) * page_size
+        filters = [{"term": {"active": True}}]
+        if category_name:
+            filters.append({"term": {"category_name": category_name}})
         response = self._client.search(
             index=self._index_name,
             size=0,
-            query={"term": {"active": True}},
+            query={"bool": {"filter": filters}},
             aggs={
                 "documents": {
                     "terms": {"field": "source_id", "size": start + page_size, "order": {"_key": "asc"}},
                     "aggs": {
-                        "title": {"top_hits": {"size": 1, "_source": ["title"]}},
+                        "title": {"top_hits": {"size": 1, "_source": ["title", "category_name"]}},
                         "chunk_count": {"value_count": {"field": "chunk_index"}},
                     },
                 }
@@ -241,7 +266,7 @@ class ElasticsearchKnowledgeDocumentReader:
                 "documents": {
                     "terms": {"field": "source_id", "size": 1},
                     "aggs": {
-                        "title": {"top_hits": {"size": 1, "_source": ["title"]}},
+                        "title": {"top_hits": {"size": 1, "_source": ["title", "category_name"]}},
                         "chunk_count": {"value_count": {"field": "chunk_index"}},
                     },
                 }
@@ -274,10 +299,12 @@ class ElasticsearchKnowledgeDocumentReader:
 
     def _bucket_to_summary(self, bucket: dict) -> KnowledgeDocumentSummary:
         title_hits = bucket.get("title", {}).get("hits", {}).get("hits", [])
-        title = title_hits[0].get("_source", {}).get("title", bucket["key"]) if title_hits else bucket["key"]
+        source = title_hits[0].get("_source", {}) if title_hits else {}
+        title = source.get("title", bucket["key"])
         return KnowledgeDocumentSummary(
             source_id=bucket["key"],
             title=title,
+            category_name=source.get("category_name", "未分类"),
             status="ACTIVE",
             chunk_count=int(bucket.get("chunk_count", {}).get("value", bucket.get("doc_count", 0))),
             summary=None,

@@ -14,6 +14,7 @@ public class TicketAiDocumentDetailVO implements Serializable {
 
     private String sourceId;
     private String title;
+    private String categoryName;
     private String status;
     private Integer chunkCount;
     private String summary;
@@ -25,6 +26,8 @@ public class TicketAiDocumentDetailVO implements Serializable {
     public void setSourceId(String sourceId) { this.sourceId = sourceId; }
     public String getTitle() { return title; }
     public void setTitle(String title) { this.title = title; }
+    public String getCategoryName() { return categoryName; }
+    public void setCategoryName(String categoryName) { this.categoryName = categoryName; }
     public String getStatus() { return status; }
     public void setStatus(String status) { this.status = status; }
     public Integer getChunkCount() { return chunkCount; }

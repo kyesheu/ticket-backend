@@ -5,6 +5,7 @@ import com.ruoyi.common.utils.SecurityUtils;
 import com.ruoyi.ticket.domain.TicketNotification;
 import com.ruoyi.ticket.dto.TicketNotificationQueryDTO;
 import com.ruoyi.ticket.mapper.TicketNotificationMapper;
+import com.ruoyi.ticket.messaging.TicketNotificationMessageDispatcher;
 import com.ruoyi.ticket.vo.TicketNotificationVO;
 import com.ruoyi.ticket.enums.TicketNotificationType;
 import org.junit.jupiter.api.AfterEach;
@@ -34,6 +35,9 @@ class TicketNotificationServiceImplTest {
 
     @Mock
     private TicketNotificationMapper ticketNotificationMapper;
+
+    @Mock
+    private TicketNotificationMessageDispatcher messageDispatcher;
 
     @InjectMocks
     private TicketNotificationServiceImpl ticketNotificationService;
@@ -111,18 +115,16 @@ class TicketNotificationServiceImplTest {
                 TicketNotificationType.ASSIGNED, "ASSIGNED:1", "标题", "内容");
 
         assertThat(rows).isZero();
-        verify(ticketNotificationMapper, never()).insertNotification(any());
+        verify(messageDispatcher, never()).dispatch(any());
     }
 
     @Test
-    @DisplayName("通知接收人与操作人不同时应写入通知")
-    void createNotificationShouldInsertForRecipient() {
-        when(ticketNotificationMapper.insertNotification(any())).thenReturn(1);
-
+    @DisplayName("通知接收人与操作人不同时应投递通知消息")
+    void createNotificationShouldDispatchForRecipient() {
         int rows = ticketNotificationService.createNotification(1L, 8L, 7L,
                 TicketNotificationType.ASSIGNED, "ASSIGNED:1", "标题", "内容");
 
         assertThat(rows).isOne();
-        verify(ticketNotificationMapper).insertNotification(any());
+        verify(messageDispatcher).dispatch(any());
     }
 }

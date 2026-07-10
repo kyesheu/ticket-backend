@@ -12,6 +12,7 @@ import com.ruoyi.ticket.dto.TicketAiAssistRequestDTO;
 import com.ruoyi.ticket.dto.TicketAiContextDTO;
 import com.ruoyi.ticket.dto.TicketAiDocumentImportDTO;
 import com.ruoyi.ticket.dto.TicketAiDocumentQueryDTO;
+import com.ruoyi.ticket.dto.TicketAiQuestionAnswerRequestDTO;
 import com.ruoyi.ticket.dto.TicketAiSimilarSearchDTO;
 import com.ruoyi.ticket.dto.TicketAiTriageRequestDTO;
 import com.ruoyi.ticket.exception.TicketAiServiceException;
@@ -22,6 +23,7 @@ import com.ruoyi.ticket.vo.TicketAiClosedTicketSyncVO;
 import com.ruoyi.ticket.vo.TicketAiDocumentDetailVO;
 import com.ruoyi.ticket.vo.TicketAiDocumentListVO;
 import com.ruoyi.ticket.vo.TicketAiHealthVO;
+import com.ruoyi.ticket.vo.TicketAiQuestionAnswerVO;
 import com.ruoyi.ticket.vo.TicketAiSearchResultVO;
 import com.ruoyi.ticket.vo.TicketAiSimilarSearchResultVO;
 import com.ruoyi.ticket.vo.TicketAiTriageVO;
@@ -121,6 +123,11 @@ public class HttpTicketAiServiceImpl implements ITicketAiService {
     }
 
     @Override
+    public TicketAiQuestionAnswerVO ask(TicketAiQuestionAnswerRequestDTO dto) {
+        return post("/api/v1/qa/ask", dto, TicketAiQuestionAnswerVO.class);
+    }
+
+    @Override
     public TicketAiTriageVO triage(TicketAiTriageRequestDTO dto) {
         return post("/api/v1/tickets/triage", dto, TicketAiTriageVO.class);
     }
@@ -177,7 +184,7 @@ public class HttpTicketAiServiceImpl implements ITicketAiService {
             HttpResponse<InputStream> response = httpClient.send(request, HttpResponse.BodyHandlers.ofInputStream());
             byte[] body = readBounded(response.body());
             if (response.statusCode() < 200 || response.statusCode() >= 300) {
-                throw new TicketAiServiceException("AI 服务返回异常状态: " + response.statusCode());
+                throw new TicketAiServiceException("AI 服务返回异常状态: " + response.statusCode() + ", " + new String(body, StandardCharsets.UTF_8));
             }
             return objectMapper.readValue(body, responseType);
         } catch (InterruptedException exception) {

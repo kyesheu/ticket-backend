@@ -125,6 +125,23 @@ class AssistResponse(StrictModel):
     reason: str | None = None
 
 
+class QuestionAnswerRequest(StrictModel):
+    contract_version: Literal["v1"]
+    question: str = Field(min_length=1, max_length=10000)
+    category: str | None = Field(default=None, max_length=100)
+    top_k: int = Field(default=5, ge=1, le=20)
+
+
+class QuestionAnswerResponse(StrictModel):
+    answer: str
+    suggestion: str
+    confidence: float = Field(ge=0, le=1)
+    need_human: bool
+    sources: list[SourceItem]
+    degraded: bool
+    reason: str | None = None
+
+
 class TriageCategoryCandidate(StrictModel):
     category_id: int = Field(gt=0)
     category_name: str = Field(min_length=1, max_length=100)

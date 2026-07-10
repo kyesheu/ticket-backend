@@ -68,6 +68,21 @@ public class Ticket extends BaseEntity {
     /** 解决是否超时：0 未超时，1 已超时 */
     private String resolveOverdue;
 
+    /** 来源类型：MANUAL/AI_ESCALATION */
+    private String sourceType;
+
+    /** 来源 AI 问答会话 ID */
+    private Long aiSessionId;
+
+    /** AI 问答摘要 */
+    private String aiSummary;
+
+    /** 分派方式：MANUAL/AI_AUTO */
+    private String dispatchMode;
+
+    /** 分派原因 */
+    private String dispatchReason;
+
     /** 删除标志：0存在 2删除 */
     private String delFlag;
 
@@ -211,6 +226,46 @@ public class Ticket extends BaseEntity {
 
     public void setResolveOverdue(String resolveOverdue) {
         this.resolveOverdue = resolveOverdue;
+    }
+
+    public String getSourceType() {
+        return sourceType;
+    }
+
+    public void setSourceType(String sourceType) {
+        this.sourceType = sourceType;
+    }
+
+    public Long getAiSessionId() {
+        return aiSessionId;
+    }
+
+    public void setAiSessionId(Long aiSessionId) {
+        this.aiSessionId = aiSessionId;
+    }
+
+    public String getAiSummary() {
+        return aiSummary;
+    }
+
+    public void setAiSummary(String aiSummary) {
+        this.aiSummary = aiSummary;
+    }
+
+    public String getDispatchMode() {
+        return dispatchMode;
+    }
+
+    public void setDispatchMode(String dispatchMode) {
+        this.dispatchMode = dispatchMode;
+    }
+
+    public String getDispatchReason() {
+        return dispatchReason;
+    }
+
+    public void setDispatchReason(String dispatchReason) {
+        this.dispatchReason = dispatchReason;
     }
 
     public String getDelFlag() {

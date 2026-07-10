@@ -6,10 +6,13 @@ import com.ruoyi.ticket.domain.TicketNotification;
 import com.ruoyi.ticket.dto.TicketNotificationQueryDTO;
 import com.ruoyi.ticket.enums.TicketNotificationType;
 import com.ruoyi.ticket.mapper.TicketNotificationMapper;
+import com.ruoyi.ticket.messaging.TicketNotificationMessage;
+import com.ruoyi.ticket.messaging.TicketNotificationMessageDispatcher;
 import com.ruoyi.ticket.service.ITicketNotificationService;
 import com.ruoyi.ticket.vo.TicketNotificationVO;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import java.util.List;
 import java.util.Date;
@@ -21,8 +24,14 @@ public class TicketNotificationServiceImpl implements ITicketNotificationService
 
     private static final String READ_STATUS = "1";
 
-    @Autowired
-    private TicketNotificationMapper ticketNotificationMapper;
+    private final TicketNotificationMapper ticketNotificationMapper;
+    private final TicketNotificationMessageDispatcher messageDispatcher;
+
+    public TicketNotificationServiceImpl(TicketNotificationMapper ticketNotificationMapper,
+                                         TicketNotificationMessageDispatcher messageDispatcher) {
+        this.ticketNotificationMapper = ticketNotificationMapper;
+        this.messageDispatcher = messageDispatcher;
+    }
 
     @Override
     public List<TicketNotificationVO> selectMyNotifications(TicketNotificationQueryDTO query) {
@@ -58,15 +67,22 @@ public class TicketNotificationServiceImpl implements ITicketNotificationService
         if (recipientId == null || Objects.equals(recipientId, operatorId)) {
             return 0;
         }
-        TicketNotification notification = new TicketNotification();
-        notification.setTicketId(ticketId);
-        notification.setRecipientId(recipientId);
-        notification.setNotificationType(type.name());
-        notification.setEventKey(eventKey);
-        notification.setTitle(title);
-        notification.setContent(content);
-        notification.setReadStatus("0");
-        notification.setCreateTime(new Date());
-        return ticketNotificationMapper.insertNotification(notification);
+        TicketNotificationMessage message = new TicketNotificationMessage(ticketId, recipientId,
+                type.name(), eventKey, title, content, new Date());
+        dispatchAfterCommit(message);
+        return 1;
+    }
+
+    private void dispatchAfterCommit(TicketNotificationMessage message) {
+        if (!TransactionSynchronizationManager.isSynchronizationActive()) {
+            messageDispatcher.dispatch(message);
+            return;
+        }
+        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+            @Override
+            public void afterCommit() {
+                messageDispatcher.dispatch(message);
+            }
+        });
     }
 }

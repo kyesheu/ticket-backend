@@ -99,4 +99,14 @@ public interface TicketMapper {
 
     /** 条件标记解决超时，已标记时返回 0。 */
     int markResolveOverdue(@Param("ticketId") Long ticketId);
+
+    int updateAiTriageFields(@Param("ticketId") Long ticketId,
+                             @Param("categoryId") Long categoryId,
+                             @Param("priority") String priority,
+                             @Param("updateBy") String updateBy);
+
+    int updateAiDispatchResult(@Param("ticketId") Long ticketId,
+                               @Param("dispatchMode") String dispatchMode,
+                               @Param("dispatchReason") String dispatchReason,
+                               @Param("updateBy") String updateBy);
 }

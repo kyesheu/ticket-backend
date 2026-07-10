@@ -15,6 +15,8 @@ public interface TicketOperationLogMapper {
      */
     List<TicketOperationLog> selectLogsByTicketId(Long ticketId);
 
+    TicketOperationLog selectLatestProcessLog(Long ticketId);
+
     /**
      * 新增操作日志
      */

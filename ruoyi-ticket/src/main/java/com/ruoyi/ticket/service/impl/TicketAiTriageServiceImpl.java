@@ -17,6 +17,7 @@ import com.ruoyi.ticket.dto.TicketAssignDTO;
 import com.ruoyi.ticket.enums.TicketAiTriageSuggestionStatus;
 import com.ruoyi.ticket.enums.TicketPriority;
 import com.ruoyi.ticket.mapper.TicketAiTriageSuggestionMapper;
+import com.ruoyi.ticket.mapper.TicketMapper;
 import com.ruoyi.ticket.service.ITicketAiService;
 import com.ruoyi.ticket.service.ITicketAiTriageService;
 import com.ruoyi.ticket.service.ITicketCategoryService;
@@ -61,6 +62,9 @@ public class TicketAiTriageServiceImpl implements ITicketAiTriageService {
 
     @Autowired
     private TicketAiTriageSuggestionMapper suggestionMapper;
+
+    @Autowired
+    private TicketMapper ticketMapper;
 
     private final ObjectMapper objectMapper = new ObjectMapper();
 
@@ -110,6 +114,12 @@ public class TicketAiTriageServiceImpl implements ITicketAiTriageService {
         if (suggestionMapper.applyPending(update) == 0) {
             throw new ServiceException("分诊建议已处理");
         }
+
+        ticketMapper.updateAiTriageFields(
+                suggestion.getTicketId(),
+                finalDecision.getCategoryId(),
+                finalDecision.getPriority(),
+                SecurityUtils.getUsername());
 
         TicketAssignDTO assignDTO = new TicketAssignDTO();
         assignDTO.setAssigneeId(finalDecision.getAssigneeId());

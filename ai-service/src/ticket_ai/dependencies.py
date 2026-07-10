@@ -45,6 +45,7 @@ def _create_embeddings(settings):
         base_url=settings.embedding_base_url,
         model=settings.embedding_model,
         request_timeout=settings.external_timeout_seconds,
+        check_embedding_ctx_length=False,
     )
 
 

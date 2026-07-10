@@ -44,6 +44,10 @@ private static final long serialVersionUID = 1L;
     @Schema(description = "解决是否超时：0否 1是")
     private String resolveOverdue;
 
+    /** 仅允许 Service 写入的处理人筛选。 */
+    @JsonIgnore
+    private Long assigneeId;
+
     @Schema(description = "页码")
     private Integer pageNum;
 
@@ -72,6 +76,8 @@ private static final long serialVersionUID = 1L;
     public void setResponseOverdue(String responseOverdue) { this.responseOverdue = responseOverdue; }
     public String getResolveOverdue() { return resolveOverdue; }
     public void setResolveOverdue(String resolveOverdue) { this.resolveOverdue = resolveOverdue; }
+    public Long getAssigneeId() { return assigneeId; }
+    public void setAssigneeId(Long assigneeId) { this.assigneeId = assigneeId; }
     public Integer getPageNum() { return pageNum; }
     public void setPageNum(Integer pageNum) { this.pageNum = pageNum; }
     public Integer getPageSize() { return pageSize; }

@@ -138,6 +138,13 @@ spring:
           max-active: ${REDIS_POOL_MAX_ACTIVE:8}
           max-wait: ${REDIS_POOL_MAX_WAIT:-1ms}
 
+  rabbitmq:
+    host: ${TICKET_RABBITMQ_HOST:localhost}
+    port: ${TICKET_RABBITMQ_PORT:5672}
+    username: ${TICKET_RABBITMQ_USERNAME:ticket}
+    password: ${TICKET_RABBITMQ_PASSWORD:ticket-local-password}
+    virtual-host: ${TICKET_RABBITMQ_VHOST:/}
+
 # 用户配置
 user:
   password:
@@ -230,3 +237,5 @@ ticket:
     connect-timeout: ${TICKET_AI_CONNECT_TIMEOUT:2s}
     read-timeout: ${TICKET_AI_READ_TIMEOUT:10s}
     max-response-bytes: ${TICKET_AI_MAX_RESPONSE_BYTES:1048576}
+  messaging:
+    enabled: ${TICKET_MESSAGING_ENABLED:false}

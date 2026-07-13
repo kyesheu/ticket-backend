@@ -31,6 +31,17 @@ def test_imports_utf8_text_and_splits_content() -> None:
     assert [chunk.chunk_index for chunk in writer.calls[0][1]] == list(range(count))
 
 
+def test_splits_long_chinese_paragraph_on_sentence_punctuation() -> None:
+    writer = RecordingWriter()
+    importer = DocumentImporter(writer, chunk_size=20, chunk_overlap=5)
+    content = "第一条政策必须完整保留。第二条政策必须完整保留。第三条政策必须完整保留。"
+
+    importer.import_document("doc-1", "policy.md", "text/markdown", encoded(content.encode("utf-8")))
+
+    chunks = [chunk.content for chunk in writer.calls[0][1]]
+    assert chunks == ["第一条政策必须完整保留。", "第二条政策必须完整保留。", "第三条政策必须完整保留。"]
+
+
 @pytest.mark.parametrize(
     ("file_name", "content_type", "content"),
     [

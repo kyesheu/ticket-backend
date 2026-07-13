@@ -85,6 +85,13 @@ class DocumentImporter:
             chunk_size=chunk_size,
             chunk_overlap=chunk_overlap,
             length_function=len,
+            keep_separator="end",
+            separators=[
+                "\n\n", "\n",
+                "。", "！", "？", "；",
+                "，", "、",
+                " ", "",
+            ],
         )
 
     def import_document(self, source_id: str, *args: str) -> int:
